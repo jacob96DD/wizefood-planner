@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const genderOptions = [
@@ -37,14 +40,194 @@ const allergens = [
   { id: 'celery', name: 'Selleri', icon: '🥬' },
 ];
 
+// Calculate calories using Mifflin-St Jeor formula
+function calculateMacros(
+  weight: number,
+  height: number,
+  age: number,
+  gender: string,
+  activityLevel: string,
+  goal: string
+) {
+  // BMR calculation
+  let bmr: number;
+  if (gender === 'male') {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+  }
+
+  // Activity multiplier
+  const activityMultipliers: Record<string, number> = {
+    sedentary: 1.2,
+    light: 1.375,
+    moderate: 1.55,
+    active: 1.725,
+    athlete: 1.9,
+  };
+
+  const tdee = bmr * (activityMultipliers[activityLevel] || 1.55);
+
+  // Goal adjustment
+  let calories: number;
+  if (goal === 'lose') {
+    calories = tdee - 500;
+  } else if (goal === 'gain') {
+    calories = tdee + 300;
+  } else {
+    calories = tdee;
+  }
+
+  // Macro distribution
+  const protein = Math.round((calories * 0.3) / 4); // 30% protein, 4 cal/g
+  const fat = Math.round((calories * 0.25) / 9); // 25% fat, 9 cal/g
+  const carbs = Math.round((calories * 0.45) / 4); // 45% carbs, 4 cal/g
+
+  return {
+    dailyCalories: Math.round(calories),
+    dailyProtein: protein,
+    dailyFat: fat,
+    dailyCarbs: carbs,
+  };
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { currentStep, data, nextStep, prevStep, updateData } = useOnboardingStore();
-  const { setIsOnboarded } = useAuthStore();
+  const { currentStep, data, nextStep, prevStep, updateData, reset } = useOnboardingStore();
+  const { user, setIsOnboarded, setProfile } = useAuthStore();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleComplete = () => {
-    setIsOnboarded(true);
-    navigate('/home');
+  const handleComplete = async () => {
+    if (!user) {
+      toast({
+        title: 'Fejl',
+        description: 'Du skal være logget ind for at fortsætte.',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // Calculate age from date of birth
+      const birthDate = new Date(data.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      // Calculate macros
+      const macros = calculateMacros(
+        data.weightKg!,
+        data.heightCm!,
+        age,
+        data.gender,
+        data.activityLevel,
+        data.dietaryGoal
+      );
+
+      // Update profile in Supabase
+      const profileData = {
+        id: user.id,
+        full_name: data.fullName,
+        gender: data.gender,
+        date_of_birth: data.dateOfBirth,
+        height_cm: data.heightCm,
+        weight_kg: data.weightKg,
+        age_years: age,
+        activity_level: data.activityLevel,
+        dietary_goal: data.dietaryGoal,
+        budget_per_week: data.budgetPerWeek,
+        people_count: data.peopleCount,
+        daily_calories: macros.dailyCalories,
+        daily_protein_target: macros.dailyProtein,
+        daily_carbs_target: macros.dailyCarbs,
+        daily_fat_target: macros.dailyFat,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('profiles')
+        .upsert(profileData)
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      // First, get allergen IDs from the database
+      const { data: allergenData, error: allergenFetchError } = await supabase
+        .from('allergens')
+        .select('id, name');
+
+      if (allergenFetchError) throw allergenFetchError;
+
+      // Delete existing user allergens
+      await supabase
+        .from('user_allergens')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Insert new user allergens
+      if (data.selectedAllergens.length > 0 && allergenData) {
+        // Map allergen names to database IDs
+        const allergenMap: Record<string, string> = {};
+        allergenData.forEach(a => {
+          allergenMap[a.name.toLowerCase()] = a.id;
+        });
+
+        const userAllergens = data.selectedAllergens
+          .map(allergenId => {
+            // Find matching allergen in database
+            const allergenName = allergens.find(a => a.id === allergenId)?.name.toLowerCase();
+            const dbAllergenId = allergenName ? allergenMap[allergenName] : null;
+            
+            if (dbAllergenId) {
+              return {
+                user_id: user.id,
+                allergen_id: dbAllergenId,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+
+        if (userAllergens.length > 0) {
+          const { error: allergenError } = await supabase
+            .from('user_allergens')
+            .insert(userAllergens);
+
+          if (allergenError) {
+            console.error('Error saving allergens:', allergenError);
+          }
+        }
+      }
+
+      // Update local state
+      setProfile(updatedProfile);
+      setIsOnboarded(true);
+      reset();
+
+      toast({
+        title: 'Profil gemt!',
+        description: 'Din profil er nu oprettet. Lad os finde nogle opskrifter!',
+      });
+
+      navigate('/home');
+    } catch (error: any) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: 'Fejl',
+        description: 'Der opstod en fejl ved gemning af din profil. Prøv igen.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const canProceed = () => {
@@ -348,9 +531,14 @@ export default function Onboarding() {
           size="xl"
           className="w-full"
           onClick={currentStep === 6 ? handleComplete : nextStep}
-          disabled={!canProceed()}
+          disabled={!canProceed() || isSaving}
         >
-          {currentStep === 6 ? (
+          {isSaving ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Gemmer...</span>
+            </>
+          ) : currentStep === 6 ? (
             <>
               <Check className="w-5 h-5" />
               <span>Kom i gang</span>

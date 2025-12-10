@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Loader2, ChefHat, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,39 +16,82 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setUser, setIsOnboarded, isOnboarded } = useAuthStore();
+  const { user, isOnboarded } = useAuthStore();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (isOnboarded) {
+        navigate('/home');
+      } else {
+        navigate('/onboarding');
+      }
+    }
+  }, [user, isOnboarded, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Demo mode - simulate auth
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Create mock user
-      const mockUser = {
-        id: 'demo-user-id',
-        email,
-        created_at: new Date().toISOString(),
-      } as any;
-      
-      setUser(mockUser);
-      
-      toast({
-        title: isLogin ? 'Velkommen tilbage!' : 'Konto oprettet!',
-        description: isLogin 
-          ? 'Du er nu logget ind.'
-          : 'Din konto er oprettet. Lad os sætte din profil op.',
-      });
+    try {
+      if (isLogin) {
+        // Sign in
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      // Navigate based on onboarding status
-      if (!isLogin || !isOnboarded) {
-        navigate('/onboarding');
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: 'Velkommen tilbage!',
+          description: 'Du er nu logget ind.',
+        });
       } else {
-        navigate('/home');
+        // Sign up
+        const redirectUrl = `${window.location.origin}/`;
+        
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectUrl,
+          },
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: 'Konto oprettet!',
+          description: 'Tjek din email for at bekræfte din konto, eller fortsæt direkte.',
+        });
       }
-    }, 1000);
+    } catch (error: any) {
+      let errorMessage = 'Der opstod en fejl. Prøv igen.';
+      
+      // Handle specific error messages
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Forkert email eller adgangskode.';
+      } else if (error.message.includes('User already registered')) {
+        errorMessage = 'Denne email er allerede registreret. Prøv at logge ind.';
+      } else if (error.message.includes('Password should be at least')) {
+        errorMessage = 'Adgangskoden skal være mindst 6 tegn.';
+      } else if (error.message.includes('Invalid email')) {
+        errorMessage = 'Ugyldig email adresse.';
+      }
+
+      toast({
+        title: 'Fejl',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -151,9 +195,9 @@ export default function Auth() {
         </CardContent>
       </Card>
 
-      {/* Demo notice */}
+      {/* Info notice */}
       <p className="mt-6 text-xs text-muted-foreground text-center max-w-xs">
-        Demo-tilstand: Forbind til ekstern Supabase for fuld funktionalitet
+        Ved at oprette en konto accepterer du vores vilkår og betingelser
       </p>
     </div>
   );
