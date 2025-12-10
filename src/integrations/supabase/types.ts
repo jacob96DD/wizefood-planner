@@ -96,48 +96,136 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
+          chain_id: string | null
           created_at: string
+          external_id: string | null
           flyer_date: string
           id: string
+          image_url: string | null
+          is_active: boolean | null
+          offer_price_dkk: number | null
+          offer_text: string | null
+          original_price_dkk: number | null
           price: number
+          product_id: string | null
           product_name: string
           quantity: number | null
           raw_text: string | null
+          scraped_at: string | null
           store_id: string
           unit: string | null
+          valid_from: string | null
+          valid_until: string | null
         }
         Insert: {
           brand?: string | null
           category?: string | null
+          chain_id?: string | null
           created_at?: string
+          external_id?: string | null
           flyer_date: string
           id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          offer_price_dkk?: number | null
+          offer_text?: string | null
+          original_price_dkk?: number | null
           price: number
+          product_id?: string | null
           product_name: string
           quantity?: number | null
           raw_text?: string | null
+          scraped_at?: string | null
           store_id: string
           unit?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Update: {
           brand?: string | null
           category?: string | null
+          chain_id?: string | null
           created_at?: string
+          external_id?: string | null
           flyer_date?: string
           id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          offer_price_dkk?: number | null
+          offer_text?: string | null
+          original_price_dkk?: number | null
           price?: number
+          product_id?: string | null
           product_name?: string
           quantity?: number | null
           raw_text?: string | null
+          scraped_at?: string | null
           store_id?: string
           unit?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "offers_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "store_chains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "offers_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          brand: string | null
+          chain_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          size_unit: string | null
+          size_value: number | null
+        }
+        Insert: {
+          brand?: string | null
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          size_unit?: string | null
+          size_value?: number | null
+        }
+        Update: {
+          brand?: string | null
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          size_unit?: string | null
+          size_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "store_chains"
             referencedColumns: ["id"]
           },
         ]
@@ -297,26 +385,58 @@ export type Database = {
           },
         ]
       }
-      stores: {
+      store_chains: {
         Row: {
-          chain: string
           created_at: string
           id: string
           name: string
         }
         Insert: {
-          chain: string
           created_at?: string
           id?: string
           name: string
         }
         Update: {
-          chain?: string
           created_at?: string
           id?: string
           name?: string
         }
         Relationships: []
+      }
+      stores: {
+        Row: {
+          chain: string
+          chain_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          chain: string
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          chain?: string
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "store_chains"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       swipes: {
         Row: {
