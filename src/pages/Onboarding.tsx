@@ -506,51 +506,54 @@ export default function Onboarding() {
         />
       </div>
 
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 pt-6">
-        {currentStep > 1 ? (
-          <Button variant="ghost" size="icon" onClick={prevStep}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        ) : (
-          <div className="w-10" />
-        )}
-        <span className="text-sm text-muted-foreground">Trin {currentStep} af 6</span>
-        <div className="w-10" />
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 px-6 py-4 overflow-y-auto">
-        {renderStep()}
-      </main>
-
-      {/* Footer */}
-      <footer className="p-6 safe-bottom">
-        <Button
-          variant="hero"
-          size="xl"
-          className="w-full"
-          onClick={currentStep === 6 ? handleComplete : nextStep}
-          disabled={!canProceed() || isSaving}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Gemmer...</span>
-            </>
-          ) : currentStep === 6 ? (
-            <>
-              <Check className="w-5 h-5" />
-              <span>Kom i gang</span>
-            </>
+      {/* Centered container for desktop */}
+      <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
+        {/* Header */}
+        <header className="flex items-center justify-between p-4 pt-6 md:pt-10">
+          {currentStep > 1 ? (
+            <Button variant="ghost" size="icon" onClick={prevStep} className="hover:bg-secondary">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
           ) : (
-            <>
-              <span>Fortsæt</span>
-              <ArrowRight className="w-5 h-5" />
-            </>
+            <div className="w-10" />
           )}
-        </Button>
-      </footer>
+          <span className="text-sm text-muted-foreground">Trin {currentStep} af 6</span>
+          <div className="w-10" />
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 px-6 py-4 md:py-8 overflow-y-auto">
+          {renderStep()}
+        </main>
+
+        {/* Footer */}
+        <footer className="p-6 md:pb-10 safe-bottom">
+          <Button
+            variant="hero"
+            size="xl"
+            className="w-full"
+            onClick={currentStep === 6 ? handleComplete : nextStep}
+            disabled={!canProceed() || isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Gemmer...</span>
+              </>
+            ) : currentStep === 6 ? (
+              <>
+                <Check className="w-5 h-5" />
+                <span>Kom i gang</span>
+              </>
+            ) : (
+              <>
+                <span>Fortsæt</span>
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
+          </Button>
+        </footer>
+      </div>
     </div>
   );
 }
