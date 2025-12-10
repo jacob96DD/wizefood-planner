@@ -99,20 +99,20 @@ export type Database = {
           chain_id: string | null
           created_at: string
           external_id: string | null
-          flyer_date: string
+          flyer_date: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
           offer_price_dkk: number | null
           offer_text: string | null
           original_price_dkk: number | null
-          price: number
+          price: number | null
           product_id: string | null
-          product_name: string
+          product_name: string | null
           quantity: number | null
           raw_text: string | null
           scraped_at: string | null
-          store_id: string
+          store_id: string | null
           unit: string | null
           valid_from: string | null
           valid_until: string | null
@@ -123,20 +123,20 @@ export type Database = {
           chain_id?: string | null
           created_at?: string
           external_id?: string | null
-          flyer_date: string
+          flyer_date?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           offer_price_dkk?: number | null
           offer_text?: string | null
           original_price_dkk?: number | null
-          price: number
+          price?: number | null
           product_id?: string | null
-          product_name: string
+          product_name?: string | null
           quantity?: number | null
           raw_text?: string | null
           scraped_at?: string | null
-          store_id: string
+          store_id?: string | null
           unit?: string | null
           valid_from?: string | null
           valid_until?: string | null
@@ -147,20 +147,20 @@ export type Database = {
           chain_id?: string | null
           created_at?: string
           external_id?: string | null
-          flyer_date?: string
+          flyer_date?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           offer_price_dkk?: number | null
           offer_text?: string | null
           original_price_dkk?: number | null
-          price?: number
+          price?: number | null
           product_id?: string | null
-          product_name?: string
+          product_name?: string | null
           quantity?: number | null
           raw_text?: string | null
           scraped_at?: string | null
-          store_id?: string
+          store_id?: string | null
           unit?: string | null
           valid_from?: string | null
           valid_until?: string | null
