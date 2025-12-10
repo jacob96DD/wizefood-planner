@@ -14,7 +14,371 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      allergens: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      ingredient_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          ingredient_name: string
+          preference: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ingredient_name: string
+          preference: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ingredient_name?: string
+          preference?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meal_plans: {
+        Row: {
+          created_at: string | null
+          duration_days: number
+          id: string
+          meals: Json
+          title: string
+          total_cost: number | null
+          total_savings: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_days: number
+          id?: string
+          meals: Json
+          title: string
+          total_cost?: number | null
+          total_savings?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_days?: number
+          id?: string
+          meals?: Json
+          title?: string
+          total_cost?: number | null
+          total_savings?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      offers: {
+        Row: {
+          brand: string | null
+          category: string | null
+          created_at: string
+          flyer_date: string
+          id: string
+          price: number
+          product_name: string
+          quantity: number | null
+          raw_text: string | null
+          store_id: string
+          unit: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          flyer_date: string
+          id?: string
+          price: number
+          product_name: string
+          quantity?: number | null
+          raw_text?: string | null
+          store_id: string
+          unit?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          flyer_date?: string
+          id?: string
+          price?: number
+          product_name?: string
+          quantity?: number | null
+          raw_text?: string | null
+          store_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          activity_level: string | null
+          age_years: number | null
+          budget_per_week: number | null
+          created_at: string | null
+          daily_calories: number | null
+          daily_carbs_target: number | null
+          daily_fat_target: number | null
+          daily_protein_target: number | null
+          date_of_birth: string | null
+          dietary_goal: string | null
+          email: string | null
+          full_name: string | null
+          gender: string | null
+          height_cm: number | null
+          id: string
+          people_count: number | null
+          updated_at: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          activity_level?: string | null
+          age_years?: number | null
+          budget_per_week?: number | null
+          created_at?: string | null
+          daily_calories?: number | null
+          daily_carbs_target?: number | null
+          daily_fat_target?: number | null
+          daily_protein_target?: number | null
+          date_of_birth?: string | null
+          dietary_goal?: string | null
+          email?: string | null
+          full_name?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          id: string
+          people_count?: number | null
+          updated_at?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          activity_level?: string | null
+          age_years?: number | null
+          budget_per_week?: number | null
+          created_at?: string | null
+          daily_calories?: number | null
+          daily_carbs_target?: number | null
+          daily_fat_target?: number | null
+          daily_protein_target?: number | null
+          date_of_birth?: string | null
+          dietary_goal?: string | null
+          email?: string | null
+          full_name?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          people_count?: number | null
+          updated_at?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          cook_time: number | null
+          created_at: string | null
+          description: string | null
+          fat: number | null
+          id: string
+          image_url: string | null
+          ingredients: Json | null
+          instructions: Json | null
+          prep_time: number | null
+          protein: number | null
+          servings: number | null
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          cook_time?: number | null
+          created_at?: string | null
+          description?: string | null
+          fat?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json | null
+          instructions?: Json | null
+          prep_time?: number | null
+          protein?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          cook_time?: number | null
+          created_at?: string | null
+          description?: string | null
+          fat?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json | null
+          instructions?: Json | null
+          prep_time?: number | null
+          protein?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
+      shopping_lists: {
+        Row: {
+          completed: boolean | null
+          created_at: string | null
+          id: string
+          items: Json
+          meal_plan_id: string | null
+          total_price: number | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          items: Json
+          meal_plan_id?: string | null
+          total_price?: number | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          items?: Json
+          meal_plan_id?: string | null
+          total_price?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_lists_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          chain: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          chain: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          chain?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      swipes: {
+        Row: {
+          created_at: string | null
+          direction: string
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          direction: string
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_allergens: {
+        Row: {
+          allergen_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          allergen_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          allergen_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_allergens_allergen_id_fkey"
+            columns: ["allergen_id"]
+            isOneToOne: false
+            referencedRelation: "allergens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
