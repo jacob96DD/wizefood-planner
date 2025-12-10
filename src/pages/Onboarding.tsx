@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
@@ -45,7 +44,7 @@ export default function Onboarding() {
 
   const handleComplete = () => {
     setIsOnboarded(true);
-    navigate('/');
+    navigate('/home');
   };
 
   const canProceed = () => {

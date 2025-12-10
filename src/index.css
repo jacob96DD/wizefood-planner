@@ -6,48 +6,48 @@
 
 @layer base {
   :root {
-    --background: 40 33% 98%;
-    --foreground: 160 10% 10%;
+    --background: 30 50% 97%;
+    --foreground: 25 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 160 10% 10%;
+    --card-foreground: 25 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 10% 10%;
+    --popover-foreground: 25 30% 15%;
 
-    --primary: 142 71% 45%;
+    --primary: 28 90% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 30% 95%;
-    --secondary-foreground: 142 71% 35%;
+    --secondary: 28 40% 95%;
+    --secondary-foreground: 28 90% 45%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 160 5% 45%;
+    --muted: 30 25% 93%;
+    --muted-foreground: 25 15% 50%;
 
-    --accent: 142 50% 90%;
-    --accent-foreground: 142 71% 30%;
+    --accent: 160 60% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 160 60% 45%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 142 20% 90%;
-    --input: 142 20% 90%;
-    --ring: 142 71% 45%;
+    --border: 28 25% 90%;
+    --input: 28 25% 90%;
+    --ring: 28 90% 55%;
 
     --radius: 1rem;
 
     /* Custom tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(142 71% 45%), hsl(160 71% 40%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(40 33% 99%));
-    --shadow-card: 0 4px 20px -4px hsl(142 30% 20% / 0.1);
-    --shadow-elevated: 0 8px 30px -8px hsl(142 30% 20% / 0.15);
-    --shadow-glow: 0 0 40px hsl(142 71% 45% / 0.2);
+    --gradient-primary: linear-gradient(135deg, hsl(28 90% 55%), hsl(35 95% 50%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(30 50% 99%));
+    --shadow-card: 0 4px 20px -4px hsl(28 30% 20% / 0.08);
+    --shadow-elevated: 0 8px 30px -8px hsl(28 30% 20% / 0.12);
+    --shadow-glow: 0 0 40px hsl(28 90% 55% / 0.25);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -60,33 +60,33 @@
   }
 
   .dark {
-    --background: 160 15% 8%;
-    --foreground: 40 33% 98%;
+    --background: 25 20% 8%;
+    --foreground: 30 50% 97%;
 
-    --card: 160 15% 12%;
-    --card-foreground: 40 33% 98%;
+    --card: 25 20% 12%;
+    --card-foreground: 30 50% 97%;
 
-    --popover: 160 15% 12%;
-    --popover-foreground: 40 33% 98%;
+    --popover: 25 20% 12%;
+    --popover-foreground: 30 50% 97%;
 
-    --primary: 142 71% 50%;
-    --primary-foreground: 160 15% 8%;
+    --primary: 28 90% 55%;
+    --primary-foreground: 25 20% 8%;
 
-    --secondary: 160 20% 18%;
-    --secondary-foreground: 142 50% 70%;
+    --secondary: 25 20% 18%;
+    --secondary-foreground: 28 60% 70%;
 
-    --muted: 160 15% 18%;
-    --muted-foreground: 160 10% 60%;
+    --muted: 25 15% 18%;
+    --muted-foreground: 25 10% 60%;
 
-    --accent: 160 20% 20%;
-    --accent-foreground: 142 50% 70%;
+    --accent: 160 50% 40%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 160 15% 20%;
-    --input: 160 15% 20%;
-    --ring: 142 71% 50%;
+    --border: 25 15% 20%;
+    --input: 25 15% 20%;
+    --ring: 28 90% 55%;
 
     --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.3);
     --shadow-elevated: 0 8px 30px -8px hsl(0 0% 0% / 0.4);
@@ -208,10 +208,19 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px hsl(142 71% 45% / 0.3);
+    box-shadow: 0 0 20px hsl(28 90% 55% / 0.3);
   }
   50% {
-    box-shadow: 0 0 40px hsl(142 71% 45% / 0.5);
+    box-shadow: 0 0 40px hsl(28 90% 55% / 0.5);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 
@@ -249,4 +258,8 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
