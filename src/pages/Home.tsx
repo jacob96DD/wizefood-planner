@@ -2,27 +2,61 @@ import { useNavigate } from 'react-router-dom';
 import { RecipeCard } from '@/components/RecipeCard';
 import { SwipeActions } from '@/components/SwipeActions';
 import { BottomNavigation } from '@/components/BottomNavigation';
-import { useRecipeStore } from '@/stores/recipeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useEffect } from 'react';
+import { useRecipes, useSaveSwipe } from '@/hooks/useRecipes';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Heart } from 'lucide-react';
+import { RefreshCw, Heart, Loader2 } from 'lucide-react';
+import type { Recipe } from '@/lib/supabase';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { user, isOnboarded } = useAuthStore();
-  const { getCurrentRecipe, swipe, likedRecipes, reset, recipes, currentIndex } = useRecipeStore();
+  const { user, isOnboarded, isLoading: authLoading } = useAuthStore();
+  const { data: recipes, isLoading: recipesLoading, refetch } = useRecipes();
+  const { saveSwipe } = useSaveSwipe();
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate('/auth');
-    } else if (!isOnboarded) {
+    } else if (!authLoading && user && !isOnboarded) {
       navigate('/onboarding');
     }
-  }, [user, isOnboarded, navigate]);
+  }, [user, isOnboarded, authLoading, navigate]);
 
-  const currentRecipe = getCurrentRecipe();
-  const hasMoreRecipes = currentIndex < recipes.length;
+  const currentRecipe = recipes?.[currentIndex] || null;
+  const hasMoreRecipes = recipes && currentIndex < recipes.length;
+
+  const handleSwipe = async (direction: 'left' | 'right' | 'up' | 'down') => {
+    if (!currentRecipe) return;
+
+    // Save swipe to database
+    await saveSwipe(currentRecipe.id, direction);
+
+    // Track liked recipes locally
+    if (direction === 'right' || direction === 'up') {
+      setLikedRecipes(prev => [...prev, currentRecipe]);
+    }
+
+    // Move to next recipe
+    setCurrentIndex(prev => prev + 1);
+  };
+
+  const handleReset = () => {
+    setCurrentIndex(0);
+    setLikedRecipes([]);
+    refetch();
+  };
+
+  if (authLoading || recipesLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -48,8 +82,8 @@ export default function Home() {
       <main className="px-4 pt-6">
         {hasMoreRecipes && currentRecipe ? (
           <>
-            <RecipeCard recipe={currentRecipe} onSwipe={swipe} />
-            <SwipeActions onSwipe={swipe} />
+            <RecipeCard recipe={currentRecipe} onSwipe={handleSwipe} />
+            <SwipeActions onSwipe={handleSwipe} />
             
             {/* Instructions */}
             <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground mt-2">
@@ -67,7 +101,7 @@ export default function Home() {
               Du har liket {likedRecipes.length} opskrifter
             </p>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={reset}>
+              <Button variant="outline" onClick={handleReset}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Start forfra
               </Button>

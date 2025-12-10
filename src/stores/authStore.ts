@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, Session } from '@supabase/supabase-js';
-import type { Profile } from '@/lib/supabase';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Profile = Tables<'profiles'>;
 
 interface AuthState {
   user: User | null;
