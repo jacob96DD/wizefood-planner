@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, ChefHat, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,18 +45,29 @@ export default function Auth() {
       if (!isLogin || !isOnboarded) {
         navigate('/onboarding');
       } else {
-        navigate('/');
+        navigate('/home');
       }
     }, 1000);
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 left-4"
+        onClick={() => navigate('/')}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Tilbage
+      </Button>
+
       {/* Logo */}
       <div className="mb-8 text-center animate-slide-down">
         <div className="inline-flex items-center gap-2 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <span className="text-2xl">🥗</span>
+          <div className="w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center shadow-glow">
+            <ChefHat className="w-7 h-7 text-primary-foreground" />
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gradient">WizeFood</h1>

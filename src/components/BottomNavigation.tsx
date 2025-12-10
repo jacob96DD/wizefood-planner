@@ -1,9 +1,8 @@
 import { Home, CalendarDays, ShoppingCart, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/', icon: Home, label: 'Opdag' },
+  { to: '/home', icon: Home, label: 'Opdag' },
   { to: '/meal-plan', icon: CalendarDays, label: 'Madplan' },
   { to: '/shopping-list', icon: ShoppingCart, label: 'Indkøb' },
   { to: '/profile', icon: User, label: 'Profil' },

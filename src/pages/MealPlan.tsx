@@ -1,11 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { useRecipeStore } from '@/stores/recipeStore';
-import { useNavigate } from 'react-router-dom';
 
 const weekDays = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
@@ -94,7 +94,7 @@ export default function MealPlan() {
             <p className="text-muted-foreground mb-6">
               Swipe på opskrifter for at bygge din madplan
             </p>
-            <Button variant="hero" onClick={() => navigate('/')}>
+            <Button variant="hero" onClick={() => navigate('/home')}>
               Find opskrifter
             </Button>
           </div>

@@ -14,7 +14,7 @@ export default function Profile() {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
+    navigate('/');
   };
 
   // Calculate daily calorie needs (simplified formula)
