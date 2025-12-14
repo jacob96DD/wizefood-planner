@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Check, Clock, Flame, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Check, Clock, Flame, Loader2, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +54,8 @@ interface MealOptionSwiperProps {
   macroTargets: MacroTargets;
   onComplete: (selectedMeals: { breakfast: MealRecipe[]; lunch: MealRecipe[]; dinner: MealRecipe[] }) => void;
   onCancel: () => void;
+  onGenerateMore?: () => Promise<RecipeOptions | null>;
+  generatingMore?: boolean;
 }
 
 type MealType = 'breakfast' | 'lunch' | 'dinner';
@@ -64,6 +66,8 @@ export function MealOptionSwiper({
   macroTargets,
   onComplete,
   onCancel,
+  onGenerateMore,
+  generatingMore = false,
 }: MealOptionSwiperProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -82,10 +86,19 @@ export function MealOptionSwiper({
   const [images, setImages] = useState<Record<string, string>>({});
   const [loadingImages, setLoadingImages] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [localRecipeOptions, setLocalRecipeOptions] = useState(recipeOptions);
+
+  // Update local options when recipeOptions changes
+  useEffect(() => {
+    setLocalRecipeOptions(recipeOptions);
+  }, [recipeOptions]);
 
   // Get current options for the meal type
-  const currentOptions = recipeOptions[currentMealType] || [];
+  const currentOptions = localRecipeOptions[currentMealType] || [];
   const currentRecipe = currentOptions[currentIndex];
+  
+  // Check if we've swiped through all options without selecting enough
+  const needsMoreOptions = currentIndex >= currentOptions.length && selectedMeals[currentMealType].length < durationDays;
 
   // Calculate how many meals needed per type
   const mealsNeeded = currentMealType === 'breakfast' && recipeOptions.breakfast.length === 0
@@ -232,16 +245,16 @@ export function MealOptionSwiper({
 
   // Check if all selections are complete
   const allComplete = 
-    (recipeOptions.breakfast.length === 0 || selectedMeals.breakfast.length >= durationDays) &&
-    (recipeOptions.lunch.length === 0 || selectedMeals.lunch.length >= durationDays) &&
-    (recipeOptions.dinner.length === 0 || selectedMeals.dinner.length >= durationDays);
+    (localRecipeOptions.breakfast.length === 0 || selectedMeals.breakfast.length >= durationDays) &&
+    (localRecipeOptions.lunch.length === 0 || selectedMeals.lunch.length >= durationDays) &&
+    (localRecipeOptions.dinner.length === 0 || selectedMeals.dinner.length >= durationDays);
 
   const currentMacros = calculateCurrentMacros();
   const totalSelected = selectedMeals.breakfast.length + selectedMeals.lunch.length + selectedMeals.dinner.length;
   const totalNeeded = 
-    (recipeOptions.breakfast.length > 0 ? durationDays : 0) +
-    (recipeOptions.lunch.length > 0 ? durationDays : 0) +
-    (recipeOptions.dinner.length > 0 ? durationDays : 0);
+    (localRecipeOptions.breakfast.length > 0 ? durationDays : 0) +
+    (localRecipeOptions.lunch.length > 0 ? durationDays : 0) +
+    (localRecipeOptions.dinner.length > 0 ? durationDays : 0);
 
   const mealTypeLabels: Record<MealType, string> = {
     breakfast: t('mealPlan.meals.breakfast', 'Morgenmad'),
@@ -249,11 +262,62 @@ export function MealOptionSwiper({
     dinner: t('mealPlan.meals.dinner', 'Aftensmad'),
   };
 
-  if (!currentRecipe && !allComplete) {
+  // Handle generate more options
+  const handleGenerateMore = async () => {
+    if (!onGenerateMore) return;
+    
+    const newOptions = await onGenerateMore();
+    if (newOptions) {
+      setLocalRecipeOptions(prev => ({
+        breakfast: [...prev.breakfast, ...newOptions.breakfast],
+        lunch: [...prev.lunch, ...newOptions.lunch],
+        dinner: [...prev.dinner, ...newOptions.dinner],
+      }));
+      // Reset index to show new options
+      setCurrentIndex(currentOptions.length);
+    }
+  };
+
+  if (!currentRecipe && !allComplete && !needsMoreOptions) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">{t('mealSwiper.loading', 'Indlæser retter...')}</p>
+      </div>
+    );
+  }
+
+  // Show "Generate more" UI when out of options
+  if (needsMoreOptions && onGenerateMore) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
+        <div className="text-6xl mb-4">🤔</div>
+        <h2 className="text-xl font-bold mb-2">
+          {t('mealSwiper.noMoreOptions', 'Ingen flere forslag')}
+        </h2>
+        <p className="text-muted-foreground mb-2">
+          Du har valgt {selectedMeals[currentMealType].length} af {durationDays} {mealTypeLabels[currentMealType].toLowerCase()}-retter.
+        </p>
+        <p className="text-sm text-muted-foreground mb-6">
+          {t('mealSwiper.generateMoreDesc', 'Vil du have 10 nye forslag at vælge imellem?')}
+        </p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onCancel}>
+            {t('common.cancel', 'Annuller')}
+          </Button>
+          <Button 
+            variant="hero" 
+            onClick={handleGenerateMore}
+            disabled={generatingMore}
+          >
+            {generatingMore ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            {generatingMore ? 'Genererer...' : 'Generer 10 nye'}
+          </Button>
+        </div>
       </div>
     );
   }
