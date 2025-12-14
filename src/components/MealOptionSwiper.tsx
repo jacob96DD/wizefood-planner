@@ -14,7 +14,7 @@ interface Ingredient {
   unit: string;
 }
 
-interface MealRecipe {
+export interface MealRecipe {
   id: string;
   title: string;
   description: string;
@@ -29,17 +29,19 @@ interface MealRecipe {
   instructions: string[];
   tags: string[];
   uses_offers?: { offer_text: string; store: string; savings: number }[];
+  offers?: { offer_text?: string; store?: string; savings?: number }[];
   estimated_price?: number;
   imageUrl?: string;
+  image_url?: string;
 }
 
-interface RecipeOptions {
+export interface RecipeOptions {
   breakfast: MealRecipe[];
   lunch: MealRecipe[];
   dinner: MealRecipe[];
 }
 
-interface MacroTargets {
+export interface MacroTargets {
   calories: number;
   protein: number;
   carbs: number;

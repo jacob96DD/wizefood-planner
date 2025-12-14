@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
@@ -6,41 +6,123 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
-import { useMealPlans, type MealPlanDay } from '@/hooks/useMealPlans';
-import { useGenerateMealPlan } from '@/hooks/useGenerateMealPlan';
+import { useMealPlans, type MealPlanDay, type MealPlanMeal } from '@/hooks/useMealPlans';
+import { useGenerateMealPlan, type GenerateMealPlanResult } from '@/hooks/useGenerateMealPlan';
 import { MealPlanConfigDialog } from '@/components/MealPlanConfigDialog';
+import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecipe } from '@/components/MealOptionSwiper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/hooks/use-toast';
+
+interface SelectedMeals {
+  breakfast: MealRecipe[];
+  lunch: MealRecipe[];
+  dinner: MealRecipe[];
+}
 
 export default function MealPlan() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(0);
   const [configOpen, setConfigOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  
+  // Swipe mode state
+  const [swipeMode, setSwipeMode] = useState(false);
+  const [recipeOptions, setRecipeOptions] = useState<RecipeOptions | null>(null);
+  const [macroTargets, setMacroTargets] = useState<MacroTargets | null>(null);
+  const [durationDays, setDurationDays] = useState(7);
+  
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { currentPlan, loading, fetchMealPlans } = useMealPlans();
+  const { currentPlan, loading, fetchMealPlans, saveMealPlan } = useMealPlans();
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
 
   // Fetch profile for macro display
-  useState(() => {
+  useEffect(() => {
     if (user?.id) {
       supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data }) => {
         if (data) setProfile(data);
       });
     }
-  });
+  }, [user?.id]);
 
   const handleOpenConfig = () => setConfigOpen(true);
 
   const handleGenerate = async () => {
     setConfigOpen(false);
     const result = await generateMealPlan({ duration_days: 7 });
+    
     if (result) {
-      await fetchMealPlans();
+      // Gå til swipe mode med genererede options
+      setRecipeOptions(result.recipeOptions);
+      setMacroTargets(result.macroTargets);
+      setDurationDays(result.durationDays);
+      setSwipeMode(true);
     }
   };
+
+  const handleSwipeComplete = async (selectedMeals: SelectedMeals) => {
+    // Konverter valgte retter til MealPlanDay format
+    const meals: MealPlanDay[] = [];
+    const today = new Date();
+    
+    for (let i = 0; i < durationDays; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      
+      const dayMeals: MealPlanDay = {
+        date: date.toISOString().split('T')[0],
+        breakfast: selectedMeals.breakfast[i] ? convertToMealPlanMeal(selectedMeals.breakfast[i]) : null,
+        lunch: selectedMeals.lunch[i] ? convertToMealPlanMeal(selectedMeals.lunch[i]) : null,
+        dinner: selectedMeals.dinner[i] ? convertToMealPlanMeal(selectedMeals.dinner[i]) : null,
+      };
+      meals.push(dayMeals);
+    }
+
+    // Beregn total cost og savings
+    const allMeals = [...selectedMeals.breakfast, ...selectedMeals.lunch, ...selectedMeals.dinner];
+    const totalCost = allMeals.reduce((sum, meal) => sum + (meal.estimated_price || 0), 0);
+    const totalSavings = allMeals.reduce((sum, meal) => {
+      const savings = meal.offers?.reduce((s, o) => s + (o.savings || 0), 0) || 0;
+      return sum + savings;
+    }, 0);
+
+    // Gem madplan
+    const savedPlan = await saveMealPlan({
+      title: `Madplan - ${new Date().toLocaleDateString('da-DK')}`,
+      duration_days: durationDays,
+      meals,
+      total_cost: totalCost,
+      total_savings: totalSavings,
+    });
+
+    if (savedPlan) {
+      toast({
+        title: t('mealPlan.saved', 'Madplan gemt!'),
+        description: t('mealPlan.savedDescription', 'Din madplan er nu klar.'),
+      });
+    }
+
+    // Afslut swipe mode
+    setSwipeMode(false);
+    setRecipeOptions(null);
+    await fetchMealPlans();
+  };
+
+  const handleSwipeCancel = () => {
+    setSwipeMode(false);
+    setRecipeOptions(null);
+  };
+
+  const convertToMealPlanMeal = (recipe: MealRecipe): MealPlanMeal => ({
+    recipeId: recipe.id,
+    title: recipe.title,
+    calories: recipe.calories,
+    imageUrl: recipe.image_url || null,
+    prepTime: recipe.prep_time,
+  });
 
   const weekDays = [
     t('mealPlan.days.mon'),
@@ -67,6 +149,19 @@ export default function MealPlan() {
         .filter(Boolean)
         .reduce((sum, meal) => sum + (meal?.calories || 0), 0)
     : 0;
+
+  // Vis swipe interface hvis i swipe mode
+  if (swipeMode && recipeOptions && macroTargets) {
+    return (
+      <MealOptionSwiper
+        recipeOptions={recipeOptions}
+        durationDays={durationDays}
+        macroTargets={macroTargets}
+        onComplete={handleSwipeComplete}
+        onCancel={handleSwipeCancel}
+      />
+    );
+  }
 
   if (loading) {
     return (
