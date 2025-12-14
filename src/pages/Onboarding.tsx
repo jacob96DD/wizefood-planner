@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, Loader2, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Zap, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Card } from '@/components/ui/card';
 import { useOnboardingStore, HouseholdMember } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,6 +164,8 @@ export default function Onboarding() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
+  const [storeChains, setStoreChains] = useState<{id: string, name: string}[]>([]);
+  const [selectedStoreChains, setSelectedStoreChains] = useState<Set<string>>(new Set());
 
   // Month names for dropdown
   const months = [
@@ -197,10 +201,38 @@ export default function Onboarding() {
     }
   }, [data.birthDay, data.birthMonth, data.birthYear, updateData]);
 
-  // Initialize household members when peopleCount changes (for future use)
+  // Initialize household members when peopleCount changes
   useEffect(() => {
     initializeHouseholdMembers(data.peopleCount);
   }, [data.peopleCount, initializeHouseholdMembers]);
+
+  // Fetch store chains when on step 8
+  useEffect(() => {
+    const fetchStoreChains = async () => {
+      const { data: chains } = await supabase
+        .from('store_chains')
+        .select('id, name')
+        .order('name');
+      if (chains) {
+        setStoreChains(chains);
+      }
+    };
+    if (currentStep === 8) {
+      fetchStoreChains();
+    }
+  }, [currentStep]);
+
+  const toggleStoreChain = (chainId: string) => {
+    setSelectedStoreChains(prev => {
+      const next = new Set(prev);
+      if (next.has(chainId)) {
+        next.delete(chainId);
+      } else {
+        next.add(chainId);
+      }
+      return next;
+    });
+  };
 
   // Handle goal selection with mutual exclusivity for body goals
   const handleGoalClick = (goalValue: string, isBodyGoal: boolean) => {
@@ -496,6 +528,28 @@ export default function Onboarding() {
 
         if (dislikesError) {
           console.error('Error saving food dislikes:', dislikesError);
+        }
+      }
+
+      // Save preferred store chains
+      if (selectedStoreChains.size > 0) {
+        // First delete existing preferences
+        await supabase
+          .from('user_preferred_chains')
+          .delete()
+          .eq('user_id', user.id);
+
+        const chainsToInsert = Array.from(selectedStoreChains).map((chainId) => ({
+          user_id: user.id,
+          chain_id: chainId,
+        }));
+
+        const { error: chainsError } = await supabase
+          .from('user_preferred_chains')
+          .insert(chainsToInsert);
+
+        if (chainsError) {
+          console.error('Error saving preferred chains:', chainsError);
         }
       }
 
@@ -972,6 +1026,38 @@ export default function Onboarding() {
               <h2 className="text-2xl font-bold mb-2">{t('onboarding.stores.title', 'Foretrukne butikker')}</h2>
               <p className="text-muted-foreground">{t('onboarding.stores.subtitle', 'Hvilke butikker handler du typisk i?')}</p>
             </div>
+
+            {storeChains.length === 0 ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Henter butikker...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {storeChains.map((chain) => {
+                  const isSelected = selectedStoreChains.has(chain.id);
+                  return (
+                    <Card
+                      key={chain.id}
+                      className={cn(
+                        "p-4 flex items-center justify-between cursor-pointer transition-all",
+                        isSelected ? "border-primary bg-primary/5" : "hover:border-primary/50"
+                      )}
+                      onClick={() => toggleStoreChain(chain.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Store className="w-5 h-5 text-muted-foreground" />
+                        <span className="font-medium">{chain.name}</span>
+                      </div>
+                      <Switch
+                        checked={isSelected}
+                        onCheckedChange={() => toggleStoreChain(chain.id)}
+                      />
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
 
             <p className="text-sm text-muted-foreground text-center">
               {t('onboarding.stores.note', 'Du kan ændre dette senere i profilen under "Foretrukne butikker".')}

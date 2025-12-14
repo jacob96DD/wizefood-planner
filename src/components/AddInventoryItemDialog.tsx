@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useInventory } from '@/hooks/useInventory';
+import { addDays, format } from 'date-fns';
 
 interface AddInventoryItemDialogProps {
   trigger?: React.ReactNode;
@@ -27,6 +28,13 @@ interface AddInventoryItemDialogProps {
   defaultUnit?: string;
   onSuccess?: () => void;
 }
+
+const quickExpiryOptions = [
+  { label: 'I dag', days: 0 },
+  { label: '+3 dage', days: 3 },
+  { label: '+1 uge', days: 7 },
+  { label: '+1 måned', days: 30 },
+];
 
 export function AddInventoryItemDialog({
   trigger,
@@ -42,7 +50,27 @@ export function AddInventoryItemDialog({
   const [quantity, setQuantity] = useState<string>(defaultQuantity?.toString() || '');
   const [unit, setUnit] = useState(defaultUnit);
   const [category, setCategory] = useState<'fridge' | 'freezer' | 'pantry'>('pantry');
-  const [expiresAt, setExpiresAt] = useState('');
+  
+  // Expiry date as separate fields
+  const [expiryDay, setExpiryDay] = useState('');
+  const [expiryMonth, setExpiryMonth] = useState('');
+  const [expiryYear, setExpiryYear] = useState('');
+
+  const setQuickExpiry = (days: number) => {
+    const date = addDays(new Date(), days);
+    setExpiryDay(date.getDate().toString());
+    setExpiryMonth((date.getMonth() + 1).toString());
+    setExpiryYear(date.getFullYear().toString());
+  };
+
+  const getExpiryDate = (): string | undefined => {
+    if (expiryDay && expiryMonth && expiryYear) {
+      const day = expiryDay.padStart(2, '0');
+      const month = expiryMonth.padStart(2, '0');
+      return `${expiryYear}-${month}-${day}`;
+    }
+    return undefined;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +81,7 @@ export function AddInventoryItemDialog({
       quantity: quantity ? parseFloat(quantity) : undefined,
       unit: unit || undefined,
       category,
-      expires_at: expiresAt || undefined,
+      expires_at: getExpiryDate(),
     });
 
     if (result) {
@@ -62,7 +90,9 @@ export function AddInventoryItemDialog({
       setQuantity('');
       setUnit('');
       setCategory('pantry');
-      setExpiresAt('');
+      setExpiryDay('');
+      setExpiryMonth('');
+      setExpiryYear('');
       onSuccess?.();
     }
   };
@@ -131,13 +161,59 @@ export function AddInventoryItemDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="expires">{t('inventory.expiresAt')}</Label>
-            <Input
-              id="expires"
-              type="date"
-              value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
-            />
+            <Label>{t('inventory.expiresAt')}</Label>
+            
+            {/* Quick expiry buttons */}
+            <div className="flex gap-2 flex-wrap">
+              {quickExpiryOptions.map((opt) => (
+                <Button
+                  key={opt.days}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickExpiry(opt.days)}
+                  className="text-xs"
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Three separate fields for DD / MM / YYYY */}
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Input
+                  type="number"
+                  placeholder="DD"
+                  value={expiryDay}
+                  onChange={(e) => setExpiryDay(e.target.value.slice(0, 2))}
+                  min={1}
+                  max={31}
+                  className="text-center"
+                />
+              </div>
+              <div>
+                <Input
+                  type="number"
+                  placeholder="MM"
+                  value={expiryMonth}
+                  onChange={(e) => setExpiryMonth(e.target.value.slice(0, 2))}
+                  min={1}
+                  max={12}
+                  className="text-center"
+                />
+              </div>
+              <div>
+                <Input
+                  type="number"
+                  placeholder="ÅÅÅÅ"
+                  value={expiryYear}
+                  onChange={(e) => setExpiryYear(e.target.value.slice(0, 4))}
+                  min={new Date().getFullYear()}
+                  className="text-center"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-2 justify-end">

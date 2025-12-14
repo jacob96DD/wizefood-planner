@@ -8,6 +8,7 @@ export interface DetectedIngredient {
   unit?: string;
   category: 'fridge' | 'freezer' | 'pantry';
   confidence: 'high' | 'medium' | 'low';
+  expires_at?: string;
 }
 
 export function useFridgeScanner() {
@@ -59,13 +60,25 @@ export function useFridgeScanner() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const items = ingredients.map(ing => ({
-        user_id: user.id,
-        ingredient_name: ing.name,
-        quantity: ing.quantity || null,
-        unit: ing.unit || null,
-        category: ing.category,
-      }));
+      const items = ingredients.map(ing => {
+        // Parse expires_at from DD-MM-YYYY to YYYY-MM-DD
+        let expiresAt = null;
+        if (ing.expires_at) {
+          const parts = ing.expires_at.split('-');
+          if (parts.length === 3) {
+            expiresAt = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+        }
+        
+        return {
+          user_id: user.id,
+          ingredient_name: ing.name,
+          quantity: ing.quantity || null,
+          unit: ing.unit || null,
+          category: ing.category,
+          expires_at: expiresAt,
+        };
+      });
 
       const { error } = await supabase
         .from('household_inventory')

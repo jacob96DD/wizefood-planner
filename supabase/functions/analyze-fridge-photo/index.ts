@@ -12,6 +12,7 @@ interface DetectedIngredient {
   unit?: string;
   category: 'fridge' | 'freezer' | 'pantry';
   confidence: 'high' | 'medium' | 'low';
+  expires_at?: string;
 }
 
 serve(async (req) => {
@@ -68,6 +69,7 @@ Din opgave er at:
 2. Estimere mængder hvor muligt
 3. Kategorisere hver vare (fridge, freezer, pantry)
 4. Angive din sikkerhed på identifikationen
+5. Genkend udløbsdatoer på emballage hvis synlige (format: DD-MM-YYYY)
 
 Returner ALTID et JSON array med objekter i dette format:
 {
@@ -77,13 +79,15 @@ Returner ALTID et JSON array med objekter i dette format:
       "quantity": 2,
       "unit": "stk",
       "category": "fridge",
-      "confidence": "high"
+      "confidence": "high",
+      "expires_at": "15-01-2025"
     }
   ]
 }
 
 Brug danske navne for ingredienser. Vær specifik (f.eks. "hakket oksekød" i stedet for bare "kød").
-Estimer kun mængder hvis du kan se dem tydeligt.`
+Estimer kun mængder hvis du kan se dem tydeligt.
+Medtag kun expires_at hvis du tydeligt kan se en udløbsdato på emballagen.`
           },
           {
             role: 'user',

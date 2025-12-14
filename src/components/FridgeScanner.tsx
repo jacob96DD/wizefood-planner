@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Check, X, Trash2 } from 'lucide-react';
+import { Camera, Plus, Loader2, Check, X, Trash2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ interface FridgeScannerProps {
 
 export function FridgeScanner({ onComplete }: FridgeScannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(new Set());
   
   const { 
@@ -27,25 +27,29 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Create preview
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
-      setPreview(base64);
+      setPreviews(prev => [...prev, base64]);
       
-      // Scan the image
       const ingredients = await scanFridgePhoto(base64);
       
-      // Select all high confidence ingredients by default
+      // Select all high/medium confidence ingredients by default
       const highConfidence = new Set<number>();
+      const startIdx = detectedIngredients.length;
       ingredients.forEach((ing, idx) => {
         if (ing.confidence === 'high' || ing.confidence === 'medium') {
-          highConfidence.add(idx);
+          highConfidence.add(startIdx + idx);
         }
       });
-      setSelectedIngredients(highConfidence);
+      setSelectedIngredients(prev => new Set([...prev, ...highConfidence]));
     };
     reader.readAsDataURL(file);
+    
+    // Reset file input for next selection
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const toggleIngredient = (index: number) => {
@@ -65,7 +69,7 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
     if (selected.length > 0) {
       const success = await addToInventory(selected);
       if (success) {
-        setPreview(null);
+        setPreviews([]);
         setSelectedIngredients(new Set());
         onComplete?.();
       }
@@ -73,7 +77,7 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
   };
 
   const handleReset = () => {
-    setPreview(null);
+    setPreviews([]);
     setSelectedIngredients(new Set());
     clearDetected();
     if (fileInputRef.current) {
@@ -101,7 +105,7 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
   };
 
   // Show scanner button if no image yet
-  if (!preview && detectedIngredients.length === 0) {
+  if (previews.length === 0 && detectedIngredients.length === 0) {
     return (
       <div className="space-y-3">
         <input
@@ -140,17 +144,20 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
   }
 
   // Show scanning state
-  if (scanning) {
+  if (scanning && previews.length > 0 && detectedIngredients.length === 0) {
     return (
       <Card>
         <CardContent className="p-4 text-center">
-          {preview && (
-            <img 
-              src={preview} 
-              alt="Køleskab" 
-              className="w-full h-32 object-cover rounded-lg mb-4"
-            />
-          )}
+          <div className="flex gap-2 overflow-x-auto mb-4">
+            {previews.map((preview, idx) => (
+              <img 
+                key={idx}
+                src={preview} 
+                alt={`Billede ${idx + 1}`}
+                className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+              />
+            ))}
+          </div>
           <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">
             AI analyserer dit køleskab...
@@ -164,13 +171,40 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
-        {preview && (
-          <img 
-            src={preview} 
-            alt="Køleskab" 
-            className="w-full h-24 object-cover rounded-lg"
+        {/* Image previews */}
+        <div className="flex gap-2 overflow-x-auto">
+          {previews.map((preview, idx) => (
+            <img 
+              key={idx}
+              src={preview} 
+              alt={`Billede ${idx + 1}`}
+              className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+            />
+          ))}
+          {/* Add more photos button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="hidden"
           />
-        )}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={scanning}
+            className="w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/50 flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors flex-shrink-0"
+          >
+            {scanning ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-5 h-5" />
+                <span className="text-xs mt-1">Tilføj</span>
+              </>
+            )}
+          </button>
+        </div>
         
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">
@@ -197,11 +231,17 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
               <span className="text-lg">{getCategoryEmoji(ing.category)}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{ing.name}</p>
-                {ing.quantity && (
-                  <p className="text-xs text-muted-foreground">
-                    {ing.quantity} {ing.unit || 'stk'}
-                  </p>
-                )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {ing.quantity && (
+                    <span>{ing.quantity} {ing.unit || 'stk'}</span>
+                  )}
+                  {ing.expires_at && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {ing.expires_at}
+                    </span>
+                  )}
+                </div>
               </div>
               {getConfidenceBadge(ing.confidence)}
             </div>
