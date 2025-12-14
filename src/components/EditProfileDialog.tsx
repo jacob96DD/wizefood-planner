@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import {
@@ -22,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, 'Name is required').max(100),
@@ -40,9 +41,17 @@ interface EditProfileDialogProps {
 
 export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, setProfile } = useAuthStore();
-  const { data, updateData } = useOnboardingStore();
+  const { data, updateData, reset, setStep } = useOnboardingStore();
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleRerunOnboarding = () => {
+    reset();
+    setStep(1);
+    onOpenChange(false);
+    navigate('/onboarding');
+  };
 
   const [formData, setFormData] = useState({
     fullName: data.fullName || '',
@@ -231,6 +240,17 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="pt-4 border-t border-border">
+          <Button
+            variant="ghost"
+            className="w-full text-muted-foreground hover:text-foreground"
+            onClick={handleRerunOnboarding}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            {t('profile.rerunOnboarding', 'Gå igennem opsætning igen')}
+          </Button>
         </div>
 
         <DialogFooter className="gap-2">
