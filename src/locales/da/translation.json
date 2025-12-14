@@ -319,7 +319,9 @@
     "swipeToAdd": "Swipe på opskrifter for at bygge din madplan",
     "findRecipes": "Find opskrifter",
     "addRecipe": "Tilføj opskrift",
-    "generateShoppingList": "Generer indkøbsliste"
+    "generateShoppingList": "Generer indkøbsliste",
+    "noPlansYet": "Ingen madplaner endnu",
+    "generateFirst": "Opret din første madplan for at komme i gang"
   },
   "shopping": {
     "title": "Indkøbsliste",
@@ -331,7 +333,10 @@
     "toBuy": "At købe",
     "bought": "Købt",
     "emptyList": "Indkøbslisten er tom",
-    "generateFromPlan": "Generer en liste fra din madplan"
+    "generateFromPlan": "Generer en liste fra din madplan",
+    "shoppingDate": "Indkøbsdag",
+    "goToMealPlan": "Gå til madplan",
+    "currentOffers": "Aktuelle tilbud"
   },
   "nav": {
     "discover": "Opdag",
