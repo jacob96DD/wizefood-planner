@@ -63,6 +63,14 @@ const allergensList = [
   { id: 'celery', icon: '🥬' },
 ];
 
+const dietaryTypes = [
+  { id: 'omnivore', icon: '🍖' },
+  { id: 'vegetarian', icon: '🥬' },
+  { id: 'pescetarian', icon: '🐟' },
+  { id: 'vegan', icon: '🌱' },
+  { id: 'flexitarian', icon: '🥗' },
+] as const;
+
 const dislikeOptions = [
   { id: 'risalamande', icon: '🍚' },
   { id: 'leverpostej', icon: '🍞' },
@@ -513,6 +521,16 @@ export default function Onboarding() {
         }
       }
 
+      // Save dietary preference
+      await supabase
+        .from('user_dietary_preferences')
+        .upsert({
+          user_id: user.id,
+          preference: data.dietaryPreference || 'omnivore',
+        }, {
+          onConflict: 'user_id'
+        });
+
       // Save food dislikes
       // First delete existing dislikes
       await supabase
@@ -926,15 +944,51 @@ export default function Onboarding() {
         );
 
       case 6:
-        // Allergies (Step 6) - with custom input
+        // Dietary preferences & Allergies (Step 6)
         return (
           <div className="space-y-6 animate-fade-in">
-            <div className="text-center mb-8">
-              <span className="text-5xl mb-4 block">⚠️</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.allergies.title')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.allergies.subtitle')}</p>
+            <div className="text-center mb-6">
+              <span className="text-5xl mb-4 block">🍽️</span>
+              <h2 className="text-2xl font-bold mb-2">{t('dietaryPreferences.title')}</h2>
+              <p className="text-muted-foreground">{t('dietaryPreferences.subtitle')}</p>
             </div>
 
+            {/* Dietary Type Selection */}
+            <div className="space-y-2">
+              {dietaryTypes.map((diet) => {
+                const isSelected = data.dietaryPreference === diet.id;
+                return (
+                  <button
+                    key={diet.id}
+                    onClick={() => updateData({ dietaryPreference: diet.id })}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left",
+                      isSelected
+                        ? "border-primary bg-secondary"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <span className="text-2xl">{diet.icon}</span>
+                    <div className="flex-1">
+                      <span className="font-medium">{t(`dietaryPreferences.${diet.id}`)}</span>
+                      <p className="text-xs text-muted-foreground">
+                        {t(`dietaryPreferences.${diet.id}Desc`)}
+                      </p>
+                    </div>
+                    {isSelected && <Check className="w-5 h-5 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Separator */}
+            <div className="flex items-center gap-3 pt-2">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-sm text-muted-foreground">⚠️ {t('onboarding.allergies.title')}</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Allergens grid */}
             <div className="grid grid-cols-2 gap-3">
               {allergensList.map((allergen) => {
                 const isSelected = data.selectedAllergens.includes(allergen.id);
@@ -953,14 +1007,14 @@ export default function Onboarding() {
                       }
                     }}
                     className={cn(
-                      "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                      "flex items-center gap-3 p-3 rounded-xl border-2 transition-all",
                       isSelected
                         ? "border-primary bg-secondary"
                         : "border-border hover:border-primary/50"
                     )}
                   >
-                    <span className="text-2xl">{allergen.icon}</span>
-                    <span className="font-medium">{t(`onboarding.allergens.${allergen.id}`)}</span>
+                    <span className="text-xl">{allergen.icon}</span>
+                    <span className="font-medium text-sm">{t(`onboarding.allergens.${allergen.id}`)}</span>
                     {isSelected && <Check className="w-4 h-4 ml-auto text-primary" />}
                   </button>
                 );
@@ -979,10 +1033,6 @@ export default function Onboarding() {
                 {t('onboarding.allergies.customHint')}
               </p>
             </div>
-
-            <p className="text-sm text-muted-foreground text-center">
-              {t('onboarding.allergies.skipNote')}
-            </p>
           </div>
         );
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Loader2, X } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,16 @@ const allergensList = [
   { id: 'celery', icon: '🥬' },
 ];
 
+const dietaryTypes = [
+  { id: 'omnivore', icon: '🍖' },
+  { id: 'vegetarian', icon: '🥬' },
+  { id: 'pescetarian', icon: '🐟' },
+  { id: 'vegan', icon: '🌱' },
+  { id: 'flexitarian', icon: '🥗' },
+] as const;
+
+type DietaryType = typeof dietaryTypes[number]['id'];
+
 const allergenNameMap: Record<string, string> = {
   gluten: 'gluten',
   dairy: 'mælk',
@@ -48,10 +58,11 @@ export function EditAllergiesDialog({ open, onOpenChange }: EditAllergiesDialogP
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [selectedDietary, setSelectedDietary] = useState<DietaryType>('omnivore');
   const [customAllergens, setCustomAllergens] = useState('');
   const [dbAllergens, setDbAllergens] = useState<{ id: string; name: string }[]>([]);
 
-  // Fetch current allergies
+  // Fetch current allergies and dietary preference
   useEffect(() => {
     if (!open || !user) return;
 
@@ -89,6 +100,19 @@ export function EditAllergiesDialog({ open, onOpenChange }: EditAllergiesDialogP
             .filter(Boolean);
           
           setSelectedAllergens(selected);
+        }
+
+        // Fetch user's dietary preference
+        const { data: dietaryData } = await supabase
+          .from('user_dietary_preferences')
+          .select('preference')
+          .eq('user_id', user.id)
+          .single();
+
+        if (dietaryData?.preference) {
+          setSelectedDietary(dietaryData.preference as DietaryType);
+        } else {
+          setSelectedDietary('omnivore');
         }
       } catch (error) {
         console.error('Error fetching allergies:', error);
@@ -143,6 +167,16 @@ export function EditAllergiesDialog({ open, onOpenChange }: EditAllergiesDialogP
         await supabase.from('user_allergens').insert(userAllergens);
       }
 
+      // Upsert dietary preference
+      await supabase
+        .from('user_dietary_preferences')
+        .upsert({
+          user_id: user.id,
+          preference: selectedDietary,
+        }, {
+          onConflict: 'user_id'
+        });
+
       toast.success(t('profile.allergiesSaved', 'Allergier gemt'));
       onOpenChange(false);
     } catch (error) {
@@ -170,27 +204,69 @@ export function EditAllergiesDialog({ open, onOpenChange }: EditAllergiesDialogP
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-3">
-              {allergensList.map((allergen) => {
-                const isSelected = selectedAllergens.includes(allergen.id);
-                return (
-                  <button
-                    key={allergen.id}
-                    onClick={() => toggleAllergen(allergen.id)}
-                    className={cn(
-                      "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
-                      isSelected
-                        ? "border-primary bg-secondary"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="text-2xl">{allergen.icon}</span>
-                    <span className="font-medium">{t(`onboarding.allergens.${allergen.id}`)}</span>
-                    {isSelected && <Check className="w-4 h-4 ml-auto text-primary" />}
-                  </button>
-                );
-              })}
+          <div className="space-y-6 py-4">
+            {/* Dietary Type Section */}
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                🍽️ {t('dietaryPreferences.title')}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t('dietaryPreferences.subtitle')}
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                {dietaryTypes.map((diet) => {
+                  const isSelected = selectedDietary === diet.id;
+                  return (
+                    <button
+                      key={diet.id}
+                      onClick={() => setSelectedDietary(diet.id)}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left",
+                        isSelected
+                          ? "border-primary bg-secondary"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <span className="text-2xl">{diet.icon}</span>
+                      <div className="flex-1">
+                        <span className="font-medium">{t(`dietaryPreferences.${diet.id}`)}</span>
+                        <p className="text-xs text-muted-foreground">
+                          {t(`dietaryPreferences.${diet.id}Desc`)}
+                        </p>
+                      </div>
+                      {isSelected && <Check className="w-5 h-5 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Allergens Section */}
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                ⚠️ {t('onboarding.allergies.title')}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {allergensList.map((allergen) => {
+                  const isSelected = selectedAllergens.includes(allergen.id);
+                  return (
+                    <button
+                      key={allergen.id}
+                      onClick={() => toggleAllergen(allergen.id)}
+                      className={cn(
+                        "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                        isSelected
+                          ? "border-primary bg-secondary"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <span className="text-2xl">{allergen.icon}</span>
+                      <span className="font-medium">{t(`onboarding.allergens.${allergen.id}`)}</span>
+                      {isSelected && <Check className="w-4 h-4 ml-auto text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>

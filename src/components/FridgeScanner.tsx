@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Camera, Plus, Loader2, Check, X, Trash2, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +9,11 @@ import { useFridgeScanner, type DetectedIngredient } from '@/hooks/useFridgeScan
 
 interface FridgeScannerProps {
   onComplete?: () => void;
+  scanType?: 'fridge' | 'pantry';
 }
 
-export function FridgeScanner({ onComplete }: FridgeScannerProps) {
+export function FridgeScanner({ onComplete, scanType = 'fridge' }: FridgeScannerProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(new Set());
@@ -23,28 +26,32 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
     clearDetected 
   } = useFridgeScanner();
 
+  // Handle multiple file selection
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      setPreviews(prev => [...prev, base64]);
-      
-      const ingredients = await scanFridgePhoto(base64);
-      
-      // Select all high/medium confidence ingredients by default
-      const highConfidence = new Set<number>();
-      const startIdx = detectedIngredients.length;
-      ingredients.forEach((ing, idx) => {
-        if (ing.confidence === 'high' || ing.confidence === 'medium') {
-          highConfidence.add(startIdx + idx);
-        }
-      });
-      setSelectedIngredients(prev => new Set([...prev, ...highConfidence]));
-    };
-    reader.readAsDataURL(file);
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        setPreviews(prev => [...prev, base64]);
+        
+        // Pass the scan type to the scanner - it will set the category
+        const ingredients = await scanFridgePhoto(base64, scanType);
+        
+        // Select all high/medium confidence ingredients by default
+        const highConfidence = new Set<number>();
+        const startIdx = detectedIngredients.length;
+        ingredients.forEach((ing, idx) => {
+          if (ing.confidence === 'high' || ing.confidence === 'medium') {
+            highConfidence.add(startIdx + idx);
+          }
+        });
+        setSelectedIngredients(prev => new Set([...prev, ...highConfidence]));
+      };
+      reader.readAsDataURL(file);
+    }
     
     // Reset file input for next selection
     if (fileInputRef.current) {
@@ -104,6 +111,10 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
     }
   };
 
+  const buttonLabel = scanType === 'fridge' 
+    ? t('inventory.scanFridge', '📷 Scan køleskab')
+    : t('inventory.scanPantry', '📷 Scan kolonialskab');
+
   // Show scanner button if no image yet
   if (previews.length === 0 && detectedIngredients.length === 0) {
     return (
@@ -113,13 +124,14 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
           type="file"
           accept="image/*"
           capture="environment"
+          multiple
           onChange={handleFileSelect}
           className="hidden"
         />
         
         <Button
           variant="outline"
-          className="w-full h-20 border-dashed"
+          className="w-full h-16 border-dashed"
           onClick={() => fileInputRef.current?.click()}
           disabled={scanning}
         >
@@ -131,13 +143,13 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
           ) : (
             <>
               <Camera className="w-5 h-5 mr-2" />
-              📷 Scan køleskab
+              {buttonLabel}
             </>
           )}
         </Button>
         
         <p className="text-xs text-muted-foreground text-center">
-          Tag et billede af dit køleskab, så finder vi ingredienserne automatisk
+          Tag ét eller flere billeder - vi finder ingredienserne automatisk
         </p>
       </div>
     );
@@ -160,7 +172,7 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
           </div>
           <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">
-            AI analyserer dit køleskab...
+            AI analyserer {scanType === 'fridge' ? 'dit køleskab' : 'dit kolonialskab'}...
           </p>
         </CardContent>
       </Card>
@@ -187,6 +199,7 @@ export function FridgeScanner({ onComplete }: FridgeScannerProps) {
             type="file"
             accept="image/*"
             capture="environment"
+            multiple
             onChange={handleFileSelect}
             className="hidden"
           />
