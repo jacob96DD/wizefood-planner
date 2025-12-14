@@ -259,7 +259,11 @@
       "description": "Customize your daily goals. Values are saved and used for your meal plan.",
       "resetToCalculated": "Reset to calculated",
       "howCalculated": "How your goals are calculated:",
-      "formula": "We use the Mifflin-St Jeor formula with your weight, height, age, and activity level. Protein: 25%, Carbs: 45%, Fat: 30% of calories."
+      "formula": "We use the Harris-Benedict formula: BMR × activity factor ± 500 kcal based on your goal.",
+      "currentDistribution": "Your macro distribution:",
+      "formulaLose": "Weight loss: 30% protein, 40% carbs, 30% fat (higher protein for satiety)",
+      "formulaMaintain": "Maintain: 25% protein, 45% carbs, 30% fat",
+      "formulaGain": "Muscle building: 30% protein, 45% carbs, 25% fat (higher protein for muscles)"
     },
     "macrosSaved": "Macro goals saved",
     "macrosSavedDesc": "Your custom goals are now saved."

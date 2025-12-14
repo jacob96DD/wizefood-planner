@@ -259,7 +259,11 @@
       "description": "Tilpas dine daglige mål. Værdierne gemmes og bruges til din madplan.",
       "resetToCalculated": "Nulstil til beregnet",
       "howCalculated": "Sådan beregnes dine mål:",
-      "formula": "Vi bruger Mifflin-St Jeor formlen med din vægt, højde, alder og aktivitetsniveau. Protein: 25%, Kulhydrater: 45%, Fedt: 30% af kalorier."
+      "formula": "Vi bruger Harris-Benedict formlen: BMR × aktivitetsfaktor ± 500 kcal baseret på dit mål.",
+      "currentDistribution": "Din makro-fordeling:",
+      "formulaLose": "Vægttab: 30% protein, 40% kulhydrat, 30% fedt (højere protein for mæthed)",
+      "formulaMaintain": "Vedligehold: 25% protein, 45% kulhydrat, 30% fedt",
+      "formulaGain": "Muskelopbygning: 30% protein, 45% kulhydrat, 25% fedt (højere protein for muskler)"
     },
     "macrosSaved": "Makro-mål gemt",
     "macrosSavedDesc": "Dine tilpassede mål er nu gemt."

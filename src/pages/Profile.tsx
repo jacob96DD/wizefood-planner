@@ -24,14 +24,16 @@ export default function Profile() {
     navigate('/');
   };
 
-  // Calculate daily calorie needs (simplified Mifflin-St Jeor formula)
+  // Calculate daily calorie needs using Harris-Benedict formula with dynamic macro distribution
   const calculateMacros = () => {
     if (!data.weightKg || !data.heightCm || !data.dateOfBirth) {
       return { calories: 2000, protein: 125, carbs: 225, fat: 67 };
     }
     
     const age = new Date().getFullYear() - new Date(data.dateOfBirth).getFullYear();
-    let bmr = data.gender === 'male'
+    
+    // Harris-Benedict BMR formula (correct parentheses)
+    const bmr = data.gender === 'male'
       ? 88.36 + (13.4 * data.weightKg) + (4.8 * data.heightCm) - (5.7 * age)
       : 447.6 + (9.2 * data.weightKg) + (3.1 * data.heightCm) - (4.3 * age);
 
@@ -43,18 +45,34 @@ export default function Profile() {
       athlete: 1.9,
     };
 
+    // TDEE = BMR × activity factor
     const multiplier = activityMultipliers[data.activityLevel] || 1.55;
     let calories = Math.round(bmr * multiplier);
 
-    // Adjust for goal
+    // Adjust for goal (±500 kcal for ~0.5 kg/week)
     if (data.dietaryGoal === 'lose') calories -= 500;
     if (data.dietaryGoal === 'gain') calories += 500;
 
+    // Dynamic macro distribution based on dietary goal
+    let proteinRatio = 0.25;
+    let carbsRatio = 0.45;
+    let fatRatio = 0.30;
+
+    if (data.dietaryGoal === 'lose') {
+      proteinRatio = 0.30;  // Higher protein for satiety and muscle preservation
+      carbsRatio = 0.40;
+      fatRatio = 0.30;
+    } else if (data.dietaryGoal === 'gain') {
+      proteinRatio = 0.30;  // Higher protein for muscle building
+      carbsRatio = 0.45;
+      fatRatio = 0.25;
+    }
+
     return {
       calories,
-      protein: Math.round((calories * 0.25) / 4),
-      carbs: Math.round((calories * 0.45) / 4),
-      fat: Math.round((calories * 0.30) / 9),
+      protein: Math.round((calories * proteinRatio) / 4),  // 4 kcal per gram protein
+      carbs: Math.round((calories * carbsRatio) / 4),       // 4 kcal per gram carbs
+      fat: Math.round((calories * fatRatio) / 9),           // 9 kcal per gram fat
     };
   };
 
@@ -264,6 +282,7 @@ export default function Profile() {
         onOpenChange={setMacrosDialogOpen}
         currentValues={currentMacros}
         calculatedValues={calculatedMacros}
+        dietaryGoal={data.dietaryGoal}
         onSave={handleSaveMacros}
       />
     </div>
