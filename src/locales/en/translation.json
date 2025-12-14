@@ -125,9 +125,22 @@
     },
     "household": {
       "title": "Household size",
-      "subtitle": "We'll adjust portion sizes for your household"
+      "subtitle": "How many people will the meal plan cover?"
     },
     "householdSize": "Number of people",
+    "householdMembers": {
+      "title": "Household members",
+      "subtitle": "Enter details for each person in your household",
+      "member": "Person {{number}}",
+      "name": "Name",
+      "namePlaceholder": "e.g. Anna",
+      "age": "Age (years)",
+      "agePlaceholder": "e.g. 35",
+      "height": "Height (cm)",
+      "heightPlaceholder": "e.g. 170",
+      "weight": "Weight (kg)",
+      "weightPlaceholder": "e.g. 65"
+    },
     "allergies": {
       "title": "Allergies and intolerances",
       "subtitle": "Select foods you need to avoid",

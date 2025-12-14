@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useOnboardingStore } from '@/stores/onboardingStore';
+import { useOnboardingStore, HouseholdMember } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { LanguageSelector } from '@/components/LanguageSelector';
+import { LanguageFlagSelector } from '@/components/LanguageFlagSelector';
 
 const genderOptions = [
   { value: 'male', icon: '👨' },
@@ -93,13 +93,37 @@ function calculateMacros(
   };
 }
 
+// Calculate macros for household member (simplified - no activity level, use moderate by default)
+function calculateMemberMacros(member: HouseholdMember, goal: string) {
+  if (!member.weightKg || !member.heightCm || !member.ageYears) {
+    return null;
+  }
+  return calculateMacros(
+    member.weightKg,
+    member.heightCm,
+    member.ageYears,
+    member.gender || 'other',
+    'moderate',
+    goal
+  );
+}
+
+const TOTAL_STEPS = 7;
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { currentStep, data, nextStep, prevStep, updateData, reset } = useOnboardingStore();
+  const { currentStep, data, nextStep, prevStep, updateData, updateHouseholdMember, initializeHouseholdMembers, reset } = useOnboardingStore();
   const { user, setIsOnboarded, setProfile } = useAuthStore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+
+  // Initialize household members when peopleCount changes
+  useEffect(() => {
+    if (currentStep === 5) {
+      initializeHouseholdMembers(data.peopleCount);
+    }
+  }, [data.peopleCount, currentStep, initializeHouseholdMembers]);
 
   const handleComplete = async () => {
     if (!user) {
@@ -124,7 +148,7 @@ export default function Onboarding() {
         age--;
       }
 
-      // Calculate macros
+      // Calculate macros for primary user
       const macros = calculateMacros(
         data.weightKg!,
         data.heightCm!,
@@ -133,6 +157,23 @@ export default function Onboarding() {
         data.activityLevel,
         data.dietaryGoal
       );
+
+      // Calculate combined macros for household
+      let totalCalories = macros.dailyCalories;
+      let totalProtein = macros.dailyProtein;
+      let totalCarbs = macros.dailyCarbs;
+      let totalFat = macros.dailyFat;
+
+      // Add household member macros
+      for (const member of data.householdMembers) {
+        const memberMacros = calculateMemberMacros(member, data.dietaryGoal);
+        if (memberMacros) {
+          totalCalories += memberMacros.dailyCalories;
+          totalProtein += memberMacros.dailyProtein;
+          totalCarbs += memberMacros.dailyCarbs;
+          totalFat += memberMacros.dailyFat;
+        }
+      }
 
       // Update profile in Supabase
       const profileData = {
@@ -147,10 +188,10 @@ export default function Onboarding() {
         dietary_goal: data.dietaryGoal,
         budget_per_week: null,
         people_count: data.peopleCount,
-        daily_calories: macros.dailyCalories,
-        daily_protein_target: macros.dailyProtein,
-        daily_carbs_target: macros.dailyCarbs,
-        daily_fat_target: macros.dailyFat,
+        daily_calories: totalCalories,
+        daily_protein_target: totalProtein,
+        daily_carbs_target: totalCarbs,
+        daily_fat_target: totalFat,
         updated_at: new Date().toISOString(),
       };
 
@@ -161,6 +202,40 @@ export default function Onboarding() {
         .single();
 
       if (profileError) throw profileError;
+
+      // Save household members to database
+      if (data.householdMembers.length > 0) {
+        // Delete existing household members
+        await supabase
+          .from('household_members')
+          .delete()
+          .eq('user_id', user.id);
+
+        // Insert new household members
+        const membersToInsert = data.householdMembers.map((member) => {
+          const memberMacros = calculateMemberMacros(member, data.dietaryGoal);
+          return {
+            user_id: user.id,
+            name: member.name || `Person ${data.householdMembers.indexOf(member) + 2}`,
+            gender: member.gender || null,
+            age_years: member.ageYears,
+            height_cm: member.heightCm,
+            weight_kg: member.weightKg,
+            daily_calories: memberMacros?.dailyCalories || null,
+            daily_protein_target: memberMacros?.dailyProtein || null,
+            daily_carbs_target: memberMacros?.dailyCarbs || null,
+            daily_fat_target: memberMacros?.dailyFat || null,
+          };
+        });
+
+        const { error: membersError } = await supabase
+          .from('household_members')
+          .insert(membersToInsert);
+
+        if (membersError) {
+          console.error('Error saving household members:', membersError);
+        }
+      }
 
       // First, get allergen IDs from the database
       const { data: allergenData, error: allergenFetchError } = await supabase
@@ -256,9 +331,34 @@ export default function Onboarding() {
       case 5:
         return data.peopleCount > 0;
       case 6:
+        // Household members step - only show if peopleCount > 1
+        if (data.peopleCount <= 1) return true;
+        // All members must have at least age filled in
+        return data.householdMembers.every(m => m.ageYears !== null && m.ageYears > 0);
+      case 7:
         return true; // Allergens are optional
       default:
         return false;
+    }
+  };
+
+  const shouldShowMembersStep = data.peopleCount > 1;
+
+  const handleNext = () => {
+    if (currentStep === 5 && !shouldShowMembersStep) {
+      // Skip members step if only 1 person
+      useOnboardingStore.getState().setStep(7);
+    } else {
+      nextStep();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep === 7 && !shouldShowMembersStep) {
+      // Skip members step going back if only 1 person
+      useOnboardingStore.getState().setStep(5);
+    } else {
+      prevStep();
     }
   };
 
@@ -452,6 +552,92 @@ export default function Onboarding() {
         );
 
       case 6:
+        // Household members step
+        return (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center mb-6">
+              <span className="text-5xl mb-4 block">👥</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.householdMembers.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.householdMembers.subtitle')}</p>
+            </div>
+
+            <div className="space-y-6">
+              {data.householdMembers.map((member, index) => (
+                <div key={member.id} className="p-4 border-2 border-border rounded-xl space-y-4">
+                  <h3 className="font-semibold text-lg">
+                    {t('onboarding.householdMembers.member', { number: index + 2 })}
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.name')}</label>
+                      <Input
+                        placeholder={t('onboarding.householdMembers.namePlaceholder')}
+                        value={member.name}
+                        onChange={(e) => updateHouseholdMember(member.id, { name: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium mb-2 block">{t('onboarding.gender')}</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {genderOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => updateHouseholdMember(member.id, { gender: option.value })}
+                            className={cn(
+                              "flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all",
+                              member.gender === option.value
+                                ? "border-primary bg-secondary"
+                                : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <span className="text-lg">{option.icon}</span>
+                            <span className="text-xs font-medium">
+                              {t(`onboarding.genders.${option.value}`)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.age')}</label>
+                      <Input
+                        type="number"
+                        placeholder={t('onboarding.householdMembers.agePlaceholder')}
+                        value={member.ageYears || ''}
+                        onChange={(e) => updateHouseholdMember(member.id, { ageYears: Number(e.target.value) || null })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.height')}</label>
+                      <Input
+                        type="number"
+                        placeholder={t('onboarding.householdMembers.heightPlaceholder')}
+                        value={member.heightCm || ''}
+                        onChange={(e) => updateHouseholdMember(member.id, { heightCm: Number(e.target.value) || null })}
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.weight')}</label>
+                      <Input
+                        type="number"
+                        placeholder={t('onboarding.householdMembers.weightPlaceholder')}
+                        value={member.weightKg || ''}
+                        onChange={(e) => updateHouseholdMember(member.id, { weightKg: Number(e.target.value) || null })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 7:
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -503,13 +689,25 @@ export default function Onboarding() {
     }
   };
 
+  // Calculate displayed step number (accounting for skipped members step)
+  const getDisplayStep = () => {
+    if (!shouldShowMembersStep && currentStep >= 6) {
+      return currentStep - 1;
+    }
+    return currentStep;
+  };
+
+  const getDisplayTotalSteps = () => {
+    return shouldShowMembersStep ? TOTAL_STEPS : TOTAL_STEPS - 1;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-muted z-50">
         <div
           className="h-full bg-gradient-primary transition-all duration-300"
-          style={{ width: `${(currentStep / 6) * 100}%` }}
+          style={{ width: `${(getDisplayStep() / getDisplayTotalSteps()) * 100}%` }}
         />
       </div>
 
@@ -517,17 +715,20 @@ export default function Onboarding() {
       <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
         {/* Header */}
         <header className="flex items-center justify-between p-4 pt-6 md:pt-10">
-          {currentStep > 1 ? (
-            <Button variant="ghost" size="icon" onClick={prevStep} className="hover:bg-secondary">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          ) : (
-            <div className="w-10" />
-          )}
+          <div className="flex items-center gap-2">
+            {currentStep > 1 ? (
+              <Button variant="ghost" size="icon" onClick={handlePrev} className="hover:bg-secondary">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            ) : (
+              <div className="w-10" />
+            )}
+            <LanguageFlagSelector compact />
+          </div>
           <span className="text-sm text-muted-foreground">
-            {t('common.step')} {currentStep} {t('common.of')} 6
+            {t('common.step')} {getDisplayStep()} {t('common.of')} {getDisplayTotalSteps()}
           </span>
-          <LanguageSelector />
+          <div className="w-10" />
         </header>
 
         {/* Content */}
@@ -541,7 +742,7 @@ export default function Onboarding() {
             variant="hero"
             size="xl"
             className="w-full"
-            onClick={currentStep === 6 ? handleComplete : nextStep}
+            onClick={currentStep === TOTAL_STEPS ? handleComplete : handleNext}
             disabled={!canProceed() || isSaving}
           >
             {isSaving ? (
@@ -549,7 +750,7 @@ export default function Onboarding() {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>{t('onboarding.saving')}</span>
               </>
-            ) : currentStep === 6 ? (
+            ) : currentStep === TOTAL_STEPS ? (
               <>
                 <Check className="w-5 h-5" />
                 <span>{t('onboarding.getStarted')}</span>

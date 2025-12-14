@@ -125,9 +125,22 @@
     },
     "household": {
       "title": "Husstandsstørrelse",
-      "subtitle": "Vi tilpasser portionsstørrelser til din husstand"
+      "subtitle": "Hvor mange personer skal madplanen dække?"
     },
     "householdSize": "Antal personer",
+    "householdMembers": {
+      "title": "Husstandsmedlemmer",
+      "subtitle": "Indtast oplysninger for hver person i husstanden",
+      "member": "Person {{number}}",
+      "name": "Navn",
+      "namePlaceholder": "f.eks. Anna",
+      "age": "Alder (år)",
+      "agePlaceholder": "f.eks. 35",
+      "height": "Højde (cm)",
+      "heightPlaceholder": "f.eks. 170",
+      "weight": "Vægt (kg)",
+      "weightPlaceholder": "f.eks. 65"
+    },
     "allergies": {
       "title": "Allergier og intoleranser",
       "subtitle": "Vælg de fødevarer du skal undgå",
