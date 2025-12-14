@@ -72,6 +72,23 @@
     "enterName": "Enter your name",
     "gender": "Gender",
     "birthDate": "Date of birth",
+    "birthDateDay": "Day",
+    "birthDateMonth": "Month",
+    "birthDateYear": "Year",
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
     "genders": {
       "male": "Male",
       "female": "Female",
@@ -112,8 +129,10 @@
       }
     },
     "goal": {
-      "title": "Your goal",
-      "subtitle": "What do you want to achieve?"
+      "title": "Your goals",
+      "subtitle": "What do you want to achieve? Select at least one body goal",
+      "bodyGoalsLabel": "Body goal (choose one)",
+      "lifestyleGoalsLabel": "Lifestyle goals (optional)"
     },
     "goals": {
       "lose": {
@@ -159,7 +178,10 @@
     "allergies": {
       "title": "Allergies and intolerances",
       "subtitle": "Select foods you need to avoid",
-      "skipNote": "You can skip this step if you have no allergies"
+      "skipNote": "You can skip this step if you have no allergies",
+      "customLabel": "Other (type yourself)",
+      "customPlaceholder": "e.g. sesame, mustard...",
+      "customHint": "Type other allergies or intolerances separated by comma"
     },
     "allergens": {
       "gluten": "Gluten",
