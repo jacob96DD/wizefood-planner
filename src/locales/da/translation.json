@@ -198,7 +198,30 @@
     "profileSaved": "Profil gemt!",
     "profileSavedDesc": "Din profil er nu oprettet. Lad os finde nogle opskrifter!",
     "mustBeLoggedIn": "Du skal være logget ind for at fortsætte.",
-    "errorSaving": "Der opstod en fejl ved gemning af din profil. Prøv igen."
+    "errorSaving": "Der opstod en fejl ved gemning af din profil. Prøv igen.",
+    "skipStep": "Spring over",
+    "dislikes": {
+      "title": "Ting du ikke kan lide",
+      "subtitle": "Hvilke madvarer vil du helst undgå? (ikke allergier)",
+      "customLabel": "Andre ting du ikke bryder dig om",
+      "customPlaceholder": "f.eks. ansjoser, leverpostej...",
+      "skipNote": "AI'en vil undgå disse ingredienser i dine madplaner",
+      "risalamande": "Risalamande",
+      "leverpostej": "Leverpostej",
+      "fisk": "Fisk generelt",
+      "indmad": "Indmad",
+      "svampe": "Svampe",
+      "oliven": "Oliven",
+      "blodpudding": "Blodpølse",
+      "ost": "Stærk ost",
+      "skaldyr": "Skaldyr",
+      "spidskommen": "Spidskommen",
+      "koriander": "Koriander",
+      "aubergine": "Aubergine",
+      "rosenkaal": "Rosenkål",
+      "ananas": "Ananas på pizza",
+      "lever": "Lever"
+    }
   },
   "home": {
     "swipe": {

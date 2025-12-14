@@ -61,6 +61,24 @@ const allergensList = [
   { id: 'celery', icon: '🥬' },
 ];
 
+const dislikeOptions = [
+  { id: 'risalamande', icon: '🍚' },
+  { id: 'leverpostej', icon: '🍞' },
+  { id: 'fisk', icon: '🐟' },
+  { id: 'indmad', icon: '🫀' },
+  { id: 'svampe', icon: '🍄' },
+  { id: 'oliven', icon: '🫒' },
+  { id: 'blodpudding', icon: '🩸' },
+  { id: 'ost', icon: '🧀' },
+  { id: 'skaldyr', icon: '🦐' },
+  { id: 'spidskommen', icon: '🌿' },
+  { id: 'koriander', icon: '🌿' },
+  { id: 'aubergine', icon: '🍆' },
+  { id: 'rosenkaal', icon: '🥬' },
+  { id: 'ananas', icon: '🍕' },
+  { id: 'lever', icon: '🫀' },
+];
+
 // Calculate calories using Mifflin-St Jeor formula
 function calculateMacros(
   weight: number,
@@ -134,7 +152,7 @@ const days = Array.from({ length: 31 }, (_, i) => i + 1);
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 91 }, (_, i) => currentYear - 10 - i);
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -204,6 +222,19 @@ export default function Onboarding() {
       }
       updateData({ dietaryGoals: newGoals });
     }
+  };
+
+  // Toggle disliked food
+  const handleDislikeToggle = (foodId: string) => {
+    const newDislikes = data.dislikedFoods.includes(foodId)
+      ? data.dislikedFoods.filter(f => f !== foodId)
+      : [...data.dislikedFoods, foodId];
+    updateData({ dislikedFoods: newDislikes });
+  };
+
+  // Skip current step (go to next without filling data)
+  const handleSkipStep = () => {
+    nextStep();
   };
 
   // Skip onboarding - create minimal profile focused on saving money
@@ -439,6 +470,35 @@ export default function Onboarding() {
         }
       }
 
+      // Save food dislikes
+      // First delete existing dislikes
+      await supabase
+        .from('user_food_dislikes')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Get all dislikes to save (selected + custom)
+      const allDislikes = [...data.dislikedFoods];
+      if (data.customDislikes) {
+        const customItems = data.customDislikes.split(',').map(s => s.trim()).filter(Boolean);
+        allDislikes.push(...customItems);
+      }
+
+      if (allDislikes.length > 0) {
+        const dislikesToInsert = allDislikes.map((food) => ({
+          user_id: user.id,
+          food_name: food,
+        }));
+
+        const { error: dislikesError } = await supabase
+          .from('user_food_dislikes')
+          .insert(dislikesToInsert);
+
+        if (dislikesError) {
+          console.error('Error saving food dislikes:', dislikesError);
+        }
+      }
+
       // Update local state
       setProfile(updatedProfile);
       setIsOnboarded(true);
@@ -469,10 +529,35 @@ export default function Onboarding() {
   // 4: Activity level
   // 5: Goals (multi-select with rules)
   // 6: Allergies (with custom input)
+  // 7: Food dislikes
   const canProceed = () => {
     switch (currentStep) {
       case 1:
         return data.peopleCount > 0;
+      case 2:
+        // Can proceed even if skipped (allow skip)
+        return true;
+      case 3:
+        // Can proceed even if skipped (allow skip)
+        return true;
+      case 4:
+        // Can proceed even if skipped (allow skip)
+        return true;
+      case 5:
+        // Can proceed even if skipped (allow skip)
+        return true;
+      case 6:
+        return true; // Allergens are optional
+      case 7:
+        return true; // Dislikes are optional
+      default:
+        return false;
+    }
+  };
+
+  // Check if current step has required data filled
+  const hasStepData = () => {
+    switch (currentStep) {
       case 2:
         return data.fullName && data.gender && data.birthDay && data.birthMonth && data.birthYear;
       case 3:
@@ -480,12 +565,9 @@ export default function Onboarding() {
       case 4:
         return data.activityLevel;
       case 5:
-        // Must have at least one body goal selected
         return data.dietaryGoals.some(g => bodyGoals.some(bg => bg.value === g));
-      case 6:
-        return true; // Allergens are optional
       default:
-        return false;
+        return true;
     }
   };
 
@@ -831,6 +913,54 @@ export default function Onboarding() {
           </div>
         );
 
+      case 7:
+        // Food dislikes (Step 7)
+        return (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center mb-8">
+              <span className="text-5xl mb-4 block">🙅</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.dislikes.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.dislikes.subtitle')}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {dislikeOptions.map((food) => {
+                const isSelected = data.dislikedFoods.includes(food.id);
+                return (
+                  <button
+                    key={food.id}
+                    onClick={() => handleDislikeToggle(food.id)}
+                    className={cn(
+                      "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                      isSelected
+                        ? "border-destructive bg-destructive/10"
+                        : "border-border hover:border-destructive/50"
+                    )}
+                  >
+                    <span className="text-2xl">{food.icon}</span>
+                    <span className="font-medium text-sm">{t(`onboarding.dislikes.${food.id}`)}</span>
+                    {isSelected && <Check className="w-4 h-4 ml-auto text-destructive" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom dislikes input */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t('onboarding.dislikes.customLabel')}</label>
+              <Input
+                placeholder={t('onboarding.dislikes.customPlaceholder')}
+                value={data.customDislikes}
+                onChange={(e) => updateData({ customDislikes: e.target.value })}
+              />
+            </div>
+
+            <p className="text-sm text-muted-foreground text-center">
+              {t('onboarding.dislikes.skipNote')}
+            </p>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -908,7 +1038,18 @@ export default function Onboarding() {
         </main>
 
         {/* Footer */}
-        <footer className="p-6 md:pb-10 safe-bottom">
+        <footer className="p-6 md:pb-10 safe-bottom space-y-3">
+          {/* Skip step button - show on steps 2-7 when data is not filled */}
+          {currentStep > 1 && currentStep <= TOTAL_STEPS && !hasStepData() && (
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={handleSkipStep}
+            >
+              {t('onboarding.skipStep')}
+            </Button>
+          )}
+          
           <Button
             variant="hero"
             size="xl"
