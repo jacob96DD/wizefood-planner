@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles, Camera, ListPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,21 +11,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInventory } from '@/hooks/useInventory';
-import { addDays, format } from 'date-fns';
+import { useFridgeScanner } from '@/hooks/useFridgeScanner';
+import { supabase } from '@/integrations/supabase/client';
+import { addDays } from 'date-fns';
+import { toast } from 'sonner';
 
 interface AddInventoryItemDialogProps {
   trigger?: React.ReactNode;
-  defaultName?: string;
-  defaultQuantity?: number;
-  defaultUnit?: string;
+  defaultCategory?: 'fridge' | 'pantry';
   onSuccess?: () => void;
 }
 
@@ -33,70 +29,150 @@ const quickExpiryOptions = [
   { label: '+1 dag', days: 1 },
   { label: '+3 dage', days: 3 },
   { label: '+1 uge', days: 7 },
-  { label: '+1 måned', days: 30 },
+  { label: '+1 md', days: 30 },
   { label: '+1 år', days: 365 },
 ];
 
 export function AddInventoryItemDialog({
   trigger,
-  defaultName = '',
-  defaultQuantity,
-  defaultUnit = '',
+  defaultCategory = 'fridge',
   onSuccess,
 }: AddInventoryItemDialogProps) {
   const { t } = useTranslation();
-  const { addItem, saving } = useInventory();
+  const { addItem, addMultipleItems, saving, refetch } = useInventory();
+  const { scanFridgePhoto, scanning } = useFridgeScanner();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(defaultName);
-  const [quantity, setQuantity] = useState<string>(defaultQuantity?.toString() || '');
-  const [unit, setUnit] = useState(defaultUnit);
-  const [category, setCategory] = useState<'fridge' | 'pantry'>('fridge');
+  const [activeTab, setActiveTab] = useState<'manual' | 'ai' | 'photo'>('manual');
   
-  // Expiry date as separate fields
-  const [expiryDay, setExpiryDay] = useState('');
-  const [expiryMonth, setExpiryMonth] = useState('');
-  const [expiryYear, setExpiryYear] = useState('');
-
-  const setQuickExpiry = (days: number) => {
-    const date = addDays(new Date(), days);
-    setExpiryDay(date.getDate().toString());
-    setExpiryMonth((date.getMonth() + 1).toString());
-    setExpiryYear(date.getFullYear().toString());
-  };
+  // Manual entry state
+  const [manualItems, setManualItems] = useState('');
+  const [category, setCategory] = useState<'fridge' | 'pantry'>(defaultCategory);
+  const [expiryDays, setExpiryDays] = useState<number | null>(null);
+  
+  // AI entry state
+  const [aiText, setAiText] = useState('');
+  const [aiProcessing, setAiProcessing] = useState(false);
+  
+  // Photo state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoProcessing, setPhotoProcessing] = useState(false);
 
   const getExpiryDate = (): string | undefined => {
-    if (expiryDay && expiryMonth && expiryYear) {
-      const day = expiryDay.padStart(2, '0');
-      const month = expiryMonth.padStart(2, '0');
-      return `${expiryYear}-${month}-${day}`;
-    }
-    return undefined;
+    if (expiryDays === null) return undefined;
+    const date = addDays(new Date(), expiryDays);
+    return date.toISOString().split('T')[0];
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+  const resetForm = () => {
+    setManualItems('');
+    setAiText('');
+    setExpiryDays(null);
+    setCategory(defaultCategory);
+  };
 
-    const result = await addItem({
-      ingredient_name: name.trim(),
-      quantity: quantity ? parseFloat(quantity) : undefined,
-      unit: unit || undefined,
+  // Handle manual list submission (comma-separated items like "æg, kartofler, mælk")
+  const handleManualSubmit = async () => {
+    if (!manualItems.trim()) return;
+    
+    const itemNames = manualItems.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    if (itemNames.length === 0) return;
+
+    const expiryDate = getExpiryDate();
+    const itemsToAdd = itemNames.map(name => ({
+      ingredient_name: name,
       category,
-      expires_at: getExpiryDate(),
-    });
+      expires_at: expiryDate,
+    }));
 
-    if (result) {
+    const success = await addMultipleItems(itemsToAdd);
+    if (success) {
+      toast.success(t('inventory.itemsAdded', { count: itemNames.length }));
+      resetForm();
       setOpen(false);
-      setName('');
-      setQuantity('');
-      setUnit('');
-      setCategory('fridge');
-      setExpiryDay('');
-      setExpiryMonth('');
-      setExpiryYear('');
       onSuccess?.();
     }
   };
+
+  // Handle AI text processing
+  const handleAiSubmit = async () => {
+    if (!aiText.trim()) return;
+    
+    setAiProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-inventory-text', {
+        body: { text: aiText, category }
+      });
+
+      if (error) throw error;
+
+      const items = data?.items || [];
+      if (items.length === 0) {
+        toast.error(t('inventory.noItemsFound'));
+        return;
+      }
+
+      const success = await addMultipleItems(items);
+      if (success) {
+        toast.success(t('inventory.itemsAdded', { count: items.length }));
+        resetForm();
+        setOpen(false);
+        onSuccess?.();
+      }
+    } catch (error) {
+      console.error('AI parsing error:', error);
+      toast.error(t('common.error'));
+    } finally {
+      setAiProcessing(false);
+    }
+  };
+
+  // Handle photo capture
+  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoProcessing(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const ingredients = await scanFridgePhoto(base64, category);
+        
+        if (ingredients.length > 0) {
+          const itemsToAdd = ingredients.map(ing => ({
+            ingredient_name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            category: ing.category || category,
+            expires_at: ing.expires_at,
+          }));
+
+          const success = await addMultipleItems(itemsToAdd);
+          if (success) {
+            toast.success(t('inventory.itemsAdded', { count: ingredients.length }));
+            resetForm();
+            setOpen(false);
+            onSuccess?.();
+          }
+        } else {
+          toast.info(t('inventory.noItemsFound'));
+        }
+        setPhotoProcessing(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Photo scan error:', error);
+      toast.error(t('common.error'));
+      setPhotoProcessing(false);
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const isProcessing = saving || aiProcessing || photoProcessing || scanning;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -108,51 +184,35 @@ export function AddInventoryItemDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('inventory.addItem')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">{t('inventory.ingredientName')}</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('inventory.ingredientPlaceholder')}
-              required
-            />
-          </div>
+        
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="manual" className="flex items-center gap-1.5 text-xs">
+              <ListPlus className="w-4 h-4" />
+              {t('inventory.addMethods.manual')}
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-1.5 text-xs">
+              <Sparkles className="w-4 h-4" />
+              {t('inventory.addMethods.ai')}
+            </TabsTrigger>
+            <TabsTrigger value="photo" className="flex items-center gap-1.5 text-xs">
+              <Camera className="w-4 h-4" />
+              {t('inventory.addMethods.photo')}
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quantity">{t('inventory.quantity')}</Label>
-              <Input
-                id="quantity"
-                type="number"
-                step="0.1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="1"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unit">{t('inventory.unit')}</Label>
-              <Input
-                id="unit"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="stk, kg, l..."
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('inventory.category')}</Label>
+          {/* Category selector - shared across all tabs */}
+          <div className="mt-4 mb-3">
+            <Label className="text-xs text-muted-foreground mb-2 block">{t('inventory.category')}</Label>
             <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
                 variant={category === 'fridge' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setCategory('fridge')}
                 className="flex items-center gap-2"
               >
@@ -161,6 +221,7 @@ export function AddInventoryItemDialog({
               <Button
                 type="button"
                 variant={category === 'pantry' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setCategory('pantry')}
                 className="flex items-center gap-2"
               >
@@ -169,71 +230,107 @@ export function AddInventoryItemDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('inventory.expiresAt')}</Label>
-            
-            {/* Quick expiry buttons */}
-            <div className="flex gap-2 flex-wrap">
-              {quickExpiryOptions.map((opt) => (
-                <Button
-                  key={opt.days}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickExpiry(opt.days)}
-                  className="text-xs"
-                >
-                  {opt.label}
-                </Button>
-              ))}
+          {/* Manual entry tab */}
+          <TabsContent value="manual" className="space-y-4 mt-0">
+            <div className="space-y-2">
+              <Label>{t('inventory.addMethods.manualHint')}</Label>
+              <Textarea
+                value={manualItems}
+                onChange={(e) => setManualItems(e.target.value)}
+                placeholder="æg, mælk, smør, ost..."
+                rows={3}
+                className="resize-none"
+              />
             </div>
-            
-            {/* Three separate fields for DD / MM / YYYY */}
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <Input
-                  type="number"
-                  placeholder="DD"
-                  value={expiryDay}
-                  onChange={(e) => setExpiryDay(e.target.value.slice(0, 2))}
-                  min={1}
-                  max={31}
-                  className="text-center"
-                />
-              </div>
-              <div>
-                <Input
-                  type="number"
-                  placeholder="MM"
-                  value={expiryMonth}
-                  onChange={(e) => setExpiryMonth(e.target.value.slice(0, 2))}
-                  min={1}
-                  max={12}
-                  className="text-center"
-                />
-              </div>
-              <div>
-                <Input
-                  type="number"
-                  placeholder="ÅÅÅÅ"
-                  value={expiryYear}
-                  onChange={(e) => setExpiryYear(e.target.value.slice(0, 4))}
-                  min={new Date().getFullYear()}
-                  className="text-center"
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              {t('common.cancel')}
+            {/* Quick expiry buttons */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">{t('inventory.expiresAt')}</Label>
+              <div className="flex gap-1.5 flex-wrap">
+                {quickExpiryOptions.map((opt) => (
+                  <Button
+                    key={opt.days}
+                    type="button"
+                    variant={expiryDays === opt.days ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setExpiryDays(expiryDays === opt.days ? null : opt.days)}
+                    className="text-xs px-2 h-7"
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button 
+              className="w-full" 
+              onClick={handleManualSubmit}
+              disabled={isProcessing || !manualItems.trim()}
+            >
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              {t('inventory.addItems')}
             </Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving ? t('common.loading') : t('common.save')}
+          </TabsContent>
+
+          {/* AI text entry tab */}
+          <TabsContent value="ai" className="space-y-4 mt-0">
+            <div className="space-y-2">
+              <Label>{t('inventory.addMethods.aiHint')}</Label>
+              <Textarea
+                value={aiText}
+                onChange={(e) => setAiText(e.target.value)}
+                placeholder={t('inventory.addMethods.aiPlaceholder')}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+
+            <Button 
+              className="w-full" 
+              onClick={handleAiSubmit}
+              disabled={isProcessing || !aiText.trim()}
+            >
+              {aiProcessing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              {t('inventory.parseWithAi')}
             </Button>
-          </div>
-        </form>
+          </TabsContent>
+
+          {/* Photo capture tab */}
+          <TabsContent value="photo" className="space-y-4 mt-0">
+            <div className="text-center py-6">
+              <div className="text-4xl mb-3">📸</div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t('inventory.addMethods.photoHint')}
+              </p>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoCapture}
+                className="hidden"
+              />
+              
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                className="w-full"
+              >
+                {photoProcessing || scanning ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 mr-2" />
+                )}
+                {t('inventory.takePhoto')}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
