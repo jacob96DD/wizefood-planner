@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -82,10 +81,10 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -292,6 +291,10 @@ serve(async (req) => {
     // 4.3 Dietary goal
     const dietaryGoal = profile?.dietary_goal || 'maintain';
 
+    // ============ OVERGENERATION for swipe selection ============
+    const alternativesMultiplier = Math.max(1, (prefs.generate_alternatives || 0) + 1);
+    const recipesPerMealType = duration_days * alternativesMultiplier;
+
     // ============ BUILD PRIORITIZED AI PROMPT ============
 
     const fixedMealsDescription = (prefs.fixed_meals || []).length > 0
@@ -317,12 +320,13 @@ serve(async (req) => {
 🔴 KRITISKE REGLER (UFRAVIGELIGE):
 1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen allergener'}
 2. ALDRIG foreslå disse ingredienser (bruger hader): ${allDislikes.length > 0 ? allDislikes.slice(0, 15).join(', ') : 'Ingen'}
-3. Hver dag skal ramme ca. ${availableCalories} kcal, ${availableProtein}g protein (±10%)
-4. Måltider: ${mealsToInclude.length > 0 ? mealsToInclude.join(', ') : 'alle'}
-5. Madlavningsstil: ${mealPrepDescription}
-6. Faste måltider (medregnet allerede):
+3. Hver ret skal ramme ca. ${Math.round(availableCalories / mealsToInclude.length)} kcal (total dag: ${availableCalories} kcal)
+4. Protein per dag: ${availableProtein}g (±10%)
+5. Måltider: ${mealsToInclude.length > 0 ? mealsToInclude.join(', ') : 'alle'}
+6. Madlavningsstil: ${mealPrepDescription}
+7. Faste måltider (medregnet allerede):
 ${fixedMealsDescription}
-7. Undtagelser (spring over):
+8. Undtagelser (spring over):
 ${exceptionsDescription}
 
 🟠 VIGTIGE PRIORITETER:
@@ -343,79 +347,108 @@ ${inventoryItems || 'Ingen varer i lageret'}
 2. Ernæringsmål: ${dietaryGoal === 'lose' ? 'vægttab' : dietaryGoal === 'gain' ? 'muskelopbygning' : 'vedligehold'}
 3. Antal personer: ${profile?.people_count || 1}
 
+📊 OVERGENERATION:
+Generér ${recipesPerMealType} unikke retter PER måltidstype for at give brugeren valgmuligheder.
+${alternativesMultiplier > 1 ? `Brugeren vil swipe og vælge ${duration_days} retter per måltidstype.` : ''}
+
 OUTPUT FORMAT:
 Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
 {
-  "meals": [
-    {
-      "date": "YYYY-MM-DD",
-      "breakfast": ${prefs.skip_breakfast ? 'null' : `{
-        "title": "string",
-        "description": "string",
-        "calories": number,
-        "protein": number,
-        "carbs": number,
-        "fat": number,
-        "prep_time": number,
-        "ingredients": [{"name": "string", "amount": "string", "unit": "string"}],
-        "instructions": ["string"],
-        "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
-        "uses_inventory": ["ingredient_name"]
-      }`},
-      "lunch": ${prefs.skip_lunch ? 'null' : '{ ... samme format ... }'},
-      "dinner": ${prefs.skip_dinner ? 'null' : '{ ... samme format ... }'}
-    }
-  ],
+  "recipe_options": {
+    "breakfast": ${prefs.skip_breakfast ? '[]' : `[/* ${recipesPerMealType} morgenmads-retter */]`},
+    "lunch": ${prefs.skip_lunch ? '[]' : `[/* ${recipesPerMealType} frokost-retter */]`},
+    "dinner": ${prefs.skip_dinner ? '[]' : `[/* ${recipesPerMealType} aftensmads-retter */]`}
+  },
   "total_estimated_savings": number,
   "shopping_summary": {
     "by_store": [
       {"store": "string", "items": ["string"], "estimated_cost": number}
     ]
   }
+}
+
+Hver ret skal have dette format:
+{
+  "id": "unique-id",
+  "title": "string",
+  "description": "kort beskrivelse (max 50 ord)",
+  "calories": number,
+  "protein": number,
+  "carbs": number,
+  "fat": number,
+  "prep_time": number,
+  "cook_time": number,
+  "servings": ${profile?.people_count || 1},
+  "ingredients": [{"name": "string", "amount": "string", "unit": "string"}],
+  "instructions": ["trin 1", "trin 2", ...],
+  "tags": ["hurtig", "meal-prep", "høj-protein", etc.],
+  "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
+  "uses_inventory": ["ingredient_name"],
+  "estimated_price": number
 }`;
 
-    const userPrompt = `Lav en ${duration_days}-dages madplan startende ${startDate.toISOString().split('T')[0]}.
+    const userPrompt = `Lav ${recipesPerMealType} unikke retter per måltidstype (total ${recipesPerMealType * mealsToInclude.length} retter) for en ${duration_days}-dages madplan startende ${startDate.toISOString().split('T')[0]}.
 
 Husk:
 - Prioriter tilbud og lager aktivt
-- Hold dig inden for ${availableCalories} kcal/dag budget
+- Hver ret skal ramme ~${Math.round(availableCalories / mealsToInclude.length)} kcal
 - ${mealPrepDescription}
 - Beregn besparelser fra tilbud
+- Giv unikke, varierede forslag så brugeren kan vælge
 
-Lav madplanen nu!`;
+Lav retterne nu!`;
 
-    console.log('Generating meal plan with config:', {
+    console.log('Generating meal plan with Claude Sonnet 4:', {
       cooking_style: prefs.cooking_style,
       meals: mealsToInclude,
       availableCalories,
+      recipesPerMealType,
+      alternativesMultiplier,
       offers: offers?.length || 0,
       inventory: inventory.length,
       allergens: allergenNames.length,
       dislikes: allDislikes.length,
     });
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Claude Sonnet 4 via Lovable AI Gateway
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'claude-sonnet-4-5',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 8000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('AI Gateway error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit nået. Prøv igen om lidt.' 
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ 
+          error: 'AI credits opbrugt. Tilføj flere credits i Lovable indstillinger.' 
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const aiResponse = await response.json();
@@ -437,6 +470,31 @@ Lav madplanen nu!`;
       throw new Error('Failed to parse meal plan from AI');
     }
 
+    // Convert recipe_options to meals array format for backwards compatibility
+    const recipeOptions = mealPlanData.recipe_options || {};
+    const allRecipes = {
+      breakfast: recipeOptions.breakfast || [],
+      lunch: recipeOptions.lunch || [],
+      dinner: recipeOptions.dinner || [],
+    };
+
+    // If no alternatives requested, create traditional meal plan structure
+    let mealsArray: any[] = [];
+    if (alternativesMultiplier === 1) {
+      // Create 7-day meal plan from first recipe of each type
+      for (let i = 0; i < duration_days; i++) {
+        const dayDate = new Date(startDate);
+        dayDate.setDate(dayDate.getDate() + i);
+        
+        mealsArray.push({
+          date: dayDate.toISOString().split('T')[0],
+          breakfast: allRecipes.breakfast[i % allRecipes.breakfast.length] || null,
+          lunch: allRecipes.lunch[i % allRecipes.lunch.length] || null,
+          dinner: allRecipes.dinner[i % allRecipes.dinner.length] || null,
+        });
+      }
+    }
+
     // Save meal plan to database
     const { data: savedPlan, error: saveError } = await supabase
       .from('meal_plans')
@@ -444,7 +502,7 @@ Lav madplanen nu!`;
         user_id: user.id,
         title: `Madplan ${startDate.toLocaleDateString('da-DK')}`,
         duration_days,
-        meals: mealPlanData.meals,
+        meals: alternativesMultiplier > 1 ? allRecipes : mealsArray,
         total_cost: mealPlanData.shopping_summary?.by_store?.reduce((sum: number, store: any) => sum + (store.estimated_cost || 0), 0) || null,
         total_savings: mealPlanData.total_estimated_savings || null,
       })
@@ -456,12 +514,14 @@ Lav madplanen nu!`;
       throw new Error('Failed to save meal plan');
     }
 
-    console.log('Meal plan saved:', savedPlan.id);
+    console.log('Meal plan saved:', savedPlan.id, 'with', alternativesMultiplier > 1 ? 'recipe options' : 'meal schedule');
 
     return new Response(JSON.stringify({
       success: true,
       meal_plan: savedPlan,
+      recipe_options: alternativesMultiplier > 1 ? allRecipes : null,
       shopping_summary: mealPlanData.shopping_summary,
+      has_alternatives: alternativesMultiplier > 1,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
