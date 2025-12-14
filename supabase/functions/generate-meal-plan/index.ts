@@ -47,6 +47,7 @@ interface MealPlanPreferences {
   weekday_max_cook_time: number;
   weekend_max_cook_time: number;
   generate_alternatives: number;
+  max_weekly_budget?: number;
 }
 
 // Get current season based on month
@@ -230,8 +231,8 @@ serve(async (req) => {
       return `- ${offer.offer_text || offer.product_name}: ${offer.offer_price_dkk} kr ${savings} @ ${storeName}`;
     }).join('\n');
 
-    // 2.2 Budget
-    const weeklyBudget = profile?.budget_per_week || 800;
+    // 2.2 Budget - prioritize preferences, fallback to profile
+    const weeklyBudget = prefs.max_weekly_budget || profile?.budget_per_week || 800;
 
     // 2.3 Positive preferences (from likes)
     const likes = (ingredientPrefsResult.data || [])

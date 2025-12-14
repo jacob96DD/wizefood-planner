@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, X, Sparkles, Loader2, ChefHat, Clock, Utensils, Camera, Wand2 } from 'lucide-react';
+import { Plus, X, Sparkles, Loader2, ChefHat, Clock, Utensils, Camera, Wand2, Wallet } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,7 @@ interface MealPlanConfigDialogProps {
     real_life_protein_per_week?: number | null;
     real_life_carbs_per_week?: number | null;
     real_life_fat_per_week?: number | null;
+    budget_per_week?: number | null;
   };
 }
 
@@ -80,7 +81,10 @@ export function MealPlanConfigDialog({
   const [useProfileRealLife, setUseProfileRealLife] = useState(true);
 
   useEffect(() => {
-    setLocalPrefs(preferences);
+    setLocalPrefs({
+      ...preferences,
+      max_weekly_budget: preferences.max_weekly_budget || profile?.budget_per_week || 800,
+    });
     
     // Load real-life data from profile first
     if (profile?.real_life_calories_per_week && useProfileRealLife) {
@@ -461,7 +465,30 @@ export function MealPlanConfigDialog({
                   step={5}
                 />
               </div>
+          </div>
+
+          {/* Max Budget */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold flex items-center gap-2">
+              <Wallet className="w-4 h-4" />
+              Max ugentligt budget
+            </Label>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Budget</span>
+              <span className="font-medium">
+                {localPrefs.max_weekly_budget >= 2000 ? 'Ubegrænset' : `${localPrefs.max_weekly_budget} kr`}
+              </span>
             </div>
+            <Slider
+              value={[localPrefs.max_weekly_budget]}
+              onValueChange={([v]) =>
+                setLocalPrefs(prev => ({ ...prev, max_weekly_budget: v }))
+              }
+              min={200}
+              max={2000}
+              step={50}
+            />
+          </div>
           </div>
 
           {/* Alternatives */}

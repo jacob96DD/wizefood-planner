@@ -45,6 +45,7 @@ export interface MealPlanPreferences {
   weekend_max_cook_time: number;
   meal_prep_time: number;
   generate_alternatives: number;
+  max_weekly_budget: number;
 }
 
 const defaultPreferences: Omit<MealPlanPreferences, 'id' | 'user_id'> = {
@@ -59,6 +60,7 @@ const defaultPreferences: Omit<MealPlanPreferences, 'id' | 'user_id'> = {
   weekend_max_cook_time: 60,
   meal_prep_time: 120,
   generate_alternatives: 0,
+  max_weekly_budget: 800,
 };
 
 export function useMealPlanPreferences() {
@@ -101,6 +103,7 @@ export function useMealPlanPreferences() {
           weekend_max_cook_time: data.weekend_max_cook_time ?? 60,
           meal_prep_time: data.meal_prep_time ?? 120,
           generate_alternatives: data.generate_alternatives ?? 0,
+          max_weekly_budget: (data as any).max_weekly_budget ?? 800,
         });
       } else {
         setPreferences(defaultPreferences as MealPlanPreferences);
@@ -131,6 +134,7 @@ export function useMealPlanPreferences() {
         weekend_max_cook_time: merged.weekend_max_cook_time,
         meal_prep_time: merged.meal_prep_time,
         generate_alternatives: merged.generate_alternatives,
+        max_weekly_budget: merged.max_weekly_budget,
       };
 
       const { error } = await supabase

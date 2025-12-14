@@ -158,6 +158,7 @@ export type Database = {
           fixed_meals: Json | null
           generate_alternatives: number | null
           id: string
+          max_weekly_budget: number | null
           meal_prep_time: number | null
           skip_breakfast: boolean | null
           skip_dinner: boolean | null
@@ -175,6 +176,7 @@ export type Database = {
           fixed_meals?: Json | null
           generate_alternatives?: number | null
           id?: string
+          max_weekly_budget?: number | null
           meal_prep_time?: number | null
           skip_breakfast?: boolean | null
           skip_dinner?: boolean | null
@@ -192,6 +194,7 @@ export type Database = {
           fixed_meals?: Json | null
           generate_alternatives?: number | null
           id?: string
+          max_weekly_budget?: number | null
           meal_prep_time?: number | null
           skip_breakfast?: boolean | null
           skip_dinner?: boolean | null
