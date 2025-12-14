@@ -547,6 +547,35 @@ export type Database = {
           },
         ]
       }
+      user_preferred_chains: {
+        Row: {
+          chain_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          chain_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          chain_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferred_chains_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "store_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
