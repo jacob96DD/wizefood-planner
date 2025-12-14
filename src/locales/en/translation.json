@@ -241,6 +241,8 @@
     "allergies": "Allergies",
     "allergiesRegistered": "{{count}} registered",
     "none": "None",
+    "preferredStores": "Preferred stores",
+    "selectStores": "Choose which stores you shop at",
     "editProfile": "Edit profile",
     "logout": "Log out",
     "version": "WizeFood v1.0.0 · Demo mode",
@@ -305,5 +307,10 @@
     "select": "Select language",
     "danish": "Dansk",
     "english": "English"
+  },
+  "stores": {
+    "title": "Select stores",
+    "description": "Choose which stores you typically shop at, so we can show you the best offers.",
+    "noStores": "No stores found"
   }
 }

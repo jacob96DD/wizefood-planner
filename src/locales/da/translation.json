@@ -241,6 +241,8 @@
     "allergies": "Allergier",
     "allergiesRegistered": "{{count}} registrerede",
     "none": "Ingen",
+    "preferredStores": "Foretrukne butikker",
+    "selectStores": "Vælg hvilke butikker du handler i",
     "editProfile": "Rediger profil",
     "logout": "Log ud",
     "version": "WizeFood v1.0.0 · Demo tilstand",
@@ -305,5 +307,10 @@
     "select": "Vælg sprog",
     "danish": "Dansk",
     "english": "English"
+  },
+  "stores": {
+    "title": "Vælg butikker",
+    "description": "Vælg hvilke butikker du typisk handler i, så vi kan vise dig de bedste tilbud.",
+    "noStores": "Ingen butikker fundet"
   }
 }
