@@ -36,6 +36,11 @@ interface MealPlanConfigDialogProps {
     daily_protein_target?: number | null;
     daily_carbs_target?: number | null;
     daily_fat_target?: number | null;
+    real_life_description?: string | null;
+    real_life_calories_per_week?: number | null;
+    real_life_protein_per_week?: number | null;
+    real_life_carbs_per_week?: number | null;
+    real_life_fat_per_week?: number | null;
   };
 }
 
@@ -68,20 +73,30 @@ export function MealPlanConfigDialog({
   const [localPrefs, setLocalPrefs] = useState(preferences);
   const [showFridgeScanner, setShowFridgeScanner] = useState(false);
   
-  // Real-life free-text section
+  // Real-life section - now loads from profile
   const [realLifeDescription, setRealLifeDescription] = useState('');
   const [isCalculatingRealLife, setIsCalculatingRealLife] = useState(false);
   const [realLifeEstimate, setRealLifeEstimate] = useState<RealLifeEstimate | null>(null);
+  const [useProfileRealLife, setUseProfileRealLife] = useState(true);
 
   useEffect(() => {
     setLocalPrefs(preferences);
     
-    // Load existing extra_calories descriptions into the text area
-    if (preferences.extra_calories && preferences.extra_calories.length > 0) {
+    // Load real-life data from profile first
+    if (profile?.real_life_calories_per_week && useProfileRealLife) {
+      setRealLifeDescription(profile.real_life_description || '');
+      setRealLifeEstimate({
+        calories_per_week: profile.real_life_calories_per_week,
+        calories_per_day: Math.round(profile.real_life_calories_per_week / 7),
+        protein: profile.real_life_protein_per_week || 0,
+        carbs: profile.real_life_carbs_per_week || 0,
+        fat: profile.real_life_fat_per_week || 0,
+      });
+    } else if (preferences.extra_calories && preferences.extra_calories.length > 0) {
+      // Fallback to preferences extra_calories
       const descriptions = preferences.extra_calories.map(item => item.description).join('. ');
       setRealLifeDescription(descriptions);
       
-      // Calculate totals from existing items
       const totals = preferences.extra_calories.reduce((acc, item) => ({
         calories_per_week: acc.calories_per_week + (item.calories_per_week || 0),
         protein: acc.protein + (item.protein || 0),
@@ -96,7 +111,7 @@ export function MealPlanConfigDialog({
         });
       }
     }
-  }, [preferences]);
+  }, [preferences, profile, useProfileRealLife]);
 
   // Calculate adjusted macros with real-life estimate
   const getAdjustedMacros = () => {
@@ -274,67 +289,138 @@ export function MealPlanConfigDialog({
 
           {/* Real-life - Kalorier at tage højde for */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">🍕 Kalorier at tage højde for (real-life)</Label>
-            <p className="text-xs text-muted-foreground">
-              Beskriv ting du spiser/drikker som IKKE skal være en del af madplanen - f.eks. øl i weekenden, snacks, pizza om lørdagen, morgenmad du selv laver.
-            </p>
-            
-            <Textarea
-              placeholder="f.eks. Jeg spiser pizza om lørdagen og drikker 8 øl og 4 glas vin i løbet af ugen. Jeg spiser altid morgenmad med nutella og brød..."
-              value={realLifeDescription}
-              onChange={(e) => {
-                setRealLifeDescription(e.target.value);
-                // Clear estimate when text changes
-                if (realLifeEstimate) {
-                  setRealLifeEstimate(null);
-                }
-              }}
-              rows={3}
-              className="resize-none"
-            />
-            
-            <Button
-              variant="outline"
-              onClick={estimateFromDescription}
-              disabled={isCalculatingRealLife || !realLifeDescription.trim()}
-              className="w-full"
-            >
-              {isCalculatingRealLife ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Wand2 className="w-4 h-4 mr-2" />
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">🍕 Real-life kalorier</Label>
+              {profile?.real_life_calories_per_week && (
+                <span className="text-xs text-muted-foreground">Fra din profil</span>
               )}
-              Udregn fra beskrivelse
-            </Button>
-
-            {/* Estimated results */}
-            {realLifeEstimate && (
+            </div>
+            
+            {/* Show profile real-life if available */}
+            {profile?.real_life_calories_per_week && useProfileRealLife ? (
               <Card className="bg-muted/30 border-primary/20">
                 <CardContent className="p-3">
-                  <p className="font-medium text-sm mb-2">✨ Estimeret ugentligt:</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-sm">✨ Fra din profil:</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setUseProfileRealLife(false);
+                        setRealLifeEstimate(null);
+                        setRealLifeDescription('');
+                      }}
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Fjern for denne uge
+                    </Button>
+                  </div>
+                  {profile.real_life_description && (
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                      "{profile.real_life_description}"
+                    </p>
+                  )}
                   <div className="grid grid-cols-4 gap-2 text-center text-xs">
                     <div>
-                      <span className="font-bold text-primary">{realLifeEstimate.calories_per_week}</span>
+                      <span className="font-bold text-primary">{profile.real_life_calories_per_week}</span>
                       <p className="text-muted-foreground">kcal/uge</p>
                     </div>
                     <div>
-                      <span className="font-bold">{realLifeEstimate.protein}g</span>
+                      <span className="font-bold">{profile.real_life_protein_per_week || 0}g</span>
                       <p className="text-muted-foreground">protein</p>
                     </div>
                     <div>
-                      <span className="font-bold">{realLifeEstimate.carbs}g</span>
+                      <span className="font-bold">{profile.real_life_carbs_per_week || 0}g</span>
                       <p className="text-muted-foreground">kulh.</p>
                     </div>
                     <div>
-                      <span className="font-bold">{realLifeEstimate.fat}g</span>
+                      <span className="font-bold">{profile.real_life_fat_per_week || 0}g</span>
                       <p className="text-muted-foreground">fedt</p>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2 text-center">
-                    ≈ <span className="font-semibold">{realLifeEstimate.calories_per_day} kcal/dag</span> fratrukket din madplan
+                    ≈ <span className="font-semibold">{Math.round(profile.real_life_calories_per_week / 7)} kcal/dag</span> fratrukket din madplan
                   </p>
                 </CardContent>
               </Card>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {profile?.real_life_calories_per_week 
+                    ? 'Tilføj ekstra for denne uge, eller genaktiver profil-indstillingen:'
+                    : 'Beskriv ting du spiser/drikker som IKKE skal være en del af madplanen:'}
+                </p>
+                
+                {profile?.real_life_calories_per_week && !useProfileRealLife && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setUseProfileRealLife(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Brug profil-indstilling igen
+                  </Button>
+                )}
+                
+                <Textarea
+                  placeholder="f.eks. Jeg spiser pizza om lørdagen og drikker 8 øl..."
+                  value={realLifeDescription}
+                  onChange={(e) => {
+                    setRealLifeDescription(e.target.value);
+                    if (realLifeEstimate) {
+                      setRealLifeEstimate(null);
+                    }
+                  }}
+                  rows={3}
+                  className="resize-none"
+                />
+                
+                <Button
+                  variant="outline"
+                  onClick={estimateFromDescription}
+                  disabled={isCalculatingRealLife || !realLifeDescription.trim()}
+                  className="w-full"
+                >
+                  {isCalculatingRealLife ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4 mr-2" />
+                  )}
+                  Udregn fra beskrivelse
+                </Button>
+
+                {/* Estimated results for this week */}
+                {realLifeEstimate && !useProfileRealLife && (
+                  <Card className="bg-muted/30 border-primary/20">
+                    <CardContent className="p-3">
+                      <p className="font-medium text-sm mb-2">✨ Estimeret for denne uge:</p>
+                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div>
+                          <span className="font-bold text-primary">{realLifeEstimate.calories_per_week}</span>
+                          <p className="text-muted-foreground">kcal/uge</p>
+                        </div>
+                        <div>
+                          <span className="font-bold">{realLifeEstimate.protein}g</span>
+                          <p className="text-muted-foreground">protein</p>
+                        </div>
+                        <div>
+                          <span className="font-bold">{realLifeEstimate.carbs}g</span>
+                          <p className="text-muted-foreground">kulh.</p>
+                        </div>
+                        <div>
+                          <span className="font-bold">{realLifeEstimate.fat}g</span>
+                          <p className="text-muted-foreground">fedt</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                        ≈ <span className="font-semibold">{realLifeEstimate.calories_per_day} kcal/dag</span> fratrukket
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </div>
 
