@@ -530,23 +530,12 @@ export default function Onboarding() {
 
             <div>
               <label className="text-sm font-medium mb-3 block">{t('onboarding.householdSize')}</label>
-              <div className="flex items-center justify-center gap-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => updateData({ peopleCount: Math.max(1, data.peopleCount - 1) })}
-                >
-                  -
-                </Button>
-                <span className="text-3xl font-bold w-16 text-center">{data.peopleCount}</span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => updateData({ peopleCount: data.peopleCount + 1 })}
-                >
-                  +
-                </Button>
+              <div className="flex items-center justify-center">
+                <span className="text-6xl font-bold text-primary">1</span>
               </div>
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                {t('onboarding.household.comingSoon')}
+              </p>
             </div>
           </div>
         );

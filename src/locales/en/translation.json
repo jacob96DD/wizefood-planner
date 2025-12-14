@@ -125,7 +125,8 @@
     },
     "household": {
       "title": "Household size",
-      "subtitle": "How many people will the meal plan cover?"
+      "subtitle": "How many people will the meal plan cover?",
+      "comingSoon": "Multiple people coming soon"
     },
     "householdSize": "Number of people",
     "householdMembers": {

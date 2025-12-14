@@ -125,7 +125,8 @@
     },
     "household": {
       "title": "Husstandsstørrelse",
-      "subtitle": "Hvor mange personer skal madplanen dække?"
+      "subtitle": "Hvor mange personer skal madplanen dække?",
+      "comingSoon": "Flere personer kommer snart"
     },
     "householdSize": "Antal personer",
     "householdMembers": {
