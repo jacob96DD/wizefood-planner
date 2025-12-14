@@ -272,11 +272,11 @@ export function MealPlanConfigDialog({
             </div>
           </div>
 
-          {/* Real-life - Ting at tage højde for */}
+          {/* Real-life - Kalorier at tage højde for */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">🍕 Ting at tage højde for</Label>
+            <Label className="text-sm font-semibold">🍕 Kalorier at tage højde for (real-life)</Label>
             <p className="text-xs text-muted-foreground">
-              Beskriv hvad du spiser/drikker udover madplanen - f.eks. øl, snacks, pizza, morgenmad du selv laver.
+              Beskriv ting du spiser/drikker som IKKE skal være en del af madplanen - f.eks. øl i weekenden, snacks, pizza om lørdagen, morgenmad du selv laver.
             </p>
             
             <Textarea
