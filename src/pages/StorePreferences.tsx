@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Store } from 'lucide-react';
+import { ArrowLeft, Store, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
@@ -21,8 +21,10 @@ export default function StorePreferences() {
   const { user } = useAuthStore();
   const [storeChains, setStoreChains] = useState<StoreChain[]>([]);
   const [selectedChains, setSelectedChains] = useState<Set<string>>(new Set());
+  const [initialChains, setInitialChains] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const hasChanges = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -48,6 +50,7 @@ export default function StorePreferences() {
         
         const preferredIds = new Set(preferences?.map(p => p.chain_id) || []);
         setSelectedChains(preferredIds);
+        setInitialChains(new Set(preferredIds));
       } catch (error) {
         console.error('Error fetching store data:', error);
         toast.error(t('common.error'));
@@ -59,48 +62,66 @@ export default function StorePreferences() {
     fetchData();
   }, [user, t]);
 
-  const handleToggle = async (chainId: string) => {
-    if (!user) return;
-    
-    const newSelected = new Set(selectedChains);
-    const isCurrentlySelected = newSelected.has(chainId);
+  // Toggle locally without saving to database
+  const handleToggle = (chainId: string) => {
+    setSelectedChains(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(chainId)) {
+        newSelected.delete(chainId);
+      } else {
+        newSelected.add(chainId);
+      }
+      hasChanges.current = true;
+      return newSelected;
+    });
+  };
 
-    // Optimistic update
-    if (isCurrentlySelected) {
-      newSelected.delete(chainId);
-    } else {
-      newSelected.add(chainId);
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    if (selectedChains.size !== initialChains.size) return true;
+    for (const id of selectedChains) {
+      if (!initialChains.has(id)) return true;
     }
-    setSelectedChains(newSelected);
+    return false;
+  };
+
+  // Save all changes to database
+  const handleSave = async () => {
+    if (!user || !hasUnsavedChanges()) {
+      navigate(-1);
+      return;
+    }
+
+    setSaving(true);
 
     try {
-      if (isCurrentlySelected) {
-        // Remove preference
+      // Delete all existing preferences
+      await supabase
+        .from('user_preferred_chains')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Insert new preferences
+      if (selectedChains.size > 0) {
+        const chainsToInsert = Array.from(selectedChains).map((chainId) => ({
+          user_id: user.id,
+          chain_id: chainId,
+        }));
+
         const { error } = await supabase
           .from('user_preferred_chains')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('chain_id', chainId);
-        
-        if (error) throw error;
-      } else {
-        // Add preference
-        const { error } = await supabase
-          .from('user_preferred_chains')
-          .insert({ user_id: user.id, chain_id: chainId });
-        
+          .insert(chainsToInsert);
+
         if (error) throw error;
       }
+
+      toast.success(t('stores.saved', 'Butikker gemt'));
+      navigate(-1);
     } catch (error) {
-      // Revert on error
-      if (isCurrentlySelected) {
-        newSelected.add(chainId);
-      } else {
-        newSelected.delete(chainId);
-      }
-      setSelectedChains(newSelected);
-      console.error('Error updating preference:', error);
+      console.error('Error saving preferences:', error);
       toast.error(t('common.error'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -116,11 +137,17 @@ export default function StorePreferences() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="flex items-center gap-3 px-4 py-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-semibold">{t('stores.title')}</h1>
+          </div>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {t('common.save')}
           </Button>
-          <h1 className="text-xl font-semibold">{t('stores.title')}</h1>
         </div>
       </div>
 

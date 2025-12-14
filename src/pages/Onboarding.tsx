@@ -343,33 +343,42 @@ export default function Onboarding() {
     setIsSaving(true);
 
     try {
-      // Calculate age from date of birth
-      const birthDate = new Date(data.dateOfBirth);
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+      // Calculate age from date of birth (handle missing date)
+      let age: number | null = null;
+      if (data.dateOfBirth) {
+        const birthDate = new Date(data.dateOfBirth);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
       }
 
       // Use primary body goal for macro calculation
       const primaryGoal = data.dietaryGoal || 'maintain';
 
-      // Calculate macros for primary user
-      const macros = calculateMacros(
-        data.weightKg!,
-        data.heightCm!,
-        age,
-        data.gender,
-        data.activityLevel,
-        primaryGoal
-      );
+      // Calculate macros for primary user (with fallback defaults)
+      let totalCalories = 2000;
+      let totalProtein = 75;
+      let totalCarbs = 250;
+      let totalFat = 65;
 
-      // Calculate combined macros for household
-      let totalCalories = macros.dailyCalories;
-      let totalProtein = macros.dailyProtein;
-      let totalCarbs = macros.dailyCarbs;
-      let totalFat = macros.dailyFat;
+      // Only calculate if we have enough data
+      if (data.weightKg && data.heightCm && age) {
+        const macros = calculateMacros(
+          data.weightKg,
+          data.heightCm,
+          age,
+          data.gender || 'other',
+          data.activityLevel || 'moderate',
+          primaryGoal
+        );
+        totalCalories = macros.dailyCalories;
+        totalProtein = macros.dailyProtein;
+        totalCarbs = macros.dailyCarbs;
+        totalFat = macros.dailyFat;
+      }
 
       // Add household member macros
       for (const member of data.householdMembers) {
@@ -382,17 +391,17 @@ export default function Onboarding() {
         }
       }
 
-      // Update profile in Supabase - store all selected goals as JSON array string
+      // Update profile in Supabase - use null for empty optional fields
       const profileData = {
         id: user.id,
-        full_name: data.fullName,
-        gender: data.gender,
-        date_of_birth: data.dateOfBirth,
-        height_cm: data.heightCm,
-        weight_kg: data.weightKg,
+        full_name: data.fullName || 'Bruger',
+        gender: data.gender || null,
+        date_of_birth: data.dateOfBirth || null,
+        height_cm: data.heightCm || null,
+        weight_kg: data.weightKg || null,
         age_years: age,
-        activity_level: data.activityLevel,
-        dietary_goal: primaryGoal, // Keep primary goal for backwards compatibility
+        activity_level: data.activityLevel || null,
+        dietary_goal: primaryGoal,
         budget_per_week: null,
         people_count: data.peopleCount,
         daily_calories: totalCalories,
