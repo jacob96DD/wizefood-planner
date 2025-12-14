@@ -2,18 +2,17 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import type { RecipeOptions, MacroTargets } from '@/components/MealOptionSwiper';
 
 interface GenerateMealPlanOptions {
   duration_days?: number;
   start_date?: string;
 }
 
-interface ShoppingSummary {
-  by_store: {
-    store: string;
-    items: string[];
-    estimated_cost: number;
-  }[];
+export interface GenerateMealPlanResult {
+  recipeOptions: RecipeOptions;
+  macroTargets: MacroTargets;
+  durationDays: number;
 }
 
 export function useGenerateMealPlan() {
@@ -22,7 +21,7 @@ export function useGenerateMealPlan() {
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  const generateMealPlan = async (options: GenerateMealPlanOptions = {}) => {
+  const generateMealPlan = async (options: GenerateMealPlanOptions = {}): Promise<GenerateMealPlanResult | null> => {
     setLoading(true);
     setError(null);
 
@@ -42,14 +41,29 @@ export function useGenerateMealPlan() {
         throw new Error(data.error);
       }
 
+      // Returnér recipe_options til swipe-interface
+      const recipeOptions: RecipeOptions = data.recipe_options || {
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+      };
+
+      const macroTargets: MacroTargets = data.macro_targets || {
+        calories: 2000,
+        protein: 120,
+        carbs: 200,
+        fat: 70,
+      };
+
       toast({
-        title: t('mealPlan.generated', 'Madplan genereret!'),
-        description: t('mealPlan.generatedDescription', 'Din nye madplan er klar med de bedste tilbud.'),
+        title: t('mealPlan.optionsReady', 'Retter klar!'),
+        description: t('mealPlan.swipeToSelect', 'Swipe for at vælge dine retter.'),
       });
 
       return {
-        mealPlan: data.meal_plan,
-        shoppingSummary: data.shopping_summary as ShoppingSummary,
+        recipeOptions,
+        macroTargets,
+        durationDays: options.duration_days || 7,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Kunne ikke generere madplan';
