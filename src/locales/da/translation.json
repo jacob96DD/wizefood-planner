@@ -369,7 +369,7 @@
     "discover": "Opdag",
     "mealPlan": "Madplan",
     "shopping": "Indkøb",
-    "inventory": "Lager",
+    "inventory": "Køkken",
     "profile": "Profil"
   },
   "language": {
@@ -384,7 +384,7 @@
     "saved": "Butikker gemt"
   },
   "inventory": {
-    "title": "Mit lager",
+    "title": "Mit køkken",
     "add": "Tilføj",
     "addItem": "Tilføj vare",
     "addFirst": "Tilføj din første vare",
@@ -396,14 +396,33 @@
     "expiresAt": "Udløbsdato",
     "categories": {
       "fridge": "Køleskab",
-      "freezer": "Fryser",
-      "pantry": "Skab"
+      "pantry": "Kolonial"
     },
-    "empty": "Dit lager er tomt",
+    "tabs": {
+      "fridge": "Køleskab",
+      "pantry": "Kolonial"
+    },
+    "empty": "Dit køkken er tomt",
     "emptyDescription": "Tilføj varer du har derhjemme, så vi kan foreslå opskrifter baseret på dem.",
     "expiringWarning": "{{count}} varer udløber snart",
     "markUsed": "Marker som brugt",
-    "addToInventory": "Tilføj til lager?",
-    "addedToInventory": "Tilføjet til lager"
+    "addToInventory": "Tilføj til køkken?",
+    "addedToInventory": "Tilføjet til køkken",
+    "scanFridge": "Scan køleskab",
+    "scanPantry": "Scan kolonialskab"
+  },
+  "dietaryPreferences": {
+    "title": "Kosttype",
+    "subtitle": "Hvilken type kost følger du?",
+    "omnivore": "Alt ædende",
+    "omnivoreDesc": "Spiser alt",
+    "vegetarian": "Vegetar",
+    "vegetarianDesc": "Ingen kød",
+    "pescetarian": "Pesketarianer",
+    "pescetarianDesc": "Fisk, ingen kød",
+    "vegan": "Veganer",
+    "veganDesc": "Ingen animalske produkter",
+    "flexitarian": "Flexitarianer",
+    "flexitarianDesc": "Mest plantebaseret"
   }
 }

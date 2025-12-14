@@ -369,7 +369,7 @@
     "discover": "Discover",
     "mealPlan": "Meal Plan",
     "shopping": "Shopping",
-    "inventory": "Inventory",
+    "inventory": "Kitchen",
     "profile": "Profile"
   },
   "language": {
@@ -384,7 +384,7 @@
     "saved": "Stores saved"
   },
   "inventory": {
-    "title": "My Inventory",
+    "title": "My Kitchen",
     "add": "Add",
     "addItem": "Add item",
     "addFirst": "Add your first item",
@@ -396,14 +396,33 @@
     "expiresAt": "Expires",
     "categories": {
       "fridge": "Fridge",
-      "freezer": "Freezer",
       "pantry": "Pantry"
     },
-    "empty": "Your inventory is empty",
+    "tabs": {
+      "fridge": "Fridge",
+      "pantry": "Pantry"
+    },
+    "empty": "Your kitchen is empty",
     "emptyDescription": "Add items you have at home so we can suggest recipes based on them.",
     "expiringWarning": "{{count}} items expiring soon",
     "markUsed": "Mark as used",
-    "addToInventory": "Add to inventory?",
-    "addedToInventory": "Added to inventory"
+    "addToInventory": "Add to kitchen?",
+    "addedToInventory": "Added to kitchen",
+    "scanFridge": "Scan fridge",
+    "scanPantry": "Scan pantry"
+  },
+  "dietaryPreferences": {
+    "title": "Dietary Type",
+    "subtitle": "What type of diet do you follow?",
+    "omnivore": "Omnivore",
+    "omnivoreDesc": "Eats everything",
+    "vegetarian": "Vegetarian",
+    "vegetarianDesc": "No meat",
+    "pescetarian": "Pescetarian",
+    "pescetarianDesc": "Fish, no meat",
+    "vegan": "Vegan",
+    "veganDesc": "No animal products",
+    "flexitarian": "Flexitarian",
+    "flexitarianDesc": "Mostly plant-based"
   }
 }
