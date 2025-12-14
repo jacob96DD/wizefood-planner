@@ -30,10 +30,11 @@ interface AddInventoryItemDialogProps {
 }
 
 const quickExpiryOptions = [
-  { label: 'I dag', days: 0 },
+  { label: '+1 dag', days: 1 },
   { label: '+3 dage', days: 3 },
   { label: '+1 uge', days: 7 },
   { label: '+1 måned', days: 30 },
+  { label: '+1 år', days: 365 },
 ];
 
 export function AddInventoryItemDialog({
@@ -49,7 +50,7 @@ export function AddInventoryItemDialog({
   const [name, setName] = useState(defaultName);
   const [quantity, setQuantity] = useState<string>(defaultQuantity?.toString() || '');
   const [unit, setUnit] = useState(defaultUnit);
-  const [category, setCategory] = useState<'fridge' | 'freezer' | 'pantry'>('pantry');
+  const [category, setCategory] = useState<'fridge' | 'pantry'>('fridge');
   
   // Expiry date as separate fields
   const [expiryDay, setExpiryDay] = useState('');
@@ -89,7 +90,7 @@ export function AddInventoryItemDialog({
       setName('');
       setQuantity('');
       setUnit('');
-      setCategory('pantry');
+      setCategory('fridge');
       setExpiryDay('');
       setExpiryMonth('');
       setExpiryYear('');
@@ -147,17 +148,25 @@ export function AddInventoryItemDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category">{t('inventory.category')}</Label>
-            <Select value={category} onValueChange={(v: any) => setCategory(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fridge">{t('inventory.categories.fridge')}</SelectItem>
-                <SelectItem value="freezer">{t('inventory.categories.freezer')}</SelectItem>
-                <SelectItem value="pantry">{t('inventory.categories.pantry')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>{t('inventory.category')}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={category === 'fridge' ? 'default' : 'outline'}
+                onClick={() => setCategory('fridge')}
+                className="flex items-center gap-2"
+              >
+                🧊 {t('inventory.tabs.fridge')}
+              </Button>
+              <Button
+                type="button"
+                variant={category === 'pantry' ? 'default' : 'outline'}
+                onClick={() => setCategory('pantry')}
+                className="flex items-center gap-2"
+              >
+                🗄️ {t('inventory.tabs.pantry')}
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
