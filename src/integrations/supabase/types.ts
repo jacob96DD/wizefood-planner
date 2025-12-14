@@ -35,6 +35,54 @@ export type Database = {
         }
         Relationships: []
       }
+      household_members: {
+        Row: {
+          age_years: number | null
+          created_at: string
+          daily_calories: number | null
+          daily_carbs_target: number | null
+          daily_fat_target: number | null
+          daily_protein_target: number | null
+          gender: string | null
+          height_cm: number | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          age_years?: number | null
+          created_at?: string
+          daily_calories?: number | null
+          daily_carbs_target?: number | null
+          daily_fat_target?: number | null
+          daily_protein_target?: number | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          age_years?: number | null
+          created_at?: string
+          daily_calories?: number | null
+          daily_carbs_target?: number | null
+          daily_fat_target?: number | null
+          daily_protein_target?: number | null
+          gender?: string | null
+          height_cm?: number | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
       ingredient_preferences: {
         Row: {
           created_at: string | null
