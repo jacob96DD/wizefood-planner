@@ -24,6 +24,7 @@ interface EditMacrosDialogProps {
   onOpenChange: (open: boolean) => void;
   currentValues: MacroValues;
   calculatedValues: MacroValues;
+  dietaryGoal?: string;
   onSave: (values: MacroValues) => void;
 }
 
@@ -32,6 +33,7 @@ export function EditMacrosDialog({
   onOpenChange,
   currentValues,
   calculatedValues,
+  dietaryGoal,
   onSave,
 }: EditMacrosDialogProps) {
   const { t } = useTranslation();
@@ -123,9 +125,15 @@ export function EditMacrosDialog({
             {t('profile.editMacros.resetToCalculated')}
           </Button>
 
-          <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
-            <p className="font-medium mb-1">{t('profile.editMacros.howCalculated')}</p>
+          <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg space-y-2">
+            <p className="font-medium">{t('profile.editMacros.howCalculated')}</p>
             <p>{t('profile.editMacros.formula')}</p>
+            <p className="font-medium pt-1">{t('profile.editMacros.currentDistribution')}</p>
+            <p>
+              {dietaryGoal === 'lose' && t('profile.editMacros.formulaLose')}
+              {dietaryGoal === 'gain' && t('profile.editMacros.formulaGain')}
+              {(!dietaryGoal || dietaryGoal === 'maintain') && t('profile.editMacros.formulaMaintain')}
+            </p>
           </div>
         </div>
 
