@@ -10,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calculator } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calculator, AlertTriangle, Lightbulb, CheckCircle2 } from 'lucide-react';
 
 interface MacroValues {
   calories: number;
@@ -51,6 +52,21 @@ const goalNames: Record<string, string> = {
   gain: 'Vægtøgning',
 };
 
+// Praktiske minimumskalorier baseret på hvad retter realistisk kan levere
+const getMinCaloriesForProtein = (protein: number): number => {
+  if (protein >= 100) return 600;
+  if (protein >= 75) return 450;
+  if (protein >= 50) return 300;
+  return 0;
+};
+
+const getMinCaloriesForCarbs = (carbs: number): number => {
+  if (carbs >= 100) return 500;
+  if (carbs >= 75) return 375;
+  if (carbs >= 50) return 250;
+  return 0;
+};
+
 export function EditMacrosDialog({
   open,
   onOpenChange,
@@ -80,6 +96,26 @@ export function EditMacrosDialog({
     const numValue = parseInt(value) || 0;
     setValues(prev => ({ ...prev, [field]: numValue }));
   };
+
+  // Validering
+  const minCaloriesFromProtein = getMinCaloriesForProtein(values.protein);
+  const minCaloriesFromCarbs = getMinCaloriesForCarbs(values.carbs);
+  const practicalMinCalories = Math.max(minCaloriesFromProtein, minCaloriesFromCarbs, 800);
+  
+  // Matematisk minimum fra makroer
+  const caloriesFromProtein = values.protein * 4;
+  const caloriesFromCarbs = values.carbs * 4;
+  const caloriesFromFat = values.fat * 9;
+  const totalMacroCalories = caloriesFromProtein + caloriesFromCarbs + caloriesFromFat;
+
+  // Valideringsstatus
+  const hasProteinCalorieConflict = values.protein >= 100 && values.calories < 600;
+  const hasCarbsCalorieConflict = values.carbs >= 100 && values.calories < 500;
+  const hasMacroOverflow = totalMacroCalories > values.calories;
+  const isCaloriesTooLow = values.calories < practicalMinCalories;
+  const needsProteinPowder = values.protein >= 100 && values.calories < 800;
+  
+  const isValid = !hasProteinCalorieConflict && !hasCarbsCalorieConflict && values.calories >= 800;
 
   // Calculate BMR and TDEE for display
   const calculateDetails = () => {
@@ -121,7 +157,7 @@ export function EditMacrosDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('profile.editMacros.title')}</DialogTitle>
         </DialogHeader>
@@ -139,8 +175,12 @@ export function EditMacrosDialog({
                 type="number"
                 value={values.calories}
                 onChange={(e) => handleChange('calories', e.target.value)}
-                min={0}
+                min={800}
+                className={isCaloriesTooLow ? 'border-destructive' : ''}
               />
+              {values.calories < 800 && values.calories > 0 && (
+                <p className="text-xs text-destructive">Minimum 800 kcal</p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -151,7 +191,13 @@ export function EditMacrosDialog({
                 value={values.protein}
                 onChange={(e) => handleChange('protein', e.target.value)}
                 min={0}
+                className={hasProteinCalorieConflict ? 'border-destructive' : ''}
               />
+              {values.protein >= 100 && (
+                <p className="text-xs text-muted-foreground">
+                  Kræver min. 600 kcal for realistiske retter
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -162,7 +208,13 @@ export function EditMacrosDialog({
                 value={values.carbs}
                 onChange={(e) => handleChange('carbs', e.target.value)}
                 min={0}
+                className={hasCarbsCalorieConflict ? 'border-destructive' : ''}
               />
+              {values.carbs >= 100 && (
+                <p className="text-xs text-muted-foreground">
+                  Kræver min. 500 kcal for realistiske retter
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -176,6 +228,81 @@ export function EditMacrosDialog({
               />
             </div>
           </div>
+
+          {/* Kalorieregnskab */}
+          <div className="text-sm bg-muted/50 p-3 rounded-lg space-y-1">
+            <p className="font-medium text-foreground mb-2">Kalorieregnskab:</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+              <span>Protein: {values.protein}g × 4 =</span>
+              <span className="text-right">{caloriesFromProtein} kcal</span>
+              <span>Kulhydrater: {values.carbs}g × 4 =</span>
+              <span className="text-right">{caloriesFromCarbs} kcal</span>
+              <span>Fedt: {values.fat}g × 9 =</span>
+              <span className="text-right">{caloriesFromFat} kcal</span>
+            </div>
+            <div className="border-t border-border/50 pt-2 mt-2 flex justify-between items-center">
+              <span className="font-medium">Total fra makroer:</span>
+              <span className={`font-bold ${hasMacroOverflow ? 'text-destructive' : 'text-foreground'}`}>
+                {totalMacroCalories} / {values.calories} kcal
+                {hasMacroOverflow && ' ⚠️'}
+              </span>
+            </div>
+            {!hasMacroOverflow && !isCaloriesTooLow && (
+              <div className="flex items-center gap-1 text-green-600 dark:text-green-400 pt-1">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-xs">Kombination OK</span>
+              </div>
+            )}
+          </div>
+
+          {/* Advarsler */}
+          {hasProteinCalorieConflict && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Umulig kombination!</strong>
+                <br />
+                {values.protein}g protein kræver minimum 600 kcal for at lave realistiske retter.
+                Du har kun sat {values.calories} kcal.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {hasCarbsCalorieConflict && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Umulig kombination!</strong>
+                <br />
+                {values.carbs}g kulhydrater kræver minimum 500 kcal for at lave realistiske retter.
+                Du har kun sat {values.calories} kcal.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {hasMacroOverflow && !hasProteinCalorieConflict && !hasCarbsCalorieConflict && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Makroer overstiger kalorier!</strong>
+                <br />
+                Dine makroer giver {totalMacroCalories} kcal, men du har sat {values.calories} kcal.
+                Juster enten kalorier op eller makroer ned.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {needsProteinPowder && !hasProteinCalorieConflict && (
+            <Alert>
+              <Lightbulb className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Tip: Overvej proteinpulver</strong>
+                <br />
+                Med {values.protein}g protein og kun {values.calories} kcal, kan proteinpulver 
+                hjælpe (~25g protein per 100 kcal).
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Button
             variant="outline"
@@ -243,7 +370,7 @@ export function EditMacrosDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={!isValid}>
             {t('common.save')}
           </Button>
         </DialogFooter>
