@@ -12,6 +12,63 @@ interface MealPlanRequest {
   start_date: string;
 }
 
+interface FixedMeal {
+  day: string;
+  meal: string;
+  description: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+interface MealException {
+  day: string;
+  meal: string;
+  type: string;
+  description?: string;
+}
+
+interface ExtraCalories {
+  description: string;
+  calories_per_week: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+interface MealPlanPreferences {
+  cooking_style: string;
+  skip_breakfast: boolean;
+  skip_lunch: boolean;
+  skip_dinner: boolean;
+  fixed_meals: FixedMeal[];
+  exceptions: MealException[];
+  extra_calories: ExtraCalories[];
+  weekday_max_cook_time: number;
+  weekend_max_cook_time: number;
+  generate_alternatives: number;
+}
+
+// Get current season based on month
+function getCurrentSeason(): string {
+  const month = new Date().getMonth();
+  if (month >= 2 && month <= 4) return 'forår';
+  if (month >= 5 && month <= 7) return 'sommer';
+  if (month >= 8 && month <= 10) return 'efterår';
+  return 'vinter';
+}
+
+function getSeasonalIngredients(season: string): string[] {
+  const seasonal: Record<string, string[]> = {
+    forår: ['asparges', 'radiser', 'spinat', 'ramsløg', 'jordbær', 'rabarber'],
+    sommer: ['tomater', 'agurk', 'squash', 'bønner', 'bær', 'majs', 'salat'],
+    efterår: ['græskar', 'svampe', 'æbler', 'pærer', 'kål', 'rødbeder'],
+    vinter: ['rodfrugter', 'grønkål', 'porrer', 'selleri', 'gulerødder', 'kartofler', 'løg'],
+  };
+  return seasonal[season] || seasonal.vinter;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -43,45 +100,111 @@ serve(async (req) => {
     const { duration_days = 7, start_date } = await req.json() as MealPlanRequest;
     const startDate = start_date ? new Date(start_date) : new Date();
 
-    // Hent brugerens profil
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    // ============ FETCH ALL DATA IN PARALLEL ============
+    const [
+      profileResult,
+      preferencesResult,
+      allergensResult,
+      preferredChainsResult,
+      inventoryResult,
+      ingredientPrefsResult,
+      swipesResult,
+      recentMealsResult,
+    ] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).single(),
+      supabase.from('meal_plan_preferences').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('user_allergens').select('allergen_id, allergens(name)').eq('user_id', user.id),
+      supabase.from('user_preferred_chains').select('chain_id, store_chains(name)').eq('user_id', user.id),
+      supabase.from('household_inventory').select('ingredient_name, quantity, unit, category, expires_at').eq('user_id', user.id).eq('is_depleted', false),
+      supabase.from('ingredient_preferences').select('ingredient_name, preference').eq('user_id', user.id),
+      supabase.from('swipes').select('recipe_id, direction, recipes(title, ingredients)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
+      supabase.from('meal_plans').select('meals, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
+    ]);
 
-    // Hent brugerens allergener
-    const { data: userAllergens } = await supabase
-      .from('user_allergens')
-      .select('allergen_id, allergens(name)')
-      .eq('user_id', user.id);
+    const profile = profileResult.data;
+    const prefs: MealPlanPreferences = preferencesResult.data || {
+      cooking_style: 'daily',
+      skip_breakfast: false,
+      skip_lunch: false,
+      skip_dinner: false,
+      fixed_meals: [],
+      exceptions: [],
+      extra_calories: [],
+      weekday_max_cook_time: 30,
+      weekend_max_cook_time: 60,
+      generate_alternatives: 0,
+    };
 
-    const allergenNames = userAllergens?.map((ua: any) => ua.allergens?.name).filter(Boolean) || [];
+    // ============ PRIORITY 1: CRITICAL ============
 
-    // Hent brugerens foretrukne butikker
-    const { data: preferredChains } = await supabase
-      .from('user_preferred_chains')
-      .select('chain_id, store_chains(name)')
-      .eq('user_id', user.id);
+    // 1.1 Allergens (NEVER use these)
+    const allergenNames = (allergensResult.data || [])
+      .map((ua: any) => ua.allergens?.name)
+      .filter(Boolean);
 
-    const chainIds = preferredChains?.map((pc: any) => pc.chain_id) || [];
-    const chainNames = preferredChains?.map((pc: any) => pc.store_chains?.name).filter(Boolean) || [];
+    // 1.2 Hard dislikes (from ingredient_preferences + "never" swipes)
+    const hardDislikes = (ingredientPrefsResult.data || [])
+      .filter((p: any) => p.preference === 'dislike' || p.preference === 'never')
+      .map((p: any) => p.ingredient_name);
 
-    // Hent brugerens nuværende lager
-    const { data: inventory } = await supabase
-      .from('household_inventory')
-      .select('ingredient_name, quantity, unit, category, expires_at')
-      .eq('user_id', user.id)
-      .eq('is_depleted', false);
+    // Add ingredients from "never" swipes
+    const neverSwipes = (swipesResult.data || [])
+      .filter((s: any) => s.direction === 'down')
+      .flatMap((s: any) => {
+        const ingredients = s.recipes?.ingredients;
+        if (Array.isArray(ingredients)) {
+          return ingredients.map((i: any) => typeof i === 'string' ? i : i.name).filter(Boolean);
+        }
+        return [];
+      });
+    const allDislikes = [...new Set([...hardDislikes, ...neverSwipes])];
 
-    const inventoryItems = (inventory || []).map((item: any) => {
-      const expiry = item.expires_at ? ` (udløber ${item.expires_at})` : '';
-      return `- ${item.ingredient_name}${item.quantity ? `: ${item.quantity} ${item.unit || ''}` : ''}${expiry}`;
-    }).join('\n');
+    // 1.3 Calculate adjusted macros
+    const baseCalories = profile?.daily_calories || 2000;
+    const baseProtein = profile?.daily_protein_target || 75;
+    const baseCarbs = profile?.daily_carbs_target || 250;
+    const baseFat = profile?.daily_fat_target || 65;
 
-    console.log('User has', inventory?.length || 0, 'items in inventory');
+    // Subtract extra calories (weekly / 7)
+    const extraCaloriesPerDay = (prefs.extra_calories || []).reduce(
+      (sum: number, item: ExtraCalories) => sum + (item.calories_per_week / 7), 0
+    );
+    const extraProteinPerDay = (prefs.extra_calories || []).reduce(
+      (sum: number, item: ExtraCalories) => sum + (item.protein / 7), 0
+    );
 
-    // Hent aktive tilbud fra foretrukne butikker
+    // Subtract fixed meals
+    const fixedCaloriesPerDay = (prefs.fixed_meals || []).reduce((sum: number, meal: FixedMeal) => {
+      if (meal.day === 'all') return sum + meal.calories;
+      return sum + (meal.calories / 7);
+    }, 0);
+    const fixedProteinPerDay = (prefs.fixed_meals || []).reduce((sum: number, meal: FixedMeal) => {
+      if (meal.day === 'all') return sum + meal.protein;
+      return sum + (meal.protein / 7);
+    }, 0);
+
+    const availableCalories = Math.round(baseCalories - extraCaloriesPerDay - fixedCaloriesPerDay);
+    const availableProtein = Math.round(baseProtein - extraProteinPerDay - fixedProteinPerDay);
+
+    // 1.4 Meal structure
+    const mealsToInclude: string[] = [];
+    if (!prefs.skip_breakfast) mealsToInclude.push('breakfast');
+    if (!prefs.skip_lunch) mealsToInclude.push('lunch');
+    if (!prefs.skip_dinner) mealsToInclude.push('dinner');
+
+    const mealPrepDescription = {
+      'daily': 'lav en ny ret hver dag',
+      'meal_prep_2': 'lav 2 retter der gentages hele ugen',
+      'meal_prep_3': 'lav 3-4 retter der gentages hele ugen',
+      'meal_prep_4': 'lav 4+ retter der gentages hele ugen',
+    }[prefs.cooking_style] || 'lav en ny ret hver dag';
+
+    // ============ PRIORITY 2: IMPORTANT ============
+
+    // 2.1 Current offers
+    const chainIds = (preferredChainsResult.data || []).map((pc: any) => pc.chain_id);
+    const chainNames = (preferredChainsResult.data || []).map((pc: any) => pc.store_chains?.name).filter(Boolean);
+
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + duration_days);
 
@@ -92,7 +215,7 @@ serve(async (req) => {
       .lte('valid_from', endDate.toISOString().split('T')[0])
       .gte('valid_until', startDate.toISOString().split('T')[0])
       .order('offer_price_dkk', { ascending: true })
-      .limit(100);
+      .limit(50);
 
     if (chainIds.length > 0) {
       offersQuery = offersQuery.in('chain_id', chainIds);
@@ -100,37 +223,125 @@ serve(async (req) => {
 
     const { data: offers } = await offersQuery;
 
-    // Formater tilbud til AI prompt
-    const formattedOffers = (offers || []).map((offer: any) => {
+    const formattedOffers = (offers || []).slice(0, 20).map((offer: any) => {
       const savings = offer.original_price_dkk && offer.offer_price_dkk 
         ? `(spar ${(offer.original_price_dkk - offer.offer_price_dkk).toFixed(0)} kr)` 
         : '';
       const storeName = offer.store_chains?.name || 'Ukendt butik';
-      const validPeriod = `${offer.valid_from} til ${offer.valid_until}`;
-      return `- ${offer.offer_text || offer.product_name}: ${offer.offer_price_dkk} kr ${savings} @ ${storeName} (gyldig ${validPeriod})`;
+      return `- ${offer.offer_text || offer.product_name}: ${offer.offer_price_dkk} kr ${savings} @ ${storeName}`;
     }).join('\n');
 
-    // Hent eksisterende opskrifter som inspiration
-    const { data: existingRecipes } = await supabase
-      .from('recipes')
-      .select('title, ingredients, calories, protein, carbs, fat')
-      .limit(20);
+    // 2.2 Budget
+    const weeklyBudget = profile?.budget_per_week || 800;
 
-    const recipeExamples = (existingRecipes || []).map((r: any) => 
-      `- ${r.title} (${r.calories} kcal, ${r.protein}g protein)`
-    ).join('\n');
+    // 2.3 Positive preferences (from likes)
+    const likes = (ingredientPrefsResult.data || [])
+      .filter((p: any) => p.preference === 'like')
+      .map((p: any) => p.ingredient_name);
 
-    // Byg AI prompt
+    // Add ingredients from "yes" and "super" swipes
+    const positiveSwipes = (swipesResult.data || [])
+      .filter((s: any) => s.direction === 'right' || s.direction === 'up')
+      .flatMap((s: any) => {
+        const ingredients = s.recipes?.ingredients;
+        if (Array.isArray(ingredients)) {
+          return ingredients.map((i: any) => typeof i === 'string' ? i : i.name).filter(Boolean);
+        }
+        return [];
+      });
+    const allLikes = [...new Set([...likes, ...positiveSwipes])].slice(0, 20);
+
+    // 2.4 Season & seasonal ingredients
+    const season = getCurrentSeason();
+    const seasonalIngredients = getSeasonalIngredients(season);
+
+    // ============ PRIORITY 3: NICE-TO-HAVE ============
+
+    // 3.1 Cooking time (included in prefs)
+    const weekdayMaxTime = prefs.weekday_max_cook_time || 30;
+    const weekendMaxTime = prefs.weekend_max_cook_time || 60;
+
+    // 3.3 Inventory
+    const inventory = inventoryResult.data || [];
+    const inventoryItems = inventory.map((item: any) => {
+      const expiry = item.expires_at ? ` (udløber ${item.expires_at})` : '';
+      return `- ${item.ingredient_name}${item.quantity ? `: ${item.quantity} ${item.unit || ''}` : ''}${expiry}`;
+    }).join('\n');
+
+    // 3.5 Recent meals (avoid repetition)
+    const recentMealTitles: string[] = [];
+    (recentMealsResult.data || []).forEach((plan: any) => {
+      if (Array.isArray(plan.meals)) {
+        plan.meals.forEach((day: any) => {
+          if (day.breakfast?.title) recentMealTitles.push(day.breakfast.title);
+          if (day.lunch?.title) recentMealTitles.push(day.lunch.title);
+          if (day.dinner?.title) recentMealTitles.push(day.dinner.title);
+        });
+      }
+    });
+
+    // ============ PRIORITY 4: CONTEXT ============
+
+    // 4.2 Swipe patterns (aggregated)
+    const likedRecipes = (swipesResult.data || [])
+      .filter((s: any) => s.direction === 'right' || s.direction === 'up')
+      .map((s: any) => s.recipes?.title)
+      .filter(Boolean)
+      .slice(0, 10);
+
+    // 4.3 Dietary goal
+    const dietaryGoal = profile?.dietary_goal || 'maintain';
+
+    // ============ BUILD PRIORITIZED AI PROMPT ============
+
+    const fixedMealsDescription = (prefs.fixed_meals || []).length > 0
+      ? (prefs.fixed_meals || []).map((m: FixedMeal) => 
+          `${m.day === 'all' ? 'Hver dag' : m.day} ${m.meal}: "${m.description}" (${m.calories} kcal)`
+        ).join('\n')
+      : 'Ingen';
+
+    const exceptionsDescription = (prefs.exceptions || []).length > 0
+      ? (prefs.exceptions || []).map((e: MealException) => 
+          `${e.day} ${e.meal}: ${e.type}${e.description ? ` (${e.description})` : ''}`
+        ).join('\n')
+      : 'Ingen';
+
+    const extraCaloriesDescription = (prefs.extra_calories || []).length > 0
+      ? (prefs.extra_calories || []).map((e: ExtraCalories) => 
+          `${e.description}: ${e.calories_per_week} kcal/uge`
+        ).join('\n')
+      : 'Ingen';
+
     const systemPrompt = `Du er en erfaren dansk madplanlægger og kok. Du laver sunde, budgetvenlige madplaner for danske familier.
 
-VIGTIGE REGLER:
-1. PRIORITER ingredienser der er på tilbud - det er hele pointen!
-2. BRUG ingredienser fra brugerens lager først - undgå at foreslå køb af ting de allerede har
-3. Lav varierede retter - ikke den samme type mad hver dag
-4. Tænk på holdbarhed - brug friske varer først i ugen, og ingredienser der snart udløber
-5. Giv realistiske portionsstørrelser
-6. Alle retter skal være nemme at lave på hverdage (max 45 min)
-7. Brug danske ingredienser og opskrifter
+🔴 KRITISKE REGLER (UFRAVIGELIGE):
+1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen allergener'}
+2. ALDRIG foreslå disse ingredienser (bruger hader): ${allDislikes.length > 0 ? allDislikes.slice(0, 15).join(', ') : 'Ingen'}
+3. Hver dag skal ramme ca. ${availableCalories} kcal, ${availableProtein}g protein (±10%)
+4. Måltider: ${mealsToInclude.length > 0 ? mealsToInclude.join(', ') : 'alle'}
+5. Madlavningsstil: ${mealPrepDescription}
+6. Faste måltider (medregnet allerede):
+${fixedMealsDescription}
+7. Undtagelser (spring over):
+${exceptionsDescription}
+
+🟠 VIGTIGE PRIORITETER:
+1. PRIORITER disse tilbud aktivt:
+${formattedOffers || 'Ingen tilbud fundet'}
+2. Max ugentligt budget: ${weeklyBudget} kr
+3. Inkluder flere af disse ingredienser (bruger elsker): ${allLikes.length > 0 ? allLikes.join(', ') : 'Ingen præferencer'}
+4. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
+
+🟡 NICE-TO-HAVE:
+1. Hverdage max ${weekdayMaxTime} min tilberedning, weekend max ${weekendMaxTime} min
+2. Brug fra lager først:
+${inventoryItems || 'Ingen varer i lageret'}
+3. Undgå disse retter fra sidste 2 uger: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 10).join(', ') : 'Ingen'}
+
+🟢 KONTEKST:
+1. Brugerens favoritretter: ${likedRecipes.length > 0 ? likedRecipes.join(', ') : 'Ingen data'}
+2. Ernæringsmål: ${dietaryGoal === 'lose' ? 'vægttab' : dietaryGoal === 'gain' ? 'muskelopbygning' : 'vedligehold'}
+3. Antal personer: ${profile?.people_count || 1}
 
 OUTPUT FORMAT:
 Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
@@ -138,7 +349,7 @@ Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
   "meals": [
     {
       "date": "YYYY-MM-DD",
-      "breakfast": {
+      "breakfast": ${prefs.skip_breakfast ? 'null' : `{
         "title": "string",
         "description": "string",
         "calories": number,
@@ -148,10 +359,11 @@ Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
         "prep_time": number,
         "ingredients": [{"name": "string", "amount": "string", "unit": "string"}],
         "instructions": ["string"],
-        "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}]
-      },
-      "lunch": { ... samme format ... },
-      "dinner": { ... samme format ... }
+        "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
+        "uses_inventory": ["ingredient_name"]
+      }`},
+      "lunch": ${prefs.skip_lunch ? 'null' : '{ ... samme format ... }'},
+      "dinner": ${prefs.skip_dinner ? 'null' : '{ ... samme format ... }'}
     }
   ],
   "total_estimated_savings": number,
@@ -164,29 +376,25 @@ Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
 
     const userPrompt = `Lav en ${duration_days}-dages madplan startende ${startDate.toISOString().split('T')[0]}.
 
-BRUGERINFO:
-- Dagligt kaloriemål: ${profile?.daily_calories || 2000} kcal
-- Protein mål: ${profile?.daily_protein_target || 75}g
-- Kulhydrat mål: ${profile?.daily_carbs_target || 250}g
-- Fedt mål: ${profile?.daily_fat_target || 65}g
-- Antal personer: ${profile?.people_count || 1}
-- Allergener at undgå: ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen'}
-- Foretrukne butikker: ${chainNames.length > 0 ? chainNames.join(', ') : 'Alle'}
+Husk:
+- Prioriter tilbud og lager aktivt
+- Hold dig inden for ${availableCalories} kcal/dag budget
+- ${mealPrepDescription}
+- Beregn besparelser fra tilbud
 
-AKTUELLE TILBUD (BRUG DISSE!):
-${formattedOffers || 'Ingen tilbud fundet'}
+Lav madplanen nu!`;
 
-BRUGERENS NUVÆRENDE LAGER (BRUG DISSE FØRST!):
-${inventoryItems || 'Ingen varer i lageret'}
+    console.log('Generating meal plan with config:', {
+      cooking_style: prefs.cooking_style,
+      meals: mealsToInclude,
+      availableCalories,
+      offers: offers?.length || 0,
+      inventory: inventory.length,
+      allergens: allergenNames.length,
+      dislikes: allDislikes.length,
+    });
 
-EKSEMPLER PÅ GODE OPSKRIFTER:
-${recipeExamples || 'Ingen eksempler'}
-
-Lav madplanen nu. Husk at bruge ingredienser fra lageret og tilbuddene aktivt, og beregn besparelser!`;
-
-    console.log('Generating meal plan with', offers?.length || 0, 'offers');
-
-    // Kald OpenAI API
+    // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -219,10 +427,9 @@ Lav madplanen nu. Husk at bruge ingredienser fra lageret og tilbuddene aktivt, o
 
     console.log('AI response received, parsing...');
 
-    // Parse JSON fra AI response
+    // Parse JSON from AI response
     let mealPlanData;
     try {
-      // Fjern eventuelle markdown code blocks
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       mealPlanData = JSON.parse(cleanContent);
     } catch (parseError) {
@@ -230,7 +437,7 @@ Lav madplanen nu. Husk at bruge ingredienser fra lageret og tilbuddene aktivt, o
       throw new Error('Failed to parse meal plan from AI');
     }
 
-    // Gem madplanen i databasen
+    // Save meal plan to database
     const { data: savedPlan, error: saveError } = await supabase
       .from('meal_plans')
       .insert({
