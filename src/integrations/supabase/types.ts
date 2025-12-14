@@ -576,6 +576,42 @@ export type Database = {
           },
         ]
       }
+      user_progress: {
+        Row: {
+          body_fat_percentage: number | null
+          created_at: string
+          id: string
+          muscle_mass_kg: number | null
+          notes: string | null
+          recorded_at: string
+          user_id: string
+          waist_cm: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          body_fat_percentage?: number | null
+          created_at?: string
+          id?: string
+          muscle_mass_kg?: number | null
+          notes?: string | null
+          recorded_at?: string
+          user_id: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          body_fat_percentage?: number | null
+          created_at?: string
+          id?: string
+          muscle_mass_kg?: number | null
+          notes?: string | null
+          recorded_at?: string
+          user_id?: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
