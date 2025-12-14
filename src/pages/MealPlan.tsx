@@ -10,6 +10,7 @@ import { useMealPlans, type MealPlanDay, type MealPlanMeal } from '@/hooks/useMe
 import { useGenerateMealPlan, type GenerateMealPlanResult } from '@/hooks/useGenerateMealPlan';
 import { MealPlanConfigDialog } from '@/components/MealPlanConfigDialog';
 import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecipe } from '@/components/MealOptionSwiper';
+import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,7 @@ export default function MealPlan() {
   const { user } = useAuthStore();
   const { currentPlan, loading, fetchMealPlans, saveMealPlan } = useMealPlans();
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
+  const { generateShoppingList, generating: generatingList } = useGenerateShoppingList();
 
   // Fetch profile for macro display
   useEffect(() => {
@@ -103,6 +105,9 @@ export default function MealPlan() {
         title: t('mealPlan.saved', 'Madplan gemt!'),
         description: t('mealPlan.savedDescription', 'Din madplan er nu klar.'),
       });
+
+      // Auto-generer indkøbsliste baseret på valgte retter
+      await generateShoppingList(selectedMeals, savedPlan.id);
     }
 
     // Afslut swipe mode

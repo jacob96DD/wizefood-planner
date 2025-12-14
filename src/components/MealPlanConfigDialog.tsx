@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, X, Sparkles, Loader2, ChefHat, Clock, Utensils } from 'lucide-react';
+import { Plus, X, Sparkles, Loader2, ChefHat, Clock, Utensils, Camera } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,12 @@ import {
   type MealException,
   type ExtraCalories,
 } from '@/hooks/useMealPlanPreferences';
+import { FridgeScanner } from '@/components/FridgeScanner';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface MealPlanConfigDialogProps {
   open: boolean;
@@ -81,6 +87,7 @@ export function MealPlanConfigDialog({
   const [showAddFixedMeal, setShowAddFixedMeal] = useState(false);
   const [showAddException, setShowAddException] = useState(false);
   const [showAddExtraCalories, setShowAddExtraCalories] = useState(false);
+  const [showFridgeScanner, setShowFridgeScanner] = useState(false);
 
   // New item forms
   const [newFixedMeal, setNewFixedMeal] = useState<Partial<FixedMeal>>({
@@ -214,6 +221,20 @@ export function MealPlanConfigDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Fridge Scanner */}
+          <Collapsible open={showFridgeScanner} onOpenChange={setShowFridgeScanner}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-start">
+                <Camera className="w-4 h-4 mr-2" />
+                📷 Scan køleskab
+                <Badge variant="secondary" className="ml-auto text-xs">Ny!</Badge>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <FridgeScanner onComplete={() => setShowFridgeScanner(false)} />
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Cooking Style */}
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Madlavningsstil</Label>
