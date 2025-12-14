@@ -9,24 +9,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   useMealPlanPreferences,
-  type FixedMeal,
-  type MealException,
-  type ExtraCalories,
 } from '@/hooks/useMealPlanPreferences';
 import { FridgeScanner } from '@/components/FridgeScanner';
 import {
@@ -57,22 +46,13 @@ const COOKING_STYLES = [
   { value: 'meal_prep_4', label: '4+ retter til ugen', icon: '📦📦📦' },
 ];
 
-const DAYS = [
-  { value: 'all', label: 'Alle dage' },
-  { value: 'monday', label: 'Mandag' },
-  { value: 'tuesday', label: 'Tirsdag' },
-  { value: 'wednesday', label: 'Onsdag' },
-  { value: 'thursday', label: 'Torsdag' },
-  { value: 'friday', label: 'Fredag' },
-  { value: 'saturday', label: 'Lørdag' },
-  { value: 'sunday', label: 'Søndag' },
-];
-
-const MEALS = [
-  { value: 'breakfast', label: 'Morgenmad' },
-  { value: 'lunch', label: 'Frokost' },
-  { value: 'dinner', label: 'Aftensmad' },
-];
+interface RealLifeEstimate {
+  calories_per_week: number;
+  calories_per_day: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 export function MealPlanConfigDialog({
   open,
@@ -86,169 +66,111 @@ export function MealPlanConfigDialog({
     useMealPlanPreferences();
 
   const [localPrefs, setLocalPrefs] = useState(preferences);
-  const [showAddFixedMeal, setShowAddFixedMeal] = useState(false);
-  const [showAddException, setShowAddException] = useState(false);
-  const [showAddExtraCalories, setShowAddExtraCalories] = useState(false);
   const [showFridgeScanner, setShowFridgeScanner] = useState(false);
-  const [isCalculating, setIsCalculating] = useState<'fixed' | 'exception' | 'extra' | null>(null);
+  
+  // Real-life free-text section
+  const [realLifeDescription, setRealLifeDescription] = useState('');
+  const [isCalculatingRealLife, setIsCalculatingRealLife] = useState(false);
+  const [realLifeEstimate, setRealLifeEstimate] = useState<RealLifeEstimate | null>(null);
 
-  // New item forms
-  const [newFixedMeal, setNewFixedMeal] = useState<Partial<FixedMeal>>({
-    day: 'all',
-    meal: 'breakfast',
-    description: '',
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-  });
-  const [newException, setNewException] = useState<Partial<MealException>>({
-    day: 'saturday',
-    meal: 'dinner',
-    type: 'cheat_meal',
-    description: '',
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-  });
-  const [newExtraCalories, setNewExtraCalories] = useState<Partial<ExtraCalories>>({
-    description: '',
-    calories_per_week: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-  });
+  useEffect(() => {
+    setLocalPrefs(preferences);
+    
+    // Load existing extra_calories descriptions into the text area
+    if (preferences.extra_calories && preferences.extra_calories.length > 0) {
+      const descriptions = preferences.extra_calories.map(item => item.description).join('. ');
+      setRealLifeDescription(descriptions);
+      
+      // Calculate totals from existing items
+      const totals = preferences.extra_calories.reduce((acc, item) => ({
+        calories_per_week: acc.calories_per_week + (item.calories_per_week || 0),
+        protein: acc.protein + (item.protein || 0),
+        carbs: acc.carbs + (item.carbs || 0),
+        fat: acc.fat + (item.fat || 0),
+      }), { calories_per_week: 0, protein: 0, carbs: 0, fat: 0 });
+      
+      if (totals.calories_per_week > 0) {
+        setRealLifeEstimate({
+          ...totals,
+          calories_per_day: Math.round(totals.calories_per_week / 7),
+        });
+      }
+    }
+  }, [preferences]);
 
-  // AI calorie estimation
-  const estimateCalories = async (description: string, type: 'fixed' | 'exception' | 'extra') => {
-    if (!description.trim()) {
-      toast.error('Indtast en beskrivelse først');
+  // Calculate adjusted macros with real-life estimate
+  const getAdjustedMacros = () => {
+    if (!profile) return null;
+    
+    // Use the estimate if available, otherwise calculate from preferences
+    const extraCaloriesPerDay = realLifeEstimate?.calories_per_day || 0;
+    const extraProteinPerDay = realLifeEstimate ? Math.round(realLifeEstimate.protein / 7) : 0;
+    const extraCarbsPerDay = realLifeEstimate ? Math.round(realLifeEstimate.carbs / 7) : 0;
+    const extraFatPerDay = realLifeEstimate ? Math.round(realLifeEstimate.fat / 7) : 0;
+    
+    return {
+      availableCalories: Math.max(0, (profile.daily_calories || 0) - extraCaloriesPerDay),
+      availableProtein: Math.max(0, (profile.daily_protein_target || 0) - extraProteinPerDay),
+      availableCarbs: Math.max(0, (profile.daily_carbs_target || 0) - extraCarbsPerDay),
+      availableFat: Math.max(0, (profile.daily_fat_target || 0) - extraFatPerDay),
+      extraCaloriesPerDay,
+    };
+  };
+
+  const adjustedMacros = getAdjustedMacros();
+
+  // AI estimation for free-text description
+  const estimateFromDescription = async () => {
+    if (!realLifeDescription.trim()) {
+      toast.error('Skriv en beskrivelse først');
       return;
     }
 
-    setIsCalculating(type);
+    setIsCalculatingRealLife(true);
     try {
       const { data, error } = await supabase.functions.invoke('estimate-calories', {
-        body: { description },
+        body: { description: realLifeDescription },
       });
 
       if (error) throw error;
 
-      if (type === 'fixed') {
-        setNewFixedMeal(prev => ({
-          ...prev,
-          calories: Math.round(data.calories_per_week / 7),
-          protein: Math.round(data.protein / 7),
-          carbs: Math.round(data.carbs / 7),
-          fat: Math.round(data.fat / 7),
-        }));
-      } else if (type === 'exception') {
-        setNewException(prev => ({
-          ...prev,
-          calories: Math.round(data.calories_per_week / 7),
-          protein: Math.round(data.protein / 7),
-          carbs: Math.round(data.carbs / 7),
-          fat: Math.round(data.fat / 7),
-        }));
-      } else {
-        setNewExtraCalories(prev => ({
-          ...prev,
+      setRealLifeEstimate({
+        calories_per_week: data.calories_per_week,
+        calories_per_day: data.calories_per_day,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat,
+      });
+
+      // Update preferences with the new extra calories
+      setLocalPrefs(prev => ({
+        ...prev,
+        extra_calories: [{
+          description: realLifeDescription,
           calories_per_week: data.calories_per_week,
           protein: data.protein,
           carbs: data.carbs,
           fat: data.fat,
-        }));
-      }
+        }],
+        // Clear fixed meals as they're now part of the description
+        fixed_meals: [],
+        exceptions: [],
+      }));
 
-      toast.success('Kalorier estimeret! 🎉');
+      toast.success('Estimeret! 🎉');
     } catch (error) {
       console.error('Error estimating calories:', error);
       toast.error('Kunne ikke estimere kalorier');
     } finally {
-      setIsCalculating(null);
+      setIsCalculatingRealLife(false);
     }
   };
-  useEffect(() => {
-    setLocalPrefs(preferences);
-  }, [preferences]);
-
-  const adjustedMacros = profile ? calculateAdjustedMacros(profile) : null;
 
   const handleSaveAndGenerate = async () => {
     const success = await savePreferences(localPrefs);
     if (success) {
       onGenerate();
     }
-  };
-
-  const addFixedMeal = () => {
-    if (!newFixedMeal.description) return;
-    setLocalPrefs(prev => ({
-      ...prev,
-      fixed_meals: [...prev.fixed_meals, newFixedMeal as FixedMeal],
-    }));
-    setNewFixedMeal({
-      day: 'all',
-      meal: 'breakfast',
-      description: '',
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-    });
-    setShowAddFixedMeal(false);
-  };
-
-  const removeFixedMeal = (index: number) => {
-    setLocalPrefs(prev => ({
-      ...prev,
-      fixed_meals: prev.fixed_meals.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addException = () => {
-    setLocalPrefs(prev => ({
-      ...prev,
-      exceptions: [...prev.exceptions, newException as MealException],
-    }));
-    setNewException({
-      day: 'saturday',
-      meal: 'dinner',
-      type: 'cheat_meal',
-      description: '',
-    });
-    setShowAddException(false);
-  };
-
-  const removeException = (index: number) => {
-    setLocalPrefs(prev => ({
-      ...prev,
-      exceptions: prev.exceptions.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addExtraCaloriesItem = () => {
-    if (!newExtraCalories.description) return;
-    setLocalPrefs(prev => ({
-      ...prev,
-      extra_calories: [...prev.extra_calories, newExtraCalories as ExtraCalories],
-    }));
-    setNewExtraCalories({
-      description: '',
-      calories_per_week: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-    });
-    setShowAddExtraCalories(false);
-  };
-
-  const removeExtraCalories = (index: number) => {
-    setLocalPrefs(prev => ({
-      ...prev,
-      extra_calories: prev.extra_calories.filter((_, i) => i !== index),
-    }));
   };
 
   if (loading) {
@@ -283,7 +205,6 @@ export function MealPlanConfigDialog({
               <Button variant="outline" className="w-full justify-start">
                 <Camera className="w-4 h-4 mr-2" />
                 📷 Scan køleskab
-                <Badge variant="secondary" className="ml-auto text-xs">Ny!</Badge>
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-3">
@@ -351,347 +272,67 @@ export function MealPlanConfigDialog({
             </div>
           </div>
 
-          {/* Fixed Meals */}
+          {/* Real-life - Ting at tage højde for */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Faste måltider</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAddFixedMeal(!showAddFixedMeal)}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Tilføj
-              </Button>
-            </div>
-
-            {localPrefs.fixed_meals.map((meal, idx) => (
-              <Card key={idx} className="bg-muted/30">
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{meal.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {DAYS.find(d => d.value === meal.day)?.label} ·{' '}
-                      {MEALS.find(m => m.value === meal.meal)?.label} · {meal.calories} kcal
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeFixedMeal(idx)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-
-            {showAddFixedMeal && (
-              <Card className="border-primary/50">
-                <CardContent className="p-3 space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="f.eks. Franskbrød med nutella"
-                      value={newFixedMeal.description}
-                      onChange={e =>
-                        setNewFixedMeal(prev => ({ ...prev, description: e.target.value }))
-                      }
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => estimateCalories(newFixedMeal.description || '', 'fixed')}
-                      disabled={isCalculating === 'fixed' || !newFixedMeal.description}
-                      title="Udregn kalorier"
-                    >
-                      {isCalculating === 'fixed' ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Wand2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select
-                      value={newFixedMeal.day}
-                      onValueChange={v =>
-                        setNewFixedMeal(prev => ({ ...prev, day: v as FixedMeal['day'] }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.map(d => (
-                          <SelectItem key={d.value} value={d.value}>
-                            {d.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={newFixedMeal.meal}
-                      onValueChange={v =>
-                        setNewFixedMeal(prev => ({ ...prev, meal: v as FixedMeal['meal'] }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MEALS.map(m => (
-                          <SelectItem key={m.value} value={m.value}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    <div>
-                      <Label className="text-xs">Kcal</Label>
-                      <Input
-                        type="number"
-                        value={newFixedMeal.calories || ''}
-                        onChange={e =>
-                          setNewFixedMeal(prev => ({
-                            ...prev,
-                            calories: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Protein</Label>
-                      <Input
-                        type="number"
-                        value={newFixedMeal.protein || ''}
-                        onChange={e =>
-                          setNewFixedMeal(prev => ({
-                            ...prev,
-                            protein: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Kulh.</Label>
-                      <Input
-                        type="number"
-                        value={newFixedMeal.carbs || ''}
-                        onChange={e =>
-                          setNewFixedMeal(prev => ({
-                            ...prev,
-                            carbs: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Fedt</Label>
-                      <Input
-                        type="number"
-                        value={newFixedMeal.fat || ''}
-                        onChange={e =>
-                          setNewFixedMeal(prev => ({
-                            ...prev,
-                            fat: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-                  <Button size="sm" onClick={addFixedMeal} className="w-full">
-                    Tilføj fast måltid
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Exceptions (Cheat meals etc) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Undtagelser</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAddException(!showAddException)}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Tilføj
-              </Button>
-            </div>
-
-            {localPrefs.exceptions.map((exc, idx) => (
-              <Badge key={idx} variant="secondary" className="mr-2">
-                {DAYS.find(d => d.value === exc.day)?.label} {MEALS.find(m => m.value === exc.meal)?.label}: {exc.type === 'cheat_meal' ? '🍕 Cheat' : exc.type}
-                <button onClick={() => removeException(idx)} className="ml-2">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
-
-            {showAddException && (
-              <Card className="border-primary/50">
-                <CardContent className="p-3 space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="f.eks. Pizza fra Domino's"
-                      value={newException.description || ''}
-                      onChange={e =>
-                        setNewException(prev => ({ ...prev, description: e.target.value }))
-                      }
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => estimateCalories(newException.description || '', 'exception')}
-                      disabled={isCalculating === 'exception' || !newException.description}
-                      title="Udregn kalorier"
-                    >
-                      {isCalculating === 'exception' ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Wand2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select
-                      value={newException.day}
-                      onValueChange={v =>
-                        setNewException(prev => ({ ...prev, day: v as MealException['day'] }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.filter(d => d.value !== 'all').map(d => (
-                          <SelectItem key={d.value} value={d.value}>
-                            {d.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={newException.meal}
-                      onValueChange={v =>
-                        setNewException(prev => ({ ...prev, meal: v as MealException['meal'] }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MEALS.map(m => (
-                          <SelectItem key={m.value} value={m.value}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Select
-                    value={newException.type}
-                    onValueChange={v =>
-                      setNewException(prev => ({ ...prev, type: v as MealException['type'] }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cheat_meal">🍕 Cheat meal</SelectItem>
-                      <SelectItem value="skip">⏭️ Spring over</SelectItem>
-                      <SelectItem value="restaurant">🍽️ Restaurant</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {(newException.calories || 0) > 0 && (
-                    <div className="grid grid-cols-4 gap-2 text-center text-xs bg-muted/50 rounded-lg p-2">
-                      <div><span className="font-bold">{newException.calories}</span> kcal</div>
-                      <div><span className="font-bold">{newException.protein}g</span> prot</div>
-                      <div><span className="font-bold">{newException.carbs}g</span> kulh</div>
-                      <div><span className="font-bold">{newException.fat}g</span> fedt</div>
-                    </div>
-                  )}
-                  <Button size="sm" onClick={addException} className="w-full">
-                    Tilføj undtagelse
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Extra calories */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Ekstra kalorier (real-life)</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAddExtraCalories(!showAddExtraCalories)}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Tilføj
-              </Button>
-            </div>
+            <Label className="text-sm font-semibold">🍕 Ting at tage højde for</Label>
             <p className="text-xs text-muted-foreground">
-              Ting udenfor madplanen (øl, snacks, kaffe med mælk etc.)
+              Beskriv hvad du spiser/drikker udover madplanen - f.eks. øl, snacks, pizza, morgenmad du selv laver.
             </p>
+            
+            <Textarea
+              placeholder="f.eks. Jeg spiser pizza om lørdagen og drikker 8 øl og 4 glas vin i løbet af ugen. Jeg spiser altid morgenmad med nutella og brød..."
+              value={realLifeDescription}
+              onChange={(e) => {
+                setRealLifeDescription(e.target.value);
+                // Clear estimate when text changes
+                if (realLifeEstimate) {
+                  setRealLifeEstimate(null);
+                }
+              }}
+              rows={3}
+              className="resize-none"
+            />
+            
+            <Button
+              variant="outline"
+              onClick={estimateFromDescription}
+              disabled={isCalculatingRealLife || !realLifeDescription.trim()}
+              className="w-full"
+            >
+              {isCalculatingRealLife ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4 mr-2" />
+              )}
+              Udregn fra beskrivelse
+            </Button>
 
-            {localPrefs.extra_calories.map((item, idx) => (
-              <Card key={idx} className="bg-muted/30">
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.calories_per_week} kcal/uge ≈ {Math.round(item.calories_per_week / 7)} kcal/dag
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeExtraCalories(idx)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-
-            {showAddExtraCalories && (
-              <Card className="border-primary/50">
-                <CardContent className="p-3 space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="f.eks. 10 øl om ugen"
-                      value={newExtraCalories.description}
-                      onChange={e =>
-                        setNewExtraCalories(prev => ({ ...prev, description: e.target.value }))
-                      }
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => estimateCalories(newExtraCalories.description || '', 'extra')}
-                      disabled={isCalculating === 'extra' || !newExtraCalories.description}
-                      title="Udregn kalorier"
-                    >
-                      {isCalculating === 'extra' ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Wand2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {(newExtraCalories.calories_per_week || 0) > 0 && (
-                    <div className="grid grid-cols-4 gap-2 text-center text-xs bg-muted/50 rounded-lg p-2">
-                      <div><span className="font-bold">{newExtraCalories.calories_per_week}</span> kcal/uge</div>
-                      <div><span className="font-bold">{newExtraCalories.protein}g</span> prot</div>
-                      <div><span className="font-bold">{newExtraCalories.carbs}g</span> kulh</div>
-                      <div><span className="font-bold">{newExtraCalories.fat}g</span> fedt</div>
+            {/* Estimated results */}
+            {realLifeEstimate && (
+              <Card className="bg-muted/30 border-primary/20">
+                <CardContent className="p-3">
+                  <p className="font-medium text-sm mb-2">✨ Estimeret ugentligt:</p>
+                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div>
+                      <span className="font-bold text-primary">{realLifeEstimate.calories_per_week}</span>
+                      <p className="text-muted-foreground">kcal/uge</p>
                     </div>
-                  )}
-                  <Button size="sm" onClick={addExtraCaloriesItem} className="w-full">
-                    Tilføj ekstra kalorier
-                  </Button>
+                    <div>
+                      <span className="font-bold">{realLifeEstimate.protein}g</span>
+                      <p className="text-muted-foreground">protein</p>
+                    </div>
+                    <div>
+                      <span className="font-bold">{realLifeEstimate.carbs}g</span>
+                      <p className="text-muted-foreground">kulh.</p>
+                    </div>
+                    <div>
+                      <span className="font-bold">{realLifeEstimate.fat}g</span>
+                      <p className="text-muted-foreground">fedt</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    ≈ <span className="font-semibold">{realLifeEstimate.calories_per_day} kcal/dag</span> fratrukket din madplan
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -764,7 +405,7 @@ export function MealPlanConfigDialog({
           </div>
 
           {/* Summary */}
-          {adjustedMacros && (
+          {adjustedMacros && profile && (
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="p-4">
                 <p className="text-sm font-semibold mb-2">Tilgængelig til madplan:</p>
@@ -786,9 +427,9 @@ export function MealPlanConfigDialog({
                     <p className="text-xs text-muted-foreground">fedt</p>
                   </div>
                 </div>
-                {(adjustedMacros.extraCaloriesPerDay > 0 || adjustedMacros.fixedCaloriesPerDay > 0) && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Fratrukket: {adjustedMacros.extraCaloriesPerDay} kcal (real-life) + {adjustedMacros.fixedCaloriesPerDay} kcal (faste måltider)
+                {adjustedMacros.extraCaloriesPerDay > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Fratrukket: {adjustedMacros.extraCaloriesPerDay} kcal/dag (real-life)
                   </p>
                 )}
               </CardContent>

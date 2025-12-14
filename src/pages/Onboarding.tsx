@@ -622,6 +622,12 @@ export default function Onboarding() {
         return data.activityLevel;
       case 5:
         return data.dietaryGoals.some(g => bodyGoals.some(bg => bg.value === g));
+      case 6:
+        return data.selectedAllergens.length > 0 || (data.customAllergens && data.customAllergens.trim().length > 0);
+      case 7:
+        return data.dislikedFoods.length > 0 || (data.customDislikes && data.customDislikes.trim().length > 0);
+      case 8:
+        return selectedStoreChains.size > 0;
       default:
         return true;
     }

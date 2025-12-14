@@ -411,6 +411,13 @@ export default function Profile() {
         currentValues={currentMacros}
         calculatedValues={calculatedMacros}
         dietaryGoal={data.dietaryGoal}
+        profileData={{
+          weightKg: data.weightKg,
+          heightCm: data.heightCm,
+          age: data.dateOfBirth ? new Date().getFullYear() - new Date(data.dateOfBirth).getFullYear() : null,
+          gender: data.gender,
+          activityLevel: data.activityLevel,
+        }}
         onSave={handleSaveMacros}
       />
 
