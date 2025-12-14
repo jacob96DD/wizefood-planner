@@ -13,6 +13,7 @@ import Onboarding from "./pages/Onboarding";
 import MealPlan from "./pages/MealPlan";
 import ShoppingList from "./pages/ShoppingList";
 import Profile from "./pages/Profile";
+import Progress from "./pages/Progress";
 import StorePreferences from "./pages/StorePreferences";
 import NotFound from "./pages/NotFound";
 
@@ -95,6 +96,7 @@ const App = () => (
             <Route path="/meal-plan" element={<MealPlan />} />
             <Route path="/shopping-list" element={<ShoppingList />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/progress" element={<Progress />} />
             <Route path="/stores" element={<StorePreferences />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

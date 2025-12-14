@@ -266,7 +266,29 @@
       "formulaGain": "Muscle building: 30% protein, 45% carbs, 25% fat (higher protein for muscles)"
     },
     "macrosSaved": "Macro goals saved",
-    "macrosSavedDesc": "Your custom goals are now saved."
+    "macrosSavedDesc": "Your custom goals are now saved.",
+    "profileSaved": "Profile updated",
+    "progress": "Progress",
+    "trackProgress": "Track your weight and measurements",
+    "lastWeight": "Last: {{weight}} kg"
+  },
+  "progress": {
+    "title": "Progress",
+    "add": "Add",
+    "addMeasurement": "Add measurement",
+    "weight": "Weight",
+    "bodyFat": "Body fat",
+    "muscleMass": "Muscle mass",
+    "waist": "Waist",
+    "notes": "Notes",
+    "notesPlaceholder": "How do you feel? Changes in diet/training?",
+    "saved": "Measurement saved",
+    "atLeastOneMeasurement": "Enter at least one measurement",
+    "currentWeight": "Current weight",
+    "weightOverTime": "Weight over time",
+    "history": "History",
+    "noData": "No measurements yet",
+    "addFirst": "Add your first measurement"
   },
   "mealPlan": {
     "title": "Your Meal Plan",

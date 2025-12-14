@@ -1,23 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { EditMacrosDialog } from '@/components/EditMacrosDialog';
+import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
+import { useProfileSync } from '@/hooks/useProfileSync';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setProfile } = useAuthStore();
   const { data, updateData } = useOnboardingStore();
   const [macrosDialogOpen, setMacrosDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [latestWeight, setLatestWeight] = useState<number | null>(null);
+
+  // Sync profile from database to store
+  useProfileSync();
+
+  // Fetch latest progress entry
+  useEffect(() => {
+    if (!user) return;
+    
+    supabase
+      .from('user_progress')
+      .select('weight_kg')
+      .eq('user_id', user.id)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.weight_kg) {
+          setLatestWeight(Number(data.weight_kg));
+        }
+      });
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -86,13 +112,35 @@ export default function Profile() {
     fat: data.dailyFat ?? calculatedMacros.fat,
   };
 
-  const handleSaveMacros = (values: { calories: number; protein: number; carbs: number; fat: number }) => {
+  const handleSaveMacros = async (values: { calories: number; protein: number; carbs: number; fat: number }) => {
+    // Update local store
     updateData({
       dailyCalories: values.calories,
       dailyProtein: values.protein,
       dailyCarbs: values.carbs,
       dailyFat: values.fat,
     });
+
+    // Save to database
+    if (user) {
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .update({
+          daily_calories: values.calories,
+          daily_protein_target: values.protein,
+          daily_carbs_target: values.carbs,
+          daily_fat_target: values.fat,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+    }
+
     toast.success(t('profile.macrosSaved'), {
       description: t('profile.macrosSavedDesc'),
     });
@@ -143,6 +191,26 @@ export default function Profile() {
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold">{currentMacros.fat}g</p>
                 <p className="text-xs text-muted-foreground">{t('profile.fat')}</p>
+              </div>
+
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => navigate('/progress')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{t('profile.progress')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {latestWeight 
+                        ? t('profile.lastWeight', { weight: latestWeight })
+                        : t('profile.trackProgress')}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
             </div>
           </CardContent>
@@ -253,7 +321,7 @@ export default function Profile() {
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => navigate('/onboarding')}
+            onClick={() => setProfileDialogOpen(true)}
           >
             <Settings className="w-5 h-5 mr-3" />
             {t('profile.editProfile')}
@@ -284,6 +352,11 @@ export default function Profile() {
         calculatedValues={calculatedMacros}
         dietaryGoal={data.dietaryGoal}
         onSave={handleSaveMacros}
+      />
+
+      <EditProfileDialog
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
       />
     </div>
   );

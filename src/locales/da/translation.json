@@ -266,7 +266,29 @@
       "formulaGain": "Muskelopbygning: 30% protein, 45% kulhydrat, 25% fedt (højere protein for muskler)"
     },
     "macrosSaved": "Makro-mål gemt",
-    "macrosSavedDesc": "Dine tilpassede mål er nu gemt."
+    "macrosSavedDesc": "Dine tilpassede mål er nu gemt.",
+    "profileSaved": "Profil opdateret",
+    "progress": "Fremskridt",
+    "trackProgress": "Spor din vægt og målinger",
+    "lastWeight": "Sidst: {{weight}} kg"
+  },
+  "progress": {
+    "title": "Fremskridt",
+    "add": "Tilføj",
+    "addMeasurement": "Tilføj måling",
+    "weight": "Vægt",
+    "bodyFat": "Kropsfedt",
+    "muscleMass": "Muskelmasse",
+    "waist": "Talje",
+    "notes": "Noter",
+    "notesPlaceholder": "Hvordan har du det? Ændringer i kost/træning?",
+    "saved": "Måling gemt",
+    "atLeastOneMeasurement": "Indtast mindst én måling",
+    "currentWeight": "Nuværende vægt",
+    "weightOverTime": "Vægt over tid",
+    "history": "Historik",
+    "noData": "Ingen målinger endnu",
+    "addFirst": "Tilføj din første måling"
   },
   "mealPlan": {
     "title": "Din Madplan",
