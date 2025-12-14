@@ -52,19 +52,20 @@ const goalNames: Record<string, string> = {
   gain: 'Vægtøgning',
 };
 
-// Praktiske minimumskalorier baseret på hvad retter realistisk kan levere
+// Dynamiske minimumskalorier baseret på makroværdier
+// Protein: 6 kcal per gram som praktisk minimum (100g = 600 kcal, 200g = 1200 kcal)
+// Kulhydrater: 5 kcal per gram som praktisk minimum (100g = 500 kcal, 200g = 1000 kcal)
+// Fedt: 10 kcal per gram som praktisk minimum (80g = 800 kcal)
 const getMinCaloriesForProtein = (protein: number): number => {
-  if (protein >= 100) return 600;
-  if (protein >= 75) return 450;
-  if (protein >= 50) return 300;
-  return 0;
+  return Math.round(protein * 6);
 };
 
 const getMinCaloriesForCarbs = (carbs: number): number => {
-  if (carbs >= 100) return 500;
-  if (carbs >= 75) return 375;
-  if (carbs >= 50) return 250;
-  return 0;
+  return Math.round(carbs * 5);
+};
+
+const getMinCaloriesForFat = (fat: number): number => {
+  return Math.round(fat * 10);
 };
 
 export function EditMacrosDialog({
@@ -97,10 +98,11 @@ export function EditMacrosDialog({
     setValues(prev => ({ ...prev, [field]: numValue }));
   };
 
-  // Validering
+  // Validering - dynamisk baseret på værdier
   const minCaloriesFromProtein = getMinCaloriesForProtein(values.protein);
   const minCaloriesFromCarbs = getMinCaloriesForCarbs(values.carbs);
-  const practicalMinCalories = Math.max(minCaloriesFromProtein, minCaloriesFromCarbs, 800);
+  const minCaloriesFromFat = getMinCaloriesForFat(values.fat);
+  const practicalMinCalories = Math.max(minCaloriesFromProtein, minCaloriesFromCarbs, minCaloriesFromFat, 800);
   
   // Matematisk minimum fra makroer
   const caloriesFromProtein = values.protein * 4;
@@ -109,13 +111,14 @@ export function EditMacrosDialog({
   const totalMacroCalories = caloriesFromProtein + caloriesFromCarbs + caloriesFromFat;
 
   // Valideringsstatus
-  const hasProteinCalorieConflict = values.protein >= 100 && values.calories < 600;
-  const hasCarbsCalorieConflict = values.carbs >= 100 && values.calories < 500;
+  const hasProteinCalorieConflict = values.protein > 0 && values.calories < minCaloriesFromProtein;
+  const hasCarbsCalorieConflict = values.carbs > 0 && values.calories < minCaloriesFromCarbs;
+  const hasFatCalorieConflict = values.fat > 0 && values.calories < minCaloriesFromFat;
   const hasMacroOverflow = totalMacroCalories > values.calories;
   const isCaloriesTooLow = values.calories < practicalMinCalories;
   const needsProteinPowder = values.protein >= 100 && values.calories < 800;
   
-  const isValid = !hasProteinCalorieConflict && !hasCarbsCalorieConflict && values.calories >= 800;
+  const isValid = !hasProteinCalorieConflict && !hasCarbsCalorieConflict && !hasFatCalorieConflict && values.calories >= 800;
 
   // Calculate BMR and TDEE for display
   const calculateDetails = () => {
@@ -193,9 +196,9 @@ export function EditMacrosDialog({
                 min={0}
                 className={hasProteinCalorieConflict ? 'border-destructive' : ''}
               />
-              {values.protein >= 100 && (
-                <p className="text-xs text-muted-foreground">
-                  Kræver min. 600 kcal for realistiske retter
+              {values.protein > 0 && (
+                <p className={`text-xs ${hasProteinCalorieConflict ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  Kræver min. {minCaloriesFromProtein} kcal for realistiske retter
                 </p>
               )}
             </div>
@@ -210,9 +213,9 @@ export function EditMacrosDialog({
                 min={0}
                 className={hasCarbsCalorieConflict ? 'border-destructive' : ''}
               />
-              {values.carbs >= 100 && (
-                <p className="text-xs text-muted-foreground">
-                  Kræver min. 500 kcal for realistiske retter
+              {values.carbs > 0 && (
+                <p className={`text-xs ${hasCarbsCalorieConflict ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  Kræver min. {minCaloriesFromCarbs} kcal for realistiske retter
                 </p>
               )}
             </div>
@@ -225,7 +228,13 @@ export function EditMacrosDialog({
                 value={values.fat}
                 onChange={(e) => handleChange('fat', e.target.value)}
                 min={0}
+                className={hasFatCalorieConflict ? 'border-destructive' : ''}
               />
+              {values.fat > 0 && (
+                <p className={`text-xs ${hasFatCalorieConflict ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  Kræver min. {minCaloriesFromFat} kcal for realistiske retter
+                </p>
+              )}
             </div>
           </div>
 
@@ -262,7 +271,7 @@ export function EditMacrosDialog({
               <AlertDescription>
                 <strong>Umulig kombination!</strong>
                 <br />
-                {values.protein}g protein kræver minimum 600 kcal for at lave realistiske retter.
+                {values.protein}g protein kræver minimum {minCaloriesFromProtein} kcal for at lave realistiske retter.
                 Du har kun sat {values.calories} kcal.
               </AlertDescription>
             </Alert>
@@ -274,13 +283,25 @@ export function EditMacrosDialog({
               <AlertDescription>
                 <strong>Umulig kombination!</strong>
                 <br />
-                {values.carbs}g kulhydrater kræver minimum 500 kcal for at lave realistiske retter.
+                {values.carbs}g kulhydrater kræver minimum {minCaloriesFromCarbs} kcal for at lave realistiske retter.
                 Du har kun sat {values.calories} kcal.
               </AlertDescription>
             </Alert>
           )}
 
-          {hasMacroOverflow && !hasProteinCalorieConflict && !hasCarbsCalorieConflict && (
+          {hasFatCalorieConflict && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Umulig kombination!</strong>
+                <br />
+                {values.fat}g fedt kræver minimum {minCaloriesFromFat} kcal for at lave realistiske retter.
+                Du har kun sat {values.calories} kcal.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {hasMacroOverflow && !hasProteinCalorieConflict && !hasCarbsCalorieConflict && !hasFatCalorieConflict && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
