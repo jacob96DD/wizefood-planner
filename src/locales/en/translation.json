@@ -346,6 +346,7 @@
     "discover": "Discover",
     "mealPlan": "Meal Plan",
     "shopping": "Shopping",
+    "inventory": "Inventory",
     "profile": "Profile"
   },
   "language": {
@@ -357,5 +358,28 @@
     "title": "Select stores",
     "description": "Choose which stores you typically shop at, so we can show you the best offers.",
     "noStores": "No stores found"
+  },
+  "inventory": {
+    "title": "My Inventory",
+    "add": "Add",
+    "addItem": "Add item",
+    "addFirst": "Add your first item",
+    "ingredientName": "Ingredient",
+    "ingredientPlaceholder": "e.g. milk, eggs, rice...",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "category": "Category",
+    "expiresAt": "Expires",
+    "categories": {
+      "fridge": "Fridge",
+      "freezer": "Freezer",
+      "pantry": "Pantry"
+    },
+    "empty": "Your inventory is empty",
+    "emptyDescription": "Add items you have at home so we can suggest recipes based on them.",
+    "expiringWarning": "{{count}} items expiring soon",
+    "markUsed": "Mark as used",
+    "addToInventory": "Add to inventory?",
+    "addedToInventory": "Added to inventory"
   }
 }

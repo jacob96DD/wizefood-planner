@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Trash2, Store, Calendar, ShoppingBag } from 'lucide-react';
+import { Check, Trash2, Store, Calendar, ShoppingBag, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useShoppingList } from '@/hooks/useShoppingList';
 import { useOffers, type Offer } from '@/hooks/useOffers';
+import { useInventory } from '@/hooks/useInventory';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { da } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -16,9 +18,11 @@ import { useNavigate } from 'react-router-dom';
 export default function ShoppingList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [shoppingDate, setShoppingDate] = useState<Date>(new Date());
   const { shoppingList, loading, toggleItem, removeItem } = useShoppingList();
   const { offers, loading: offersLoading } = useOffers(shoppingDate);
+  const { addItem: addToInventory } = useInventory();
 
   const items = shoppingList?.items || [];
   const uncheckedItems = items.filter(item => !item.checked);
@@ -151,16 +155,30 @@ export default function ShoppingList() {
               <div className="mb-6">
                 <h2 className="text-sm font-medium text-muted-foreground mb-3">{t('shopping.toBuy')}</h2>
                 <div className="space-y-2">
-                  {uncheckedItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border"
-                    >
-                      <button
-                        onClick={() => toggleItem(item.id)}
-                        className="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center transition-all hover:bg-primary/10"
+                    {uncheckedItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border"
                       >
-                      </button>
+                        <button
+                          onClick={async () => {
+                            toggleItem(item.id);
+                            // Prompt to add to inventory
+                            const result = await addToInventory({
+                              ingredient_name: item.name,
+                              quantity: parseFloat(item.amount) || undefined,
+                              unit: item.unit || undefined,
+                            });
+                            if (result) {
+                              toast({
+                                title: t('inventory.addedToInventory'),
+                                description: item.name,
+                              });
+                            }
+                          }}
+                          className="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center transition-all hover:bg-primary/10"
+                        >
+                        </button>
                       <div className="flex-1">
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-muted-foreground">

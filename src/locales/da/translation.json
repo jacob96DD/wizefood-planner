@@ -346,6 +346,7 @@
     "discover": "Opdag",
     "mealPlan": "Madplan",
     "shopping": "Indkøb",
+    "inventory": "Lager",
     "profile": "Profil"
   },
   "language": {
@@ -357,5 +358,28 @@
     "title": "Vælg butikker",
     "description": "Vælg hvilke butikker du typisk handler i, så vi kan vise dig de bedste tilbud.",
     "noStores": "Ingen butikker fundet"
+  },
+  "inventory": {
+    "title": "Mit lager",
+    "add": "Tilføj",
+    "addItem": "Tilføj vare",
+    "addFirst": "Tilføj din første vare",
+    "ingredientName": "Ingrediens",
+    "ingredientPlaceholder": "f.eks. mælk, æg, ris...",
+    "quantity": "Mængde",
+    "unit": "Enhed",
+    "category": "Kategori",
+    "expiresAt": "Udløbsdato",
+    "categories": {
+      "fridge": "Køleskab",
+      "freezer": "Fryser",
+      "pantry": "Skab"
+    },
+    "empty": "Dit lager er tomt",
+    "emptyDescription": "Tilføj varer du har derhjemme, så vi kan foreslå opskrifter baseret på dem.",
+    "expiringWarning": "{{count}} varer udløber snart",
+    "markUsed": "Marker som brugt",
+    "addToInventory": "Tilføj til lager?",
+    "addedToInventory": "Tilføjet til lager"
   }
 }
