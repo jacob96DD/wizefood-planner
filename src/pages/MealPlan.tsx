@@ -8,16 +8,34 @@ import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { useMealPlans, type MealPlanDay } from '@/hooks/useMealPlans';
 import { useGenerateMealPlan } from '@/hooks/useGenerateMealPlan';
+import { MealPlanConfigDialog } from '@/components/MealPlanConfigDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function MealPlan() {
   const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(0);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { currentPlan, loading, fetchMealPlans } = useMealPlans();
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
 
+  // Fetch profile for macro display
+  useState(() => {
+    if (user?.id) {
+      supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data }) => {
+        if (data) setProfile(data);
+      });
+    }
+  });
+
+  const handleOpenConfig = () => setConfigOpen(true);
+
   const handleGenerate = async () => {
+    setConfigOpen(false);
     const result = await generateMealPlan({ duration_days: 7 });
     if (result) {
       await fetchMealPlans();
@@ -76,7 +94,7 @@ export default function MealPlan() {
               variant="ghost" 
               size="sm" 
               className="text-primary"
-              onClick={handleGenerate}
+              onClick={handleOpenConfig}
               disabled={generating}
             >
               {generating ? (
@@ -124,7 +142,7 @@ export default function MealPlan() {
             <div className="text-6xl mb-4">📋</div>
             <h2 className="text-xl font-bold mb-2">{t('mealPlan.noPlansYet')}</h2>
             <p className="text-muted-foreground mb-6">{t('mealPlan.generateFirst')}</p>
-            <Button variant="hero" onClick={handleGenerate} disabled={generating}>
+            <Button variant="hero" onClick={handleOpenConfig} disabled={generating}>
               {generating ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               ) : (

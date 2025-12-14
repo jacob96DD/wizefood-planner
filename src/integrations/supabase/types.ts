@@ -149,6 +149,60 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_plan_preferences: {
+        Row: {
+          cooking_style: string | null
+          created_at: string | null
+          exceptions: Json | null
+          extra_calories: Json | null
+          fixed_meals: Json | null
+          generate_alternatives: number | null
+          id: string
+          meal_prep_time: number | null
+          skip_breakfast: boolean | null
+          skip_dinner: boolean | null
+          skip_lunch: boolean | null
+          updated_at: string | null
+          user_id: string
+          weekday_max_cook_time: number | null
+          weekend_max_cook_time: number | null
+        }
+        Insert: {
+          cooking_style?: string | null
+          created_at?: string | null
+          exceptions?: Json | null
+          extra_calories?: Json | null
+          fixed_meals?: Json | null
+          generate_alternatives?: number | null
+          id?: string
+          meal_prep_time?: number | null
+          skip_breakfast?: boolean | null
+          skip_dinner?: boolean | null
+          skip_lunch?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          weekday_max_cook_time?: number | null
+          weekend_max_cook_time?: number | null
+        }
+        Update: {
+          cooking_style?: string | null
+          created_at?: string | null
+          exceptions?: Json | null
+          extra_calories?: Json | null
+          fixed_meals?: Json | null
+          generate_alternatives?: number | null
+          id?: string
+          meal_prep_time?: number | null
+          skip_breakfast?: boolean | null
+          skip_dinner?: boolean | null
+          skip_lunch?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          weekday_max_cook_time?: number | null
+          weekend_max_cook_time?: number | null
+        }
+        Relationships: []
+      }
       meal_plans: {
         Row: {
           created_at: string | null
