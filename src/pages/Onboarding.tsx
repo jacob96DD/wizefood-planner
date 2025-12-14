@@ -1055,8 +1055,8 @@ export default function Onboarding() {
                     <Card
                       key={chain.id}
                       className={cn(
-                        "p-4 flex items-center justify-between cursor-pointer transition-all",
-                        isSelected ? "border-primary bg-primary/5" : "hover:border-primary/50"
+                        "p-4 flex items-center justify-between cursor-pointer",
+                        isSelected && "border-primary bg-primary/5"
                       )}
                       onClick={() => toggleStoreChain(chain.id)}
                     >
