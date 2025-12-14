@@ -19,6 +19,18 @@ interface ImageResult {
   error?: string;
 }
 
+// Helper to convert base64 data URL to Uint8Array
+function base64ToUint8Array(base64: string): Uint8Array {
+  // Remove the data URL prefix if present
+  const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -36,12 +48,18 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    
+    // Create client for user auth check
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Create admin client for storage operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
@@ -53,6 +71,18 @@ serve(async (req) => {
     }
 
     console.log(`Generating images for ${recipes.length} recipes in parallel...`);
+
+    // Ensure meal-images bucket exists
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    const bucketExists = buckets?.some(b => b.name === 'meal-images');
+    
+    if (!bucketExists) {
+      console.log('Creating meal-images bucket...');
+      await supabaseAdmin.storage.createBucket('meal-images', { 
+        public: true,
+        fileSizeLimit: 5242880 // 5MB
+      });
+    }
 
     // Generate images for ALL recipes in parallel using Nano Banana
     const imagePromises = recipes.map(async (recipe): Promise<ImageResult> => {
@@ -111,15 +141,44 @@ The image should look like a professional food magazine photo.`;
         }
 
         const data = await response.json();
-        const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        const base64ImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-        if (!imageUrl) {
+        if (!base64ImageUrl) {
           console.error(`No image returned for ${recipe.title}`);
           return { id: recipe.id, image_url: null, error: 'No image in response' };
         }
 
-        console.log(`Successfully generated image for: ${recipe.title}`);
-        return { id: recipe.id, image_url: imageUrl };
+        // Upload to Supabase Storage
+        try {
+          const fileName = `${user.id}/${recipe.id}-${Date.now()}.png`;
+          const imageBytes = base64ToUint8Array(base64ImageUrl);
+          
+          const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from('meal-images')
+            .upload(fileName, imageBytes, {
+              contentType: 'image/png',
+              upsert: true,
+            });
+
+          if (uploadError) {
+            console.error(`Upload failed for ${recipe.title}:`, uploadError);
+            // Return base64 as fallback
+            return { id: recipe.id, image_url: base64ImageUrl };
+          }
+
+          // Get public URL
+          const { data: publicUrlData } = supabaseAdmin.storage
+            .from('meal-images')
+            .getPublicUrl(fileName);
+
+          console.log(`Successfully uploaded image for: ${recipe.title}`);
+          return { id: recipe.id, image_url: publicUrlData.publicUrl };
+
+        } catch (uploadErr) {
+          console.error(`Upload error for ${recipe.title}:`, uploadErr);
+          // Return base64 as fallback
+          return { id: recipe.id, image_url: base64ImageUrl };
+        }
 
       } catch (error) {
         console.error(`Error generating image for ${recipe.title}:`, error);
