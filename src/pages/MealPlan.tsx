@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart } from 'lucide-react';
@@ -6,17 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuthStore } from '@/stores/authStore';
-import type { Recipe } from '@/lib/supabase';
+import { useMealPlans, type MealPlanDay } from '@/hooks/useMealPlans';
 
 export default function MealPlan() {
   const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(0);
-  const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([]);
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { currentPlan, loading } = useMealPlans();
 
   const weekDays = [
     t('mealPlan.days.mon'),
@@ -28,59 +25,37 @@ export default function MealPlan() {
     t('mealPlan.days.sun'),
   ];
 
-  useEffect(() => {
-    if (user) {
-      fetchLikedRecipes();
-    }
-  }, [user]);
-
-  const fetchLikedRecipes = async () => {
-    if (!user) return;
-
-    const { data: swipes } = await supabase
-      .from('swipes')
-      .select('recipe_id')
-      .eq('user_id', user.id)
-      .in('direction', ['right', 'up']);
-
-    if (swipes && swipes.length > 0) {
-      const recipeIds = swipes.map(s => s.recipe_id);
-      const { data: recipes } = await supabase
-        .from('recipes')
-        .select('*')
-        .in('id', recipeIds);
-
-      if (recipes) {
-        setLikedRecipes(recipes.map(r => ({
-          ...r,
-          ingredients: r.ingredients as Recipe['ingredients'],
-          instructions: r.instructions as Recipe['instructions'],
-        })));
-      }
-    }
-  };
-
-  // Generate mock meal plan from liked recipes
-  const generateMealPlan = () => {
-    return weekDays.map((_, index) => ({
-      breakfast: likedRecipes[index % likedRecipes.length] || null,
-      lunch: likedRecipes[(index + 1) % likedRecipes.length] || null,
-      dinner: likedRecipes[(index + 2) % likedRecipes.length] || null,
-    }));
-  };
-
-  const mealPlan = likedRecipes.length > 0 ? generateMealPlan() : [];
-  const selectedMeals = mealPlan[selectedDay] || { breakfast: null, lunch: null, dinner: null };
-
-  const totalCalories = [selectedMeals.breakfast, selectedMeals.lunch, selectedMeals.dinner]
-    .filter(Boolean)
-    .reduce((sum, meal) => sum + (meal?.calories || 0), 0);
-
   const getWeekLabel = () => {
     if (currentWeek === 0) return t('mealPlan.thisWeek');
     if (currentWeek > 0) return t('mealPlan.nextWeek');
     return t('mealPlan.lastWeek');
   };
+
+  // Hent måltider for valgt dag fra aktuel plan
+  const meals = currentPlan?.meals || [];
+  const selectedMeals: MealPlanDay | null = meals[selectedDay] || null;
+
+  const totalCalories = selectedMeals
+    ? [selectedMeals.breakfast, selectedMeals.lunch, selectedMeals.dinner]
+        .filter(Boolean)
+        .reduce((sum, meal) => sum + (meal?.calories || 0), 0)
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
+          <div className="px-4 py-3">
+            <h1 className="text-xl font-bold">{t('mealPlan.title')}</h1>
+          </div>
+        </header>
+        <main className="px-4 pt-6 flex justify-center">
+          <div className="animate-pulse text-muted-foreground">Indlæser...</div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -125,12 +100,15 @@ export default function MealPlan() {
       </header>
 
       <main className="px-4 pt-6">
-        {likedRecipes.length === 0 ? (
+        {!currentPlan ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
             <div className="text-6xl mb-4">📋</div>
-            <h2 className="text-xl font-bold mb-2">{t('mealPlan.noRecipesYet')}</h2>
-            <p className="text-muted-foreground mb-6">{t('mealPlan.swipeToAdd')}</p>
-            <Button variant="hero" onClick={() => navigate('/home')}>{t('mealPlan.findRecipes')}</Button>
+            <h2 className="text-xl font-bold mb-2">{t('mealPlan.noPlansYet')}</h2>
+            <p className="text-muted-foreground mb-6">{t('mealPlan.generateFirst')}</p>
+            <Button variant="hero" onClick={() => navigate('/home')}>
+              <Sparkles className="w-5 h-5 mr-2" />
+              {t('mealPlan.generate')}
+            </Button>
           </div>
         ) : (
           <>
@@ -141,25 +119,33 @@ export default function MealPlan() {
                     <p className="text-sm text-muted-foreground">{t('mealPlan.todaysCalories')}</p>
                     <p className="text-2xl font-bold">{totalCalories} {t('common.kcal')}</p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant="secondary" className="mb-1">{t('mealPlan.saveFromOffers', { amount: 45 })}</Badge>
-                    <p className="text-xs text-muted-foreground">{t('mealPlan.fromOffers')}</p>
-                  </div>
+                  {currentPlan.total_savings && currentPlan.total_savings > 0 && (
+                    <div className="text-right">
+                      <Badge variant="secondary" className="mb-1">
+                        {t('mealPlan.saveFromOffers', { amount: currentPlan.total_savings })}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">{t('mealPlan.fromOffers')}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             <div className="space-y-4">
               {[
-                { time: t('mealPlan.meals.breakfast'), meal: selectedMeals.breakfast, icon: '🌅' },
-                { time: t('mealPlan.meals.lunch'), meal: selectedMeals.lunch, icon: '☀️' },
-                { time: t('mealPlan.meals.dinner'), meal: selectedMeals.dinner, icon: '🌙' },
+                { time: t('mealPlan.meals.breakfast'), meal: selectedMeals?.breakfast, icon: '🌅' },
+                { time: t('mealPlan.meals.lunch'), meal: selectedMeals?.lunch, icon: '☀️' },
+                { time: t('mealPlan.meals.dinner'), meal: selectedMeals?.dinner, icon: '🌙' },
               ].map(({ time, meal, icon }) => (
                 <Card key={time} className="overflow-hidden">
                   <CardContent className="p-0">
                     {meal ? (
                       <div className="flex">
-                        <img src={meal.image_url || ''} alt={meal.title} className="w-24 h-24 object-cover" />
+                        <img 
+                          src={meal.imageUrl || '/placeholder.svg'} 
+                          alt={meal.title} 
+                          className="w-24 h-24 object-cover" 
+                        />
                         <div className="flex-1 p-3">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <span>{icon}</span>
@@ -167,7 +153,7 @@ export default function MealPlan() {
                           </div>
                           <h3 className="font-semibold line-clamp-1">{meal.title}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {meal.calories} {t('common.kcal')} · {meal.prep_time}+ {t('common.minutes')}
+                            {meal.calories} {t('common.kcal')} · {meal.prepTime}+ {t('common.minutes')}
                           </p>
                         </div>
                       </div>

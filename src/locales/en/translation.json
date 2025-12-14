@@ -319,7 +319,9 @@
     "swipeToAdd": "Swipe on recipes to build your meal plan",
     "findRecipes": "Find recipes",
     "addRecipe": "Add recipe",
-    "generateShoppingList": "Generate shopping list"
+    "generateShoppingList": "Generate shopping list",
+    "noPlansYet": "No meal plans yet",
+    "generateFirst": "Create your first meal plan to get started"
   },
   "shopping": {
     "title": "Shopping List",
@@ -331,7 +333,10 @@
     "toBuy": "To buy",
     "bought": "Bought",
     "emptyList": "Shopping list is empty",
-    "generateFromPlan": "Generate a list from your meal plan"
+    "generateFromPlan": "Generate a list from your meal plan",
+    "shoppingDate": "Shopping day",
+    "goToMealPlan": "Go to meal plan",
+    "currentOffers": "Current offers"
   },
   "nav": {
     "discover": "Discover",
