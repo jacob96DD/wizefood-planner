@@ -243,6 +243,7 @@
     "none": "Ingen",
     "preferredStores": "Foretrukne butikker",
     "selectStores": "Vælg hvilke butikker du handler i",
+    "storesSelected": "{{count}} butikker valgt",
     "editProfile": "Rediger profil",
     "logout": "Log ud",
     "version": "WizeFood v1.0.0 · Demo tilstand",

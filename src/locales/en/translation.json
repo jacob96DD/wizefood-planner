@@ -243,6 +243,7 @@
     "none": "None",
     "preferredStores": "Preferred stores",
     "selectStores": "Choose which stores you shop at",
+    "storesSelected": "{{count}} stores selected",
     "editProfile": "Edit profile",
     "logout": "Log out",
     "version": "WizeFood v1.0.0 · Demo mode",
