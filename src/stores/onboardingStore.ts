@@ -10,29 +10,34 @@ interface HouseholdMember {
 }
 
 interface OnboardingData {
-  // Step 1: Personal info
+  // Step 1: Meal plan size
+  peopleCount: number;
+  
+  // Step 2: Personal info
   fullName: string;
   gender: string;
-  dateOfBirth: string;
+  birthDay: number | null;
+  birthMonth: number | null;
+  birthYear: number | null;
+  dateOfBirth: string; // Computed from day/month/year
   
-  // Step 2: Physical measurements
+  // Step 3: Physical measurements
   heightCm: number | null;
   weightKg: number | null;
   
-  // Step 3: Activity level
+  // Step 4: Activity level
   activityLevel: string;
   
-  // Step 4: Goals
-  dietaryGoal: string;
-  
-  // Step 5: Household size
-  peopleCount: number;
+  // Step 5: Goals (array for multi-select)
+  dietaryGoals: string[];
+  dietaryGoal: string; // Primary body goal for macro calculation
   
   // Step 6: Household members (other than primary user)
   householdMembers: HouseholdMember[];
   
   // Step 7: Allergens
   selectedAllergens: string[];
+  customAllergens: string;
 }
 
 interface OnboardingState {
@@ -48,16 +53,21 @@ interface OnboardingState {
 }
 
 const initialData: OnboardingData = {
+  peopleCount: 1,
   fullName: '',
   gender: '',
+  birthDay: null,
+  birthMonth: null,
+  birthYear: null,
   dateOfBirth: '',
   heightCm: null,
   weightKg: null,
   activityLevel: '',
+  dietaryGoals: [],
   dietaryGoal: '',
-  peopleCount: 1,
   householdMembers: [],
   selectedAllergens: [],
+  customAllergens: '',
 };
 
 const generateMemberId = () => Math.random().toString(36).substring(2, 9);

@@ -72,6 +72,23 @@
     "enterName": "Indtast dit navn",
     "gender": "Køn",
     "birthDate": "Fødselsdato",
+    "birthDateDay": "Dag",
+    "birthDateMonth": "Måned",
+    "birthDateYear": "År",
+    "months": {
+      "january": "Januar",
+      "february": "Februar",
+      "march": "Marts",
+      "april": "April",
+      "may": "Maj",
+      "june": "Juni",
+      "july": "Juli",
+      "august": "August",
+      "september": "September",
+      "october": "Oktober",
+      "november": "November",
+      "december": "December"
+    },
     "genders": {
       "male": "Mand",
       "female": "Kvinde",
@@ -112,8 +129,10 @@
       }
     },
     "goal": {
-      "title": "Dit mål",
-      "subtitle": "Hvad vil du gerne opnå?"
+      "title": "Dine mål",
+      "subtitle": "Hvad vil du gerne opnå? Vælg mindst ét kropsmål",
+      "bodyGoalsLabel": "Kropsmål (vælg ét)",
+      "lifestyleGoalsLabel": "Livsstilsmål (valgfrit)"
     },
     "goals": {
       "lose": {
@@ -159,7 +178,10 @@
     "allergies": {
       "title": "Allergier og intoleranser",
       "subtitle": "Vælg de fødevarer du skal undgå",
-      "skipNote": "Du kan springe dette trin over hvis du ikke har allergier"
+      "skipNote": "Du kan springe dette trin over hvis du ikke har allergier",
+      "customLabel": "Andet (skriv selv)",
+      "customPlaceholder": "f.eks. sesam, sennep...",
+      "customHint": "Skriv andre allergier eller intoleranser adskilt med komma"
     },
     "allergens": {
       "gluten": "Gluten",

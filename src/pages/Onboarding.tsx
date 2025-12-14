@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOnboardingStore, HouseholdMember } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,10 +26,15 @@ const activityLevels = [
   { value: 'athlete', icon: '🏆' },
 ];
 
-const dietaryGoals = [
+// Body goals are mutually exclusive
+const bodyGoals = [
   { value: 'lose', icon: '📉' },
   { value: 'maintain', icon: '⚖️' },
   { value: 'gain', icon: '📈' },
+];
+
+// Lifestyle goals can be combined with body goals
+const lifestyleGoals = [
   { value: 'save_money', icon: '💰' },
   { value: 'save_time', icon: '⏰' },
 ];
@@ -110,20 +116,83 @@ function calculateMemberMacros(member: HouseholdMember, goal: string) {
   );
 }
 
+// Generate days array for dropdown
+const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+// Generate years array (from current year - 100 to current year - 10)
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 91 }, (_, i) => currentYear - 10 - i);
+
 const TOTAL_STEPS = 6;
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentStep, data, nextStep, prevStep, updateData, updateHouseholdMember, initializeHouseholdMembers, reset, setStep } = useOnboardingStore();
   const { user, setIsOnboarded, setProfile } = useAuthStore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
+  // Month names for dropdown
+  const months = [
+    { value: 1, label: t('onboarding.months.january') },
+    { value: 2, label: t('onboarding.months.february') },
+    { value: 3, label: t('onboarding.months.march') },
+    { value: 4, label: t('onboarding.months.april') },
+    { value: 5, label: t('onboarding.months.may') },
+    { value: 6, label: t('onboarding.months.june') },
+    { value: 7, label: t('onboarding.months.july') },
+    { value: 8, label: t('onboarding.months.august') },
+    { value: 9, label: t('onboarding.months.september') },
+    { value: 10, label: t('onboarding.months.october') },
+    { value: 11, label: t('onboarding.months.november') },
+    { value: 12, label: t('onboarding.months.december') },
+  ];
+
+  // Get days in selected month
+  const getDaysInMonth = (month: number | null, year: number | null) => {
+    if (!month || !year) return 31;
+    return new Date(year, month, 0).getDate();
+  };
+
+  const maxDays = getDaysInMonth(data.birthMonth, data.birthYear);
+
+  // Update dateOfBirth when day/month/year changes
+  useEffect(() => {
+    if (data.birthDay && data.birthMonth && data.birthYear) {
+      const formattedMonth = data.birthMonth.toString().padStart(2, '0');
+      const formattedDay = data.birthDay.toString().padStart(2, '0');
+      const dateString = `${data.birthYear}-${formattedMonth}-${formattedDay}`;
+      updateData({ dateOfBirth: dateString });
+    }
+  }, [data.birthDay, data.birthMonth, data.birthYear, updateData]);
+
   // Initialize household members when peopleCount changes (for future use)
   useEffect(() => {
     initializeHouseholdMembers(data.peopleCount);
   }, [data.peopleCount, initializeHouseholdMembers]);
+
+  // Handle goal selection with mutual exclusivity for body goals
+  const handleGoalClick = (goalValue: string, isBodyGoal: boolean) => {
+    let newGoals = [...data.dietaryGoals];
+    
+    if (isBodyGoal) {
+      // Remove any existing body goals
+      newGoals = newGoals.filter(g => !bodyGoals.some(bg => bg.value === g));
+      // Add the new body goal
+      newGoals.push(goalValue);
+      // Update primary body goal for macro calculation
+      updateData({ dietaryGoals: newGoals, dietaryGoal: goalValue });
+    } else {
+      // Toggle lifestyle goal
+      if (newGoals.includes(goalValue)) {
+        newGoals = newGoals.filter(g => g !== goalValue);
+      } else {
+        newGoals.push(goalValue);
+      }
+      updateData({ dietaryGoals: newGoals });
+    }
+  };
 
   const handleComplete = async () => {
     if (!user) {
@@ -148,6 +217,9 @@ export default function Onboarding() {
         age--;
       }
 
+      // Use primary body goal for macro calculation
+      const primaryGoal = data.dietaryGoal || 'maintain';
+
       // Calculate macros for primary user
       const macros = calculateMacros(
         data.weightKg!,
@@ -155,7 +227,7 @@ export default function Onboarding() {
         age,
         data.gender,
         data.activityLevel,
-        data.dietaryGoal
+        primaryGoal
       );
 
       // Calculate combined macros for household
@@ -166,7 +238,7 @@ export default function Onboarding() {
 
       // Add household member macros
       for (const member of data.householdMembers) {
-        const memberMacros = calculateMemberMacros(member, data.dietaryGoal);
+        const memberMacros = calculateMemberMacros(member, primaryGoal);
         if (memberMacros) {
           totalCalories += memberMacros.dailyCalories;
           totalProtein += memberMacros.dailyProtein;
@@ -175,7 +247,7 @@ export default function Onboarding() {
         }
       }
 
-      // Update profile in Supabase
+      // Update profile in Supabase - store all selected goals as JSON array string
       const profileData = {
         id: user.id,
         full_name: data.fullName,
@@ -185,7 +257,7 @@ export default function Onboarding() {
         weight_kg: data.weightKg,
         age_years: age,
         activity_level: data.activityLevel,
-        dietary_goal: data.dietaryGoal,
+        dietary_goal: primaryGoal, // Keep primary goal for backwards compatibility
         budget_per_week: null,
         people_count: data.peopleCount,
         daily_calories: totalCalories,
@@ -213,7 +285,7 @@ export default function Onboarding() {
 
         // Insert new household members
         const membersToInsert = data.householdMembers.map((member) => {
-          const memberMacros = calculateMemberMacros(member, data.dietaryGoal);
+          const memberMacros = calculateMemberMacros(member, primaryGoal);
           return {
             user_id: user.id,
             name: member.name || `Person ${data.householdMembers.indexOf(member) + 2}`,
@@ -320,23 +392,24 @@ export default function Onboarding() {
 
   // New step order:
   // 1: Meal plan size (fixed to 1)
-  // 2: Personal info (name, gender, birth date)
+  // 2: Personal info (name, gender, birth date with dropdowns)
   // 3: Physical measurements (height, weight)
   // 4: Activity level
-  // 5: Goals
-  // 6: Allergies
+  // 5: Goals (multi-select with rules)
+  // 6: Allergies (with custom input)
   const canProceed = () => {
     switch (currentStep) {
       case 1:
         return data.peopleCount > 0;
       case 2:
-        return data.fullName && data.gender && data.dateOfBirth;
+        return data.fullName && data.gender && data.birthDay && data.birthMonth && data.birthYear;
       case 3:
         return data.heightCm && data.weightKg;
       case 4:
         return data.activityLevel;
       case 5:
-        return data.dietaryGoal;
+        // Must have at least one body goal selected
+        return data.dietaryGoals.some(g => bodyGoals.some(bg => bg.value === g));
       case 6:
         return true; // Allergens are optional
       default:
@@ -421,11 +494,58 @@ export default function Onboarding() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">{t('onboarding.birthDate')}</label>
-                <Input
-                  type="date"
-                  value={data.dateOfBirth}
-                  onChange={(e) => updateData({ dateOfBirth: e.target.value })}
-                />
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Day dropdown */}
+                  <Select
+                    value={data.birthDay?.toString() || ''}
+                    onValueChange={(value) => updateData({ birthDay: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('onboarding.birthDateDay')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border max-h-60">
+                      {days.filter(d => d <= maxDays).map((day) => (
+                        <SelectItem key={day} value={day.toString()}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Month dropdown */}
+                  <Select
+                    value={data.birthMonth?.toString() || ''}
+                    onValueChange={(value) => updateData({ birthMonth: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('onboarding.birthDateMonth')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border max-h-60">
+                      {months.map((month) => (
+                        <SelectItem key={month.value} value={month.value.toString()}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Year dropdown */}
+                  <Select
+                    value={data.birthYear?.toString() || ''}
+                    onValueChange={(value) => updateData({ birthYear: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('onboarding.birthDateYear')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border max-h-60">
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>
@@ -501,7 +621,7 @@ export default function Onboarding() {
         );
 
       case 5:
-        // Goals (Step 5)
+        // Goals (Step 5) - Multi-select with rules
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -510,33 +630,76 @@ export default function Onboarding() {
               <p className="text-muted-foreground">{t('onboarding.goal.subtitle')}</p>
             </div>
 
-            <div className="space-y-3">
-              {dietaryGoals.map((goal) => (
-                <button
-                  key={goal.value}
-                  onClick={() => updateData({ dietaryGoal: goal.value })}
-                  className={cn(
-                    "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
-                    data.dietaryGoal === goal.value
-                      ? "border-primary bg-secondary"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <span className="text-2xl">{goal.icon}</span>
-                  <div>
-                    <p className="font-medium">{t(`onboarding.goals.${goal.value}.label`)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {t(`onboarding.goals.${goal.value}.description`)}
-                    </p>
-                  </div>
-                </button>
-              ))}
+            {/* Body goals - mutually exclusive */}
+            <div>
+              <label className="text-sm font-medium mb-3 block text-muted-foreground">
+                {t('onboarding.goal.bodyGoalsLabel')}
+              </label>
+              <div className="space-y-3">
+                {bodyGoals.map((goal) => {
+                  const isSelected = data.dietaryGoals.includes(goal.value);
+                  return (
+                    <button
+                      key={goal.value}
+                      onClick={() => handleGoalClick(goal.value, true)}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
+                        isSelected
+                          ? "border-primary bg-secondary"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <span className="text-2xl">{goal.icon}</span>
+                      <div className="flex-1">
+                        <p className="font-medium">{t(`onboarding.goals.${goal.value}.label`)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t(`onboarding.goals.${goal.value}.description`)}
+                        </p>
+                      </div>
+                      {isSelected && <Check className="w-5 h-5 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Lifestyle goals - can be combined */}
+            <div>
+              <label className="text-sm font-medium mb-3 block text-muted-foreground">
+                {t('onboarding.goal.lifestyleGoalsLabel')}
+              </label>
+              <div className="space-y-3">
+                {lifestyleGoals.map((goal) => {
+                  const isSelected = data.dietaryGoals.includes(goal.value);
+                  return (
+                    <button
+                      key={goal.value}
+                      onClick={() => handleGoalClick(goal.value, false)}
+                      className={cn(
+                        "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
+                        isSelected
+                          ? "border-primary bg-secondary"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <span className="text-2xl">{goal.icon}</span>
+                      <div className="flex-1">
+                        <p className="font-medium">{t(`onboarding.goals.${goal.value}.label`)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t(`onboarding.goals.${goal.value}.description`)}
+                        </p>
+                      </div>
+                      {isSelected && <Check className="w-5 h-5 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
 
       case 6:
-        // Allergies (Step 6)
+        // Allergies (Step 6) - with custom input
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -575,6 +738,19 @@ export default function Onboarding() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Custom allergen input */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">{t('onboarding.allergies.customLabel')}</label>
+              <Input
+                placeholder={t('onboarding.allergies.customPlaceholder')}
+                value={data.customAllergens}
+                onChange={(e) => updateData({ customAllergens: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('onboarding.allergies.customHint')}
+              </p>
             </div>
 
             <p className="text-sm text-muted-foreground text-center">
