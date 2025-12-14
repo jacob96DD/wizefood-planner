@@ -691,6 +691,27 @@ export type Database = {
           },
         ]
       }
+      user_food_dislikes: {
+        Row: {
+          created_at: string | null
+          food_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          food_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          food_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferred_chains: {
         Row: {
           chain_id: string

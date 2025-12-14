@@ -198,7 +198,30 @@
     "profileSaved": "Profile saved!",
     "profileSavedDesc": "Your profile is now created. Let's find some recipes!",
     "mustBeLoggedIn": "You must be logged in to continue.",
-    "errorSaving": "An error occurred while saving your profile. Please try again."
+    "errorSaving": "An error occurred while saving your profile. Please try again.",
+    "skipStep": "Skip",
+    "dislikes": {
+      "title": "Foods you dislike",
+      "subtitle": "Which foods would you prefer to avoid? (not allergies)",
+      "customLabel": "Other foods you dislike",
+      "customPlaceholder": "e.g. anchovies, liver pâté...",
+      "skipNote": "The AI will avoid these ingredients in your meal plans",
+      "risalamande": "Rice pudding",
+      "leverpostej": "Liver pâté",
+      "fisk": "Fish in general",
+      "indmad": "Organ meat",
+      "svampe": "Mushrooms",
+      "oliven": "Olives",
+      "blodpudding": "Blood sausage",
+      "ost": "Strong cheese",
+      "skaldyr": "Shellfish",
+      "spidskommen": "Cumin",
+      "koriander": "Coriander/Cilantro",
+      "aubergine": "Eggplant",
+      "rosenkaal": "Brussels sprouts",
+      "ananas": "Pineapple on pizza",
+      "lever": "Liver"
+    }
   },
   "home": {
     "swipe": {
