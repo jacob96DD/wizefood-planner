@@ -15,6 +15,7 @@ import ShoppingList from "./pages/ShoppingList";
 import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import StorePreferences from "./pages/StorePreferences";
+import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/stores" element={<StorePreferences />} />
+            <Route path="/inventory" element={<Inventory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Home, CalendarDays, ShoppingCart, User } from 'lucide-react';
+import { Home, CalendarDays, ShoppingCart, Package, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 
 export function BottomNavigation() {
@@ -9,6 +9,7 @@ export function BottomNavigation() {
     { to: '/home', icon: Home, labelKey: 'nav.discover' },
     { to: '/meal-plan', icon: CalendarDays, labelKey: 'nav.mealPlan' },
     { to: '/shopping-list', icon: ShoppingCart, labelKey: 'nav.shopping' },
+    { to: '/inventory', icon: Package, labelKey: 'nav.inventory' },
     { to: '/profile', icon: User, labelKey: 'nav.profile' },
   ];
 

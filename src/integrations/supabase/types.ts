@@ -35,6 +35,48 @@ export type Database = {
         }
         Relationships: []
       }
+      household_inventory: {
+        Row: {
+          added_at: string | null
+          category: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          ingredient_name: string
+          is_depleted: boolean | null
+          quantity: number | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          category?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ingredient_name: string
+          is_depleted?: boolean | null
+          quantity?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          category?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ingredient_name?: string
+          is_depleted?: boolean | null
+          quantity?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       household_members: {
         Row: {
           age_years: number | null

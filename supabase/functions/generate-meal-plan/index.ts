@@ -67,6 +67,20 @@ serve(async (req) => {
     const chainIds = preferredChains?.map((pc: any) => pc.chain_id) || [];
     const chainNames = preferredChains?.map((pc: any) => pc.store_chains?.name).filter(Boolean) || [];
 
+    // Hent brugerens nuværende lager
+    const { data: inventory } = await supabase
+      .from('household_inventory')
+      .select('ingredient_name, quantity, unit, category, expires_at')
+      .eq('user_id', user.id)
+      .eq('is_depleted', false);
+
+    const inventoryItems = (inventory || []).map((item: any) => {
+      const expiry = item.expires_at ? ` (udløber ${item.expires_at})` : '';
+      return `- ${item.ingredient_name}${item.quantity ? `: ${item.quantity} ${item.unit || ''}` : ''}${expiry}`;
+    }).join('\n');
+
+    console.log('User has', inventory?.length || 0, 'items in inventory');
+
     // Hent aktive tilbud fra foretrukne butikker
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + duration_days);
@@ -110,12 +124,13 @@ serve(async (req) => {
     const systemPrompt = `Du er en erfaren dansk madplanlægger og kok. Du laver sunde, budgetvenlige madplaner for danske familier.
 
 VIGTIGE REGLER:
-1. PRIORITER ALTID ingredienser der er på tilbud - det er hele pointen!
-2. Lav varierede retter - ikke den samme type mad hver dag
-3. Tænk på holdbarhed - brug friske varer først i ugen
-4. Giv realistiske portionsstørrelser
-5. Alle retter skal være nemme at lave på hverdage (max 45 min)
-6. Brug danske ingredienser og opskrifter
+1. PRIORITER ingredienser der er på tilbud - det er hele pointen!
+2. BRUG ingredienser fra brugerens lager først - undgå at foreslå køb af ting de allerede har
+3. Lav varierede retter - ikke den samme type mad hver dag
+4. Tænk på holdbarhed - brug friske varer først i ugen, og ingredienser der snart udløber
+5. Giv realistiske portionsstørrelser
+6. Alle retter skal være nemme at lave på hverdage (max 45 min)
+7. Brug danske ingredienser og opskrifter
 
 OUTPUT FORMAT:
 Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
@@ -161,10 +176,13 @@ BRUGERINFO:
 AKTUELLE TILBUD (BRUG DISSE!):
 ${formattedOffers || 'Ingen tilbud fundet'}
 
+BRUGERENS NUVÆRENDE LAGER (BRUG DISSE FØRST!):
+${inventoryItems || 'Ingen varer i lageret'}
+
 EKSEMPLER PÅ GODE OPSKRIFTER:
 ${recipeExamples || 'Ingen eksempler'}
 
-Lav madplanen nu. Husk at bruge tilbuddene aktivt og beregn besparelser!`;
+Lav madplanen nu. Husk at bruge ingredienser fra lageret og tilbuddene aktivt, og beregn besparelser!`;
 
     console.log('Generating meal plan with', offers?.length || 0, 'offers');
 
