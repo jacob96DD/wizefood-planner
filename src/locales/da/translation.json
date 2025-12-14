@@ -294,6 +294,10 @@
   "mealPlan": {
     "title": "Din Madplan",
     "generate": "Generer",
+    "generating": "Genererer...",
+    "generated": "Madplan genereret!",
+    "generatedDescription": "Din nye madplan er klar med de bedste tilbud.",
+    "error": "Fejl",
     "thisWeek": "Denne uge",
     "nextWeek": "Næste uge",
     "lastWeek": "Sidste uge",

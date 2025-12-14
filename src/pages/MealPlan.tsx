@@ -1,19 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { useMealPlans, type MealPlanDay } from '@/hooks/useMealPlans';
+import { useGenerateMealPlan } from '@/hooks/useGenerateMealPlan';
 
 export default function MealPlan() {
   const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(0);
   const navigate = useNavigate();
-  const { currentPlan, loading } = useMealPlans();
+  const { currentPlan, loading, fetchMealPlans } = useMealPlans();
+  const { generateMealPlan, loading: generating } = useGenerateMealPlan();
+
+  const handleGenerate = async () => {
+    const result = await generateMealPlan({ duration_days: 7 });
+    if (result) {
+      await fetchMealPlans();
+    }
+  };
 
   const weekDays = [
     t('mealPlan.days.mon'),
@@ -63,9 +72,19 @@ export default function MealPlan() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold">{t('mealPlan.title')}</h1>
-            <Button variant="ghost" size="sm" className="text-primary">
-              <Sparkles className="w-4 h-4 mr-1.5" />
-              {t('mealPlan.generate')}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-primary"
+              onClick={handleGenerate}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-1.5" />
+              )}
+              {generating ? t('mealPlan.generating', 'Genererer...') : t('mealPlan.generate')}
             </Button>
           </div>
 
@@ -105,9 +124,13 @@ export default function MealPlan() {
             <div className="text-6xl mb-4">📋</div>
             <h2 className="text-xl font-bold mb-2">{t('mealPlan.noPlansYet')}</h2>
             <p className="text-muted-foreground mb-6">{t('mealPlan.generateFirst')}</p>
-            <Button variant="hero" onClick={() => navigate('/home')}>
-              <Sparkles className="w-5 h-5 mr-2" />
-              {t('mealPlan.generate')}
+            <Button variant="hero" onClick={handleGenerate} disabled={generating}>
+              {generating ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-5 h-5 mr-2" />
+              )}
+              {generating ? t('mealPlan.generating', 'Genererer...') : t('mealPlan.generate')}
             </Button>
           </div>
         ) : (

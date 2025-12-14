@@ -433,6 +433,54 @@ export type Database = {
           },
         ]
       }
+      shopping_trips: {
+        Row: {
+          created_at: string
+          estimated_savings: number | null
+          id: string
+          is_completed: boolean | null
+          items: Json
+          planned_date: string
+          shopping_list_id: string | null
+          store_chain_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimated_savings?: number | null
+          id?: string
+          is_completed?: boolean | null
+          items?: Json
+          planned_date: string
+          shopping_list_id?: string | null
+          store_chain_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimated_savings?: number | null
+          id?: string
+          is_completed?: boolean | null
+          items?: Json
+          planned_date?: string
+          shopping_list_id?: string | null
+          store_chain_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_trips_shopping_list_id_fkey"
+            columns: ["shopping_list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_trips_store_chain_id_fkey"
+            columns: ["store_chain_id"]
+            isOneToOne: false
+            referencedRelation: "store_chains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_chains: {
         Row: {
           created_at: string
@@ -609,6 +657,39 @@ export type Database = {
           user_id?: string
           waist_cm?: number | null
           weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      user_shopping_settings: {
+        Row: {
+          created_at: string
+          id: string
+          max_stores_per_week: number | null
+          min_savings_per_store: number | null
+          prefer_single_store: boolean | null
+          preferred_shopping_days: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_stores_per_week?: number | null
+          min_savings_per_store?: number | null
+          prefer_single_store?: boolean | null
+          preferred_shopping_days?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_stores_per_week?: number | null
+          min_savings_per_store?: number | null
+          prefer_single_store?: boolean | null
+          preferred_shopping_days?: string[] | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

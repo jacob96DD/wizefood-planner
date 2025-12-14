@@ -294,6 +294,10 @@
   "mealPlan": {
     "title": "Your Meal Plan",
     "generate": "Generate",
+    "generating": "Generating...",
+    "generated": "Meal plan generated!",
+    "generatedDescription": "Your new meal plan is ready with the best offers.",
+    "error": "Error",
     "thisWeek": "This week",
     "nextWeek": "Next week",
     "lastWeek": "Last week",
