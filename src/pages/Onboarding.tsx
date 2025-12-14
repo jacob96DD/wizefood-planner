@@ -29,6 +29,8 @@ const dietaryGoals = [
   { value: 'lose', icon: '📉' },
   { value: 'maintain', icon: '⚖️' },
   { value: 'gain', icon: '📈' },
+  { value: 'save_money', icon: '💰' },
+  { value: 'save_time', icon: '⏰' },
 ];
 
 const allergensList = [
@@ -70,7 +72,7 @@ function calculateMacros(
 
   const tdee = bmr * (activityMultipliers[activityLevel] || 1.55);
 
-  // Goal adjustment
+  // Goal adjustment - save_money and save_time use maintain calories
   let calories: number;
   if (goal === 'lose') {
     calories = tdee - 500;
@@ -108,22 +110,20 @@ function calculateMemberMacros(member: HouseholdMember, goal: string) {
   );
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 6;
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { currentStep, data, nextStep, prevStep, updateData, updateHouseholdMember, initializeHouseholdMembers, reset } = useOnboardingStore();
+  const { currentStep, data, nextStep, prevStep, updateData, updateHouseholdMember, initializeHouseholdMembers, reset, setStep } = useOnboardingStore();
   const { user, setIsOnboarded, setProfile } = useAuthStore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize household members when peopleCount changes
+  // Initialize household members when peopleCount changes (for future use)
   useEffect(() => {
-    if (currentStep === 5) {
-      initializeHouseholdMembers(data.peopleCount);
-    }
-  }, [data.peopleCount, currentStep, initializeHouseholdMembers]);
+    initializeHouseholdMembers(data.peopleCount);
+  }, [data.peopleCount, initializeHouseholdMembers]);
 
   const handleComplete = async () => {
     if (!user) {
@@ -318,53 +318,66 @@ export default function Onboarding() {
     }
   };
 
+  // New step order:
+  // 1: Meal plan size (fixed to 1)
+  // 2: Personal info (name, gender, birth date)
+  // 3: Physical measurements (height, weight)
+  // 4: Activity level
+  // 5: Goals
+  // 6: Allergies
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return data.fullName && data.gender && data.dateOfBirth;
-      case 2:
-        return data.heightCm && data.weightKg;
-      case 3:
-        return data.activityLevel;
-      case 4:
-        return data.dietaryGoal;
-      case 5:
         return data.peopleCount > 0;
+      case 2:
+        return data.fullName && data.gender && data.dateOfBirth;
+      case 3:
+        return data.heightCm && data.weightKg;
+      case 4:
+        return data.activityLevel;
+      case 5:
+        return data.dietaryGoal;
       case 6:
-        // Household members step - only show if peopleCount > 1
-        if (data.peopleCount <= 1) return true;
-        // All members must have at least age filled in
-        return data.householdMembers.every(m => m.ageYears !== null && m.ageYears > 0);
-      case 7:
         return true; // Allergens are optional
       default:
         return false;
     }
   };
 
-  const shouldShowMembersStep = data.peopleCount > 1;
-
   const handleNext = () => {
-    if (currentStep === 5 && !shouldShowMembersStep) {
-      // Skip members step if only 1 person
-      useOnboardingStore.getState().setStep(7);
-    } else {
-      nextStep();
-    }
+    nextStep();
   };
 
   const handlePrev = () => {
-    if (currentStep === 7 && !shouldShowMembersStep) {
-      // Skip members step going back if only 1 person
-      useOnboardingStore.getState().setStep(5);
-    } else {
-      prevStep();
-    }
+    prevStep();
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
+        // Meal plan size (Step 1)
+        return (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center mb-8">
+              <span className="text-5xl mb-4 block">🍽️</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.mealPlanSize.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.mealPlanSize.subtitle')}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-3 block">{t('onboarding.mealPlanSize.label')}</label>
+              <div className="flex items-center justify-center">
+                <span className="text-6xl font-bold text-primary">1</span>
+              </div>
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                {t('onboarding.mealPlanSize.comingSoon')}
+              </p>
+            </div>
+          </div>
+        );
+
+      case 2:
+        // Personal info (Step 2)
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -418,7 +431,8 @@ export default function Onboarding() {
           </div>
         );
 
-      case 2:
+      case 3:
+        // Physical measurements (Step 3)
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -451,7 +465,8 @@ export default function Onboarding() {
           </div>
         );
 
-      case 3:
+      case 4:
+        // Activity level (Step 4)
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -485,7 +500,8 @@ export default function Onboarding() {
           </div>
         );
 
-      case 4:
+      case 5:
+        // Goals (Step 5)
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -519,114 +535,8 @@ export default function Onboarding() {
           </div>
         );
 
-      case 5:
-        return (
-          <div className="space-y-6 animate-fade-in">
-            <div className="text-center mb-8">
-              <span className="text-5xl mb-4 block">👨‍👩‍👧‍👦</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.household.title')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.household.subtitle')}</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-3 block">{t('onboarding.householdSize')}</label>
-              <div className="flex items-center justify-center">
-                <span className="text-6xl font-bold text-primary">1</span>
-              </div>
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                {t('onboarding.household.comingSoon')}
-              </p>
-            </div>
-          </div>
-        );
-
       case 6:
-        // Household members step
-        return (
-          <div className="space-y-6 animate-fade-in">
-            <div className="text-center mb-6">
-              <span className="text-5xl mb-4 block">👥</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.householdMembers.title')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.householdMembers.subtitle')}</p>
-            </div>
-
-            <div className="space-y-6">
-              {data.householdMembers.map((member, index) => (
-                <div key={member.id} className="p-4 border-2 border-border rounded-xl space-y-4">
-                  <h3 className="font-semibold text-lg">
-                    {t('onboarding.householdMembers.member', { number: index + 2 })}
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.name')}</label>
-                      <Input
-                        placeholder={t('onboarding.householdMembers.namePlaceholder')}
-                        value={member.name}
-                        onChange={(e) => updateHouseholdMember(member.id, { name: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium mb-2 block">{t('onboarding.gender')}</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {genderOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => updateHouseholdMember(member.id, { gender: option.value })}
-                            className={cn(
-                              "flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all",
-                              member.gender === option.value
-                                ? "border-primary bg-secondary"
-                                : "border-border hover:border-primary/50"
-                            )}
-                          >
-                            <span className="text-lg">{option.icon}</span>
-                            <span className="text-xs font-medium">
-                              {t(`onboarding.genders.${option.value}`)}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.age')}</label>
-                      <Input
-                        type="number"
-                        placeholder={t('onboarding.householdMembers.agePlaceholder')}
-                        value={member.ageYears || ''}
-                        onChange={(e) => updateHouseholdMember(member.id, { ageYears: Number(e.target.value) || null })}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.height')}</label>
-                      <Input
-                        type="number"
-                        placeholder={t('onboarding.householdMembers.heightPlaceholder')}
-                        value={member.heightCm || ''}
-                        onChange={(e) => updateHouseholdMember(member.id, { heightCm: Number(e.target.value) || null })}
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium mb-1 block">{t('onboarding.householdMembers.weight')}</label>
-                      <Input
-                        type="number"
-                        placeholder={t('onboarding.householdMembers.weightPlaceholder')}
-                        value={member.weightKg || ''}
-                        onChange={(e) => updateHouseholdMember(member.id, { weightKg: Number(e.target.value) || null })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 7:
+        // Allergies (Step 6)
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
@@ -678,25 +588,13 @@ export default function Onboarding() {
     }
   };
 
-  // Calculate displayed step number (accounting for skipped members step)
-  const getDisplayStep = () => {
-    if (!shouldShowMembersStep && currentStep >= 6) {
-      return currentStep - 1;
-    }
-    return currentStep;
-  };
-
-  const getDisplayTotalSteps = () => {
-    return shouldShowMembersStep ? TOTAL_STEPS : TOTAL_STEPS - 1;
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-muted z-50">
         <div
           className="h-full bg-gradient-primary transition-all duration-300"
-          style={{ width: `${(getDisplayStep() / getDisplayTotalSteps()) * 100}%` }}
+          style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
         />
       </div>
 
@@ -715,7 +613,7 @@ export default function Onboarding() {
             <LanguageFlagSelector compact />
           </div>
           <span className="text-sm text-muted-foreground">
-            {t('common.step')} {getDisplayStep()} {t('common.of')} {getDisplayTotalSteps()}
+            {t('common.step')} {currentStep} {t('common.of')} {TOTAL_STEPS}
           </span>
           <div className="w-10" />
         </header>

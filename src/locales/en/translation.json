@@ -58,6 +58,12 @@
     "saveOnFood": "Save money on food"
   },
   "onboarding": {
+    "mealPlanSize": {
+      "title": "Meal plan size",
+      "subtitle": "How many people will the meal plan cover?",
+      "label": "Number of people",
+      "comingSoon": "Multiple people coming soon"
+    },
     "welcome": {
       "title": "Welcome to WizeFood!",
       "subtitle": "Let's get to know you"
@@ -121,6 +127,14 @@
       "gain": {
         "label": "Build muscle",
         "description": "Eat above your calorie needs"
+      },
+      "save_money": {
+        "label": "Save money",
+        "description": "Focus on budget-friendly meals"
+      },
+      "save_time": {
+        "label": "Save time",
+        "description": "Quick and easy recipes"
       }
     },
     "household": {
@@ -195,7 +209,9 @@
     "goals": {
       "lose": "Lose weight",
       "maintain": "Maintain",
-      "gain": "Build muscle"
+      "gain": "Build muscle",
+      "save_money": "Save money",
+      "save_time": "Save time"
     },
     "notSelected": "Not selected",
     "household": "Household",

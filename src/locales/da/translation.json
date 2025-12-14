@@ -58,6 +58,12 @@
     "saveOnFood": "Spar penge på mad"
   },
   "onboarding": {
+    "mealPlanSize": {
+      "title": "Madplan størrelse",
+      "subtitle": "Hvor mange personer skal madplanen dække?",
+      "label": "Antal personer",
+      "comingSoon": "Flere personer kommer snart"
+    },
     "welcome": {
       "title": "Velkommen til WizeFood!",
       "subtitle": "Lad os lære dig at kende"
@@ -121,6 +127,14 @@
       "gain": {
         "label": "Byg muskler",
         "description": "Spis over dit kaloriebehov"
+      },
+      "save_money": {
+        "label": "Spar penge",
+        "description": "Fokus på budgetvenlige måltider"
+      },
+      "save_time": {
+        "label": "Spar tid",
+        "description": "Hurtige og nemme opskrifter"
       }
     },
     "household": {
@@ -195,7 +209,9 @@
     "goals": {
       "lose": "Tab vægt",
       "maintain": "Vedligehold",
-      "gain": "Byg muskler"
+      "gain": "Byg muskler",
+      "save_money": "Spar penge",
+      "save_time": "Spar tid"
     },
     "notSelected": "Ikke valgt",
     "household": "Husstand",
