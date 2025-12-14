@@ -386,7 +386,21 @@
   "inventory": {
     "title": "My Kitchen",
     "add": "Add",
-    "addItem": "Add item",
+    "addItem": "Add Item",
+    "addItems": "Add items",
+    "itemsAdded": "{{count}} items added",
+    "noItemsFound": "No items found",
+    "parseWithAi": "Parse with AI",
+    "takePhoto": "Take photo",
+    "addMethods": {
+      "manual": "List",
+      "ai": "AI text",
+      "photo": "Photo",
+      "manualHint": "Enter items separated by comma or line break",
+      "aiHint": "Describe freely what you have - AI will find the items",
+      "aiPlaceholder": "E.g. \"I just bought milk, half a kg of butter, 6 eggs and some cheese. The milk expires on Friday.\"",
+      "photoHint": "Take a photo of your items and we'll find them automatically"
+    },
     "addFirst": "Add your first item",
     "ingredientName": "Ingredient",
     "ingredientPlaceholder": "e.g. milk, eggs, rice...",
