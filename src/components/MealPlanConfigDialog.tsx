@@ -233,7 +233,7 @@ export function MealPlanConfigDialog({
 
           {/* Cooking Style */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Madlavningsstil</Label>
+            <Label className="text-sm font-semibold">Mealprep/konventionel</Label>
             <div className="grid grid-cols-2 gap-2">
               {COOKING_STYLES.map(style => (
                 <button
