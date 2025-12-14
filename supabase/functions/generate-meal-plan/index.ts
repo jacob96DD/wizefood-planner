@@ -292,9 +292,8 @@ serve(async (req) => {
     // 4.3 Dietary goal
     const dietaryGoal = profile?.dietary_goal || 'maintain';
 
-    // ============ OVERGENERATION for swipe selection ============
-    const alternativesMultiplier = Math.max(1, (prefs.generate_alternatives || 0) + 1);
-    const recipesPerMealType = duration_days * alternativesMultiplier;
+    // ============ ALWAYS GENERATE 5 OPTIONS PER MEAL TYPE ============
+    const recipesPerMealType = 5;
 
     // ============ BUILD PRIORITIZED AI PROMPT ============
 
@@ -348,9 +347,8 @@ ${inventoryItems || 'Ingen varer i lageret'}
 2. Ernæringsmål: ${dietaryGoal === 'lose' ? 'vægttab' : dietaryGoal === 'gain' ? 'muskelopbygning' : 'vedligehold'}
 3. Antal personer: ${profile?.people_count || 1}
 
-📊 OVERGENERATION:
-Generér ${recipesPerMealType} unikke retter PER måltidstype for at give brugeren valgmuligheder.
-${alternativesMultiplier > 1 ? `Brugeren vil swipe og vælge ${duration_days} retter per måltidstype.` : ''}
+📊 GENERERING:
+Generér præcis 5 unikke retter PER måltidstype. Brugeren vil swipe og vælge ${duration_days} retter per måltidstype.
 
 OUTPUT FORMAT:
 Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
@@ -404,7 +402,6 @@ Lav retterne nu!`;
       meals: mealsToInclude,
       availableCalories,
       recipesPerMealType,
-      alternativesMultiplier,
       offers: offers?.length || 0,
       inventory: inventory.length,
       allergens: allergenNames.length,
@@ -479,50 +476,21 @@ Lav retterne nu!`;
       dinner: recipeOptions.dinner || [],
     };
 
-    // If no alternatives requested, create traditional meal plan structure
-    let mealsArray: any[] = [];
-    if (alternativesMultiplier === 1) {
-      // Create 7-day meal plan from first recipe of each type
-      for (let i = 0; i < duration_days; i++) {
-        const dayDate = new Date(startDate);
-        dayDate.setDate(dayDate.getDate() + i);
-        
-        mealsArray.push({
-          date: dayDate.toISOString().split('T')[0],
-          breakfast: allRecipes.breakfast[i % allRecipes.breakfast.length] || null,
-          lunch: allRecipes.lunch[i % allRecipes.lunch.length] || null,
-          dinner: allRecipes.dinner[i % allRecipes.dinner.length] || null,
-        });
-      }
-    }
+    // Always return recipe_options for swipe selection (no traditional meal plan structure needed)
 
-    // Save meal plan to database
-    const { data: savedPlan, error: saveError } = await supabase
-      .from('meal_plans')
-      .insert({
-        user_id: user.id,
-        title: `Madplan ${startDate.toLocaleDateString('da-DK')}`,
-        duration_days,
-        meals: alternativesMultiplier > 1 ? allRecipes : mealsArray,
-        total_cost: mealPlanData.shopping_summary?.by_store?.reduce((sum: number, store: any) => sum + (store.estimated_cost || 0), 0) || null,
-        total_savings: mealPlanData.total_estimated_savings || null,
-      })
-      .select()
-      .single();
-
-    if (saveError) {
-      console.error('Failed to save meal plan:', saveError);
-      throw new Error('Failed to save meal plan');
-    }
-
-    console.log('Meal plan saved:', savedPlan.id, 'with', alternativesMultiplier > 1 ? 'recipe options' : 'meal schedule');
+    // Don't save meal plan yet - user will select from swipe options first
+    console.log('Recipe options generated, returning for swipe selection');
 
     return new Response(JSON.stringify({
       success: true,
-      meal_plan: savedPlan,
-      recipe_options: alternativesMultiplier > 1 ? allRecipes : null,
+      recipe_options: allRecipes,
+      macro_targets: {
+        calories: availableCalories,
+        protein: availableProtein,
+        carbs: baseCarbs,
+        fat: baseFat,
+      },
       shopping_summary: mealPlanData.shopping_summary,
-      has_alternatives: alternativesMultiplier > 1,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

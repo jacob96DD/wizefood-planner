@@ -491,31 +491,6 @@ export function MealPlanConfigDialog({
           </div>
           </div>
 
-          {/* Alternatives */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold flex items-center gap-2">
-              <Utensils className="w-4 h-4" />
-              Alternativer til swipe-valg
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Generer flere forslag per måltid, så du kan vælge din favorit.
-            </p>
-            <div className="flex gap-2">
-              {[0, 1, 2, 3].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setLocalPrefs(prev => ({ ...prev, generate_alternatives: n }))}
-                  className={`flex-1 py-2 rounded-lg border font-medium transition-all ${
-                    localPrefs.generate_alternatives === n
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  {n === 0 ? 'Ingen' : `+${n}`}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Summary */}
           {adjustedMacros && profile && (

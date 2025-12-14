@@ -34,6 +34,7 @@ export default function MealPlan() {
   const [recipeOptions, setRecipeOptions] = useState<RecipeOptions | null>(null);
   const [macroTargets, setMacroTargets] = useState<MacroTargets | null>(null);
   const [durationDays, setDurationDays] = useState(7);
+  const [generatingMore, setGeneratingMore] = useState(false);
   
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -121,6 +122,28 @@ export default function MealPlan() {
     setRecipeOptions(null);
   };
 
+  const handleGenerateMore = async (): Promise<RecipeOptions | null> => {
+    setGeneratingMore(true);
+    try {
+      // Generate 10 more options
+      const result = await generateMealPlan({ duration_days: 7 });
+      if (result) {
+        // Return new recipe options to be appended
+        return result.recipeOptions;
+      }
+      return null;
+    } catch (error) {
+      toast({
+        title: 'Fejl',
+        description: 'Kunne ikke generere flere retter',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setGeneratingMore(false);
+    }
+  };
+
   const convertToMealPlanMeal = (recipe: MealRecipe): MealPlanMeal => ({
     recipeId: recipe.id,
     title: recipe.title,
@@ -164,6 +187,8 @@ export default function MealPlan() {
         macroTargets={macroTargets}
         onComplete={handleSwipeComplete}
         onCancel={handleSwipeCancel}
+        onGenerateMore={handleGenerateMore}
+        generatingMore={generatingMore}
       />
     );
   }
