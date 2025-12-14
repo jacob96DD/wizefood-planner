@@ -23,14 +23,16 @@ export default function Profile() {
   const [macrosDialogOpen, setMacrosDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
+  const [preferredStoresCount, setPreferredStoresCount] = useState<number>(0);
 
   // Sync profile from database to store
   useProfileSync();
 
-  // Fetch latest progress entry
+  // Fetch latest progress entry and preferred stores count
   useEffect(() => {
     if (!user) return;
     
+    // Fetch latest weight
     supabase
       .from('user_progress')
       .select('weight_kg')
@@ -42,6 +44,15 @@ export default function Profile() {
         if (data?.weight_kg) {
           setLatestWeight(Number(data.weight_kg));
         }
+      });
+
+    // Fetch preferred stores count
+    supabase
+      .from('user_preferred_chains')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => {
+        setPreferredStoresCount(count || 0);
       });
   }, [user]);
 
@@ -280,7 +291,9 @@ export default function Profile() {
                   <div>
                     <p className="font-medium">{t('profile.preferredStores')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {t('profile.selectStores')}
+                      {preferredStoresCount > 0
+                        ? t('profile.storesSelected', { count: preferredStoresCount })
+                        : t('profile.selectStores')}
                     </p>
                   </div>
                 </div>
