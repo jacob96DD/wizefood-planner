@@ -43,6 +43,9 @@ interface OnboardingData {
   dislikedFoods: string[];
   customDislikes: string;
   
+  // Step 9: Preferred stores
+  selectedStoreChains: string[];
+  
   // Custom macro targets (optional - if null, use calculated values)
   dailyCalories: number | null;
   dailyProtein: number | null;
@@ -80,6 +83,7 @@ const initialData: OnboardingData = {
   customAllergens: '',
   dislikedFoods: [],
   customDislikes: '',
+  selectedStoreChains: [],
   dailyCalories: null,
   dailyProtein: null,
   dailyCarbs: null,
@@ -92,7 +96,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   currentStep: 1,
   data: initialData,
   setStep: (step) => set({ currentStep: step }),
-  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 7) })),
+  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 8) })),
   prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 1) })),
   updateData: (updates) => set((state) => ({ data: { ...state.data, ...updates } })),
   updateHouseholdMember: (id, updates) => set((state) => ({

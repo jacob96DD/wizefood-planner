@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, X, Sparkles, Loader2, ChefHat, Clock, Utensils, Camera } from 'lucide-react';
+import { Plus, X, Sparkles, Loader2, ChefHat, Clock, Utensils, Camera, Wand2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MealPlanConfigDialogProps {
   open: boolean;
@@ -88,6 +90,7 @@ export function MealPlanConfigDialog({
   const [showAddException, setShowAddException] = useState(false);
   const [showAddExtraCalories, setShowAddExtraCalories] = useState(false);
   const [showFridgeScanner, setShowFridgeScanner] = useState(false);
+  const [isCalculating, setIsCalculating] = useState<'fixed' | 'exception' | 'extra' | null>(null);
 
   // New item forms
   const [newFixedMeal, setNewFixedMeal] = useState<Partial<FixedMeal>>({
@@ -104,6 +107,10 @@ export function MealPlanConfigDialog({
     meal: 'dinner',
     type: 'cheat_meal',
     description: '',
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
   });
   const [newExtraCalories, setNewExtraCalories] = useState<Partial<ExtraCalories>>({
     description: '',
@@ -113,6 +120,55 @@ export function MealPlanConfigDialog({
     fat: 0,
   });
 
+  // AI calorie estimation
+  const estimateCalories = async (description: string, type: 'fixed' | 'exception' | 'extra') => {
+    if (!description.trim()) {
+      toast.error('Indtast en beskrivelse først');
+      return;
+    }
+
+    setIsCalculating(type);
+    try {
+      const { data, error } = await supabase.functions.invoke('estimate-calories', {
+        body: { description },
+      });
+
+      if (error) throw error;
+
+      if (type === 'fixed') {
+        setNewFixedMeal(prev => ({
+          ...prev,
+          calories: Math.round(data.calories_per_week / 7),
+          protein: Math.round(data.protein / 7),
+          carbs: Math.round(data.carbs / 7),
+          fat: Math.round(data.fat / 7),
+        }));
+      } else if (type === 'exception') {
+        setNewException(prev => ({
+          ...prev,
+          calories: Math.round(data.calories_per_week / 7),
+          protein: Math.round(data.protein / 7),
+          carbs: Math.round(data.carbs / 7),
+          fat: Math.round(data.fat / 7),
+        }));
+      } else {
+        setNewExtraCalories(prev => ({
+          ...prev,
+          calories_per_week: data.calories_per_week,
+          protein: data.protein,
+          carbs: data.carbs,
+          fat: data.fat,
+        }));
+      }
+
+      toast.success('Kalorier estimeret! 🎉');
+    } catch (error) {
+      console.error('Error estimating calories:', error);
+      toast.error('Kunne ikke estimere kalorier');
+    } finally {
+      setIsCalculating(null);
+    }
+  };
   useEffect(() => {
     setLocalPrefs(preferences);
   }, [preferences]);
@@ -329,13 +385,29 @@ export function MealPlanConfigDialog({
             {showAddFixedMeal && (
               <Card className="border-primary/50">
                 <CardContent className="p-3 space-y-3">
-                  <Input
-                    placeholder="f.eks. Franskbrød med nutella"
-                    value={newFixedMeal.description}
-                    onChange={e =>
-                      setNewFixedMeal(prev => ({ ...prev, description: e.target.value }))
-                    }
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="f.eks. Franskbrød med nutella"
+                      value={newFixedMeal.description}
+                      onChange={e =>
+                        setNewFixedMeal(prev => ({ ...prev, description: e.target.value }))
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => estimateCalories(newFixedMeal.description || '', 'fixed')}
+                      disabled={isCalculating === 'fixed' || !newFixedMeal.description}
+                      title="Udregn kalorier"
+                    >
+                      {isCalculating === 'fixed' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Select
                       value={newFixedMeal.day}
@@ -460,6 +532,29 @@ export function MealPlanConfigDialog({
             {showAddException && (
               <Card className="border-primary/50">
                 <CardContent className="p-3 space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="f.eks. Pizza fra Domino's"
+                      value={newException.description || ''}
+                      onChange={e =>
+                        setNewException(prev => ({ ...prev, description: e.target.value }))
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => estimateCalories(newException.description || '', 'exception')}
+                      disabled={isCalculating === 'exception' || !newException.description}
+                      title="Udregn kalorier"
+                    >
+                      {isCalculating === 'exception' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Select
                       value={newException.day}
@@ -511,6 +606,14 @@ export function MealPlanConfigDialog({
                       <SelectItem value="restaurant">🍽️ Restaurant</SelectItem>
                     </SelectContent>
                   </Select>
+                  {(newException.calories || 0) > 0 && (
+                    <div className="grid grid-cols-4 gap-2 text-center text-xs bg-muted/50 rounded-lg p-2">
+                      <div><span className="font-bold">{newException.calories}</span> kcal</div>
+                      <div><span className="font-bold">{newException.protein}g</span> prot</div>
+                      <div><span className="font-bold">{newException.carbs}g</span> kulh</div>
+                      <div><span className="font-bold">{newException.fat}g</span> fedt</div>
+                    </div>
+                  )}
                   <Button size="sm" onClick={addException} className="w-full">
                     Tilføj undtagelse
                   </Button>
@@ -555,41 +658,37 @@ export function MealPlanConfigDialog({
             {showAddExtraCalories && (
               <Card className="border-primary/50">
                 <CardContent className="p-3 space-y-3">
-                  <Input
-                    placeholder="f.eks. 10 øl om ugen"
-                    value={newExtraCalories.description}
-                    onChange={e =>
-                      setNewExtraCalories(prev => ({ ...prev, description: e.target.value }))
-                    }
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Kcal/uge</Label>
-                      <Input
-                        type="number"
-                        value={newExtraCalories.calories_per_week || ''}
-                        onChange={e =>
-                          setNewExtraCalories(prev => ({
-                            ...prev,
-                            calories_per_week: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Protein/uge</Label>
-                      <Input
-                        type="number"
-                        value={newExtraCalories.protein || ''}
-                        onChange={e =>
-                          setNewExtraCalories(prev => ({
-                            ...prev,
-                            protein: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                    </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="f.eks. 10 øl om ugen"
+                      value={newExtraCalories.description}
+                      onChange={e =>
+                        setNewExtraCalories(prev => ({ ...prev, description: e.target.value }))
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => estimateCalories(newExtraCalories.description || '', 'extra')}
+                      disabled={isCalculating === 'extra' || !newExtraCalories.description}
+                      title="Udregn kalorier"
+                    >
+                      {isCalculating === 'extra' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
+                  {(newExtraCalories.calories_per_week || 0) > 0 && (
+                    <div className="grid grid-cols-4 gap-2 text-center text-xs bg-muted/50 rounded-lg p-2">
+                      <div><span className="font-bold">{newExtraCalories.calories_per_week}</span> kcal/uge</div>
+                      <div><span className="font-bold">{newExtraCalories.protein}g</span> prot</div>
+                      <div><span className="font-bold">{newExtraCalories.carbs}g</span> kulh</div>
+                      <div><span className="font-bold">{newExtraCalories.fat}g</span> fedt</div>
+                    </div>
+                  )}
                   <Button size="sm" onClick={addExtraCaloriesItem} className="w-full">
                     Tilføj ekstra kalorier
                   </Button>
