@@ -16,11 +16,11 @@ export function useFridgeScanner() {
   const [detectedIngredients, setDetectedIngredients] = useState<DetectedIngredient[]>([]);
   const { toast } = useToast();
 
-  const scanFridgePhoto = async (imageBase64: string): Promise<DetectedIngredient[]> => {
+  const scanFridgePhoto = async (imageBase64: string, scanType: 'fridge' | 'pantry' = 'fridge'): Promise<DetectedIngredient[]> => {
     setScanning(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-fridge-photo', {
-        body: { image: imageBase64 },
+        body: { image: imageBase64, scanType },
       });
 
       if (error) {
@@ -32,8 +32,13 @@ export function useFridgeScanner() {
         throw new Error(data.error);
       }
 
-      const ingredients = data?.ingredients || [];
-      setDetectedIngredients(ingredients);
+      const ingredients: DetectedIngredient[] = (data?.ingredients || []).map((ing: DetectedIngredient) => ({
+        ...ing,
+        // Override category based on scan type
+        category: scanType === 'pantry' ? 'pantry' : ing.category
+      }));
+      
+      setDetectedIngredients(prev => [...prev, ...ingredients]);
 
       toast({
         title: `Fundet ${ingredients.length} ingredienser!`,

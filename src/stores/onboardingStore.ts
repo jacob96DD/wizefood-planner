@@ -35,9 +35,10 @@ interface OnboardingData {
   // Step 6: Household members (other than primary user)
   householdMembers: HouseholdMember[];
   
-  // Step 7: Allergens
+  // Step 6: Allergens & dietary preference
   selectedAllergens: string[];
   customAllergens: string;
+  dietaryPreference: 'omnivore' | 'vegetarian' | 'pescetarian' | 'vegan' | 'flexitarian';
   
   // Step 8: Food dislikes
   dislikedFoods: string[];
@@ -81,6 +82,7 @@ const initialData: OnboardingData = {
   householdMembers: [],
   selectedAllergens: [],
   customAllergens: '',
+  dietaryPreference: 'omnivore',
   dislikedFoods: [],
   customDislikes: '',
   selectedStoreChains: [],
