@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store } from 'lucide-react';
@@ -6,23 +7,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { EditMacrosDialog } from '@/components/EditMacrosDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
+import { toast } from 'sonner';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user, logout } = useAuthStore();
-  const { data } = useOnboardingStore();
+  const { data, updateData } = useOnboardingStore();
+  const [macrosDialogOpen, setMacrosDialogOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  // Calculate daily calorie needs (simplified formula)
-  const calculateCalories = () => {
-    if (!data.weightKg || !data.heightCm || !data.dateOfBirth) return 2000;
+  // Calculate daily calorie needs (simplified Mifflin-St Jeor formula)
+  const calculateMacros = () => {
+    if (!data.weightKg || !data.heightCm || !data.dateOfBirth) {
+      return { calories: 2000, protein: 125, carbs: 225, fat: 67 };
+    }
     
     const age = new Date().getFullYear() - new Date(data.dateOfBirth).getFullYear();
     let bmr = data.gender === 'male'
@@ -44,13 +50,35 @@ export default function Profile() {
     if (data.dietaryGoal === 'lose') calories -= 500;
     if (data.dietaryGoal === 'gain') calories += 500;
 
-    return calories;
+    return {
+      calories,
+      protein: Math.round((calories * 0.25) / 4),
+      carbs: Math.round((calories * 0.45) / 4),
+      fat: Math.round((calories * 0.30) / 9),
+    };
   };
 
-  const dailyCalories = calculateCalories();
-  const dailyProtein = Math.round((dailyCalories * 0.25) / 4);
-  const dailyCarbs = Math.round((dailyCalories * 0.45) / 4);
-  const dailyFat = Math.round((dailyCalories * 0.30) / 9);
+  const calculatedMacros = calculateMacros();
+  
+  // Use custom values if set, otherwise use calculated
+  const currentMacros = {
+    calories: data.dailyCalories ?? calculatedMacros.calories,
+    protein: data.dailyProtein ?? calculatedMacros.protein,
+    carbs: data.dailyCarbs ?? calculatedMacros.carbs,
+    fat: data.dailyFat ?? calculatedMacros.fat,
+  };
+
+  const handleSaveMacros = (values: { calories: number; protein: number; carbs: number; fat: number }) => {
+    updateData({
+      dailyCalories: values.calories,
+      dailyProtein: values.protein,
+      dailyCarbs: values.carbs,
+      dailyFat: values.fat,
+    });
+    toast.success(t('profile.macrosSaved'), {
+      description: t('profile.macrosSavedDesc'),
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -75,7 +103,7 @@ export default function Profile() {
                 <Target className="w-5 h-5 text-primary" />
                 {t('profile.dailyMacros')}
               </CardTitle>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => setMacrosDialogOpen(true)}>
                 <Edit2 className="w-4 h-4" />
               </Button>
             </div>
@@ -83,19 +111,19 @@ export default function Profile() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-primary">{dailyCalories}</p>
+                <p className="text-2xl font-bold text-primary">{currentMacros.calories}</p>
                 <p className="text-xs text-muted-foreground">{t('profile.calories')}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold">{dailyProtein}g</p>
+                <p className="text-2xl font-bold">{currentMacros.protein}g</p>
                 <p className="text-xs text-muted-foreground">{t('profile.protein')}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold">{dailyCarbs}g</p>
+                <p className="text-2xl font-bold">{currentMacros.carbs}g</p>
                 <p className="text-xs text-muted-foreground">{t('profile.carbs')}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold">{dailyFat}g</p>
+                <p className="text-2xl font-bold">{currentMacros.fat}g</p>
                 <p className="text-xs text-muted-foreground">{t('profile.fat')}</p>
               </div>
             </div>
@@ -230,6 +258,14 @@ export default function Profile() {
       </main>
 
       <BottomNavigation />
+
+      <EditMacrosDialog
+        open={macrosDialogOpen}
+        onOpenChange={setMacrosDialogOpen}
+        currentValues={currentMacros}
+        calculatedValues={calculatedMacros}
+        onSave={handleSaveMacros}
+      />
     </div>
   );
 }

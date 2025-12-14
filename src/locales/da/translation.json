@@ -253,7 +253,16 @@
       "moderate": "Moderat aktiv",
       "active": "Meget aktiv",
       "athlete": "Atlet"
-    }
+    },
+    "editMacros": {
+      "title": "Rediger makro-mål",
+      "description": "Tilpas dine daglige mål. Værdierne gemmes og bruges til din madplan.",
+      "resetToCalculated": "Nulstil til beregnet",
+      "howCalculated": "Sådan beregnes dine mål:",
+      "formula": "Vi bruger Mifflin-St Jeor formlen med din vægt, højde, alder og aktivitetsniveau. Protein: 25%, Kulhydrater: 45%, Fedt: 30% af kalorier."
+    },
+    "macrosSaved": "Makro-mål gemt",
+    "macrosSavedDesc": "Dine tilpassede mål er nu gemt."
   },
   "mealPlan": {
     "title": "Din Madplan",

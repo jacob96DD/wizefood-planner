@@ -38,6 +38,12 @@ interface OnboardingData {
   // Step 7: Allergens
   selectedAllergens: string[];
   customAllergens: string;
+  
+  // Custom macro targets (optional - if null, use calculated values)
+  dailyCalories: number | null;
+  dailyProtein: number | null;
+  dailyCarbs: number | null;
+  dailyFat: number | null;
 }
 
 interface OnboardingState {
@@ -68,6 +74,10 @@ const initialData: OnboardingData = {
   householdMembers: [],
   selectedAllergens: [],
   customAllergens: '',
+  dailyCalories: null,
+  dailyProtein: null,
+  dailyCarbs: null,
+  dailyFat: null,
 };
 
 const generateMemberId = () => Math.random().toString(36).substring(2, 9);
