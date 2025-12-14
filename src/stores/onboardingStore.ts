@@ -16,8 +16,7 @@ interface OnboardingData {
   // Step 4: Goals
   dietaryGoal: string;
   
-  // Step 5: Budget
-  budgetPerWeek: number | null;
+  // Step 5: Household size
   peopleCount: number;
   
   // Step 6: Allergens
@@ -42,7 +41,6 @@ const initialData: OnboardingData = {
   weightKg: null,
   activityLevel: '',
   dietaryGoal: '',
-  budgetPerWeek: null,
   peopleCount: 1,
   selectedAllergens: [],
 };
