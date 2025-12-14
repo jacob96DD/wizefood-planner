@@ -253,7 +253,16 @@
       "moderate": "Moderately active",
       "active": "Very active",
       "athlete": "Athlete"
-    }
+    },
+    "editMacros": {
+      "title": "Edit macro goals",
+      "description": "Customize your daily goals. Values are saved and used for your meal plan.",
+      "resetToCalculated": "Reset to calculated",
+      "howCalculated": "How your goals are calculated:",
+      "formula": "We use the Mifflin-St Jeor formula with your weight, height, age, and activity level. Protein: 25%, Carbs: 45%, Fat: 30% of calories."
+    },
+    "macrosSaved": "Macro goals saved",
+    "macrosSavedDesc": "Your custom goals are now saved."
   },
   "mealPlan": {
     "title": "Your Meal Plan",
