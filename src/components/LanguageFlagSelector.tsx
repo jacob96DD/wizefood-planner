@@ -2,14 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import dkFlag from '@/assets/flags/dk.png';
+import gbFlag from '@/assets/flags/gb.png';
 
 interface LanguageFlagSelectorProps {
   compact?: boolean;
 }
 
 const languages = [
-  { code: 'en', flag: '🇬🇧', label: 'GB' },
-  { code: 'da', flag: '🇩🇰', label: 'DK' },
+  { code: 'en', flag: gbFlag, label: 'GB' },
+  { code: 'da', flag: dkFlag, label: 'DK' },
 ];
 
 export function LanguageFlagSelector({ compact = false }: LanguageFlagSelectorProps) {
@@ -44,7 +46,7 @@ export function LanguageFlagSelector({ compact = false }: LanguageFlagSelectorPr
         )}
         aria-label="Select language"
       >
-        <span>{currentLang.flag}</span>
+        <img src={currentLang.flag} alt={currentLang.label} className={cn('rounded-sm', compact ? 'w-5 h-auto' : 'w-6 h-auto')} />
         <span className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>{currentLang.label}</span>
         <ChevronDown className={cn('transition-transform', isOpen && 'rotate-180', compact ? 'w-3 h-3' : 'w-4 h-4')} />
       </button>
@@ -60,7 +62,7 @@ export function LanguageFlagSelector({ compact = false }: LanguageFlagSelectorPr
                 i18n.language === lang.code && 'bg-secondary'
               )}
             >
-              <span className={compact ? 'text-lg' : 'text-xl'}>{lang.flag}</span>
+              <img src={lang.flag} alt={lang.label} className={cn('rounded-sm', compact ? 'w-5 h-auto' : 'w-6 h-auto')} />
               <span className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>{lang.label}</span>
             </button>
           ))}
