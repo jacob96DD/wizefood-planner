@@ -206,7 +206,7 @@ export default function Onboarding() {
     initializeHouseholdMembers(data.peopleCount);
   }, [data.peopleCount, initializeHouseholdMembers]);
 
-  // Fetch store chains when on step 8
+  // Fetch store chains when on step 8 - start with ALL selected
   useEffect(() => {
     const fetchStoreChains = async () => {
       const { data: chains } = await supabase
@@ -215,6 +215,8 @@ export default function Onboarding() {
         .order('name');
       if (chains) {
         setStoreChains(chains);
+        // Start with ALL stores selected by default
+        setSelectedStoreChains(new Set(chains.map(c => c.id)));
       }
     };
     if (currentStep === 8) {
@@ -1033,31 +1035,32 @@ export default function Onboarding() {
         );
 
       case 8:
-        // Preferred stores (Step 8)
+        // Selected stores (Step 8) - all selected by default, user deselects
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">🛒</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.stores.title', 'Foretrukne butikker')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.stores.subtitle', 'Hvilke butikker handler du typisk i?')}</p>
+              <h2 className="text-2xl font-bold mb-2">{t('stores.title')}</h2>
+              <p className="text-muted-foreground">{t('stores.description')}</p>
             </div>
 
             {storeChains.length === 0 ? (
               <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Henter butikker...</p>
+                <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {storeChains.map((chain) => {
                   const isSelected = selectedStoreChains.has(chain.id);
                   return (
                     <Card
                       key={chain.id}
                       className={cn(
-                        "p-4 flex items-center justify-between cursor-pointer",
-                        isSelected && "border-primary bg-primary/5"
+                        "p-4 flex items-center justify-between cursor-pointer select-none active:scale-[0.98] transition-transform",
+                        isSelected ? "border-primary bg-primary/5" : "opacity-60"
                       )}
+                      style={{ touchAction: 'manipulation' }}
                       onClick={() => toggleStoreChain(chain.id)}
                     >
                       <div className="flex items-center gap-3">
@@ -1066,6 +1069,7 @@ export default function Onboarding() {
                       </div>
                       <Switch
                         checked={isSelected}
+                        onClick={(e) => e.stopPropagation()}
                         onCheckedChange={() => toggleStoreChain(chain.id)}
                       />
                     </Card>
@@ -1073,10 +1077,6 @@ export default function Onboarding() {
                 })}
               </div>
             )}
-
-            <p className="text-sm text-muted-foreground text-center">
-              {t('onboarding.stores.note', 'Du kan ændre dette senere i profilen under "Foretrukne butikker".')}
-            </p>
           </div>
         );
 

@@ -264,8 +264,8 @@
     "allergies": "Allergies",
     "allergiesRegistered": "{{count}} registered",
     "none": "None",
-    "preferredStores": "Preferred stores",
-    "selectStores": "Choose which stores you shop at",
+    "preferredStores": "Selected stores",
+    "selectStores": "Deselect stores you don't shop at",
     "storesSelected": "{{count}} stores selected",
     "editProfile": "Edit profile",
     "logout": "Log out",
@@ -378,9 +378,10 @@
     "english": "English"
   },
   "stores": {
-    "title": "Select stores",
-    "description": "Choose which stores you typically shop at, so we can show you the best offers.",
-    "noStores": "No stores found"
+    "title": "Selected stores",
+    "description": "Deselect stores you don't shop at. All stores are selected by default.",
+    "noStores": "No stores found",
+    "saved": "Stores saved"
   },
   "inventory": {
     "title": "My Inventory",

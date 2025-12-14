@@ -9,6 +9,7 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface StoreChain {
   id: string;
@@ -40,7 +41,7 @@ export default function StorePreferences() {
         if (chainsError) throw chainsError;
         setStoreChains(chains || []);
 
-        // Fetch user's preferred chains
+        // Fetch user's deselected chains (empty = all selected)
         const { data: preferences, error: prefsError } = await supabase
           .from('user_preferred_chains')
           .select('chain_id')
@@ -48,9 +49,17 @@ export default function StorePreferences() {
         
         if (prefsError) throw prefsError;
         
-        const preferredIds = new Set(preferences?.map(p => p.chain_id) || []);
-        setSelectedChains(preferredIds);
-        setInitialChains(new Set(preferredIds));
+        // If user has saved preferences, use them. Otherwise, all are selected.
+        if (preferences && preferences.length > 0) {
+          const preferredIds = new Set(preferences.map(p => p.chain_id));
+          setSelectedChains(preferredIds);
+          setInitialChains(new Set(preferredIds));
+        } else {
+          // No preferences saved = all stores selected by default
+          const allIds = new Set((chains || []).map(c => c.id));
+          setSelectedChains(allIds);
+          setInitialChains(new Set(allIds));
+        }
       } catch (error) {
         console.error('Error fetching store data:', error);
         toast.error(t('common.error'));
@@ -156,24 +165,33 @@ export default function StorePreferences() {
         <p className="text-muted-foreground">{t('stores.description')}</p>
 
         {/* Store chains list */}
-        <div className="space-y-3">
-          {storeChains.map((chain) => (
-            <Card 
-              key={chain.id} 
-              className="p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Store className="h-5 w-5 text-primary" />
+        <div className="space-y-2">
+          {storeChains.map((chain) => {
+            const isSelected = selectedChains.has(chain.id);
+            return (
+              <Card 
+                key={chain.id} 
+                className={cn(
+                  "p-4 flex items-center justify-between cursor-pointer select-none active:scale-[0.98] transition-transform",
+                  isSelected ? "border-primary bg-primary/5" : "opacity-60"
+                )}
+                style={{ touchAction: 'manipulation' }}
+                onClick={() => handleToggle(chain.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Store className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-medium">{chain.name}</span>
                 </div>
-                <span className="font-medium">{chain.name}</span>
-              </div>
-              <Switch
-                checked={selectedChains.has(chain.id)}
-                onCheckedChange={() => handleToggle(chain.id)}
-              />
-            </Card>
-          ))}
+                <Switch
+                  checked={isSelected}
+                  onClick={(e) => e.stopPropagation()}
+                  onCheckedChange={() => handleToggle(chain.id)}
+                />
+              </Card>
+            );
+          })}
         </div>
 
         {storeChains.length === 0 && (
