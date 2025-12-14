@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { LanguageFlagSelector } from '@/components/LanguageFlagSelector';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const genderOptions = [
   { value: 'male', icon: '👨' },
@@ -132,6 +143,7 @@ export default function Onboarding() {
   const { user, setIsOnboarded, setProfile } = useAuthStore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
 
   // Month names for dropdown
   const months = [
@@ -191,6 +203,66 @@ export default function Onboarding() {
         newGoals.push(goalValue);
       }
       updateData({ dietaryGoals: newGoals });
+    }
+  };
+
+  // Skip onboarding - create minimal profile focused on saving money
+  const handleSkipOnboarding = async () => {
+    if (!user) {
+      toast({
+        title: t('common.error'),
+        description: t('onboarding.mustBeLoggedIn'),
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // Create minimal profile with "save money" as primary goal
+      const profileData = {
+        id: user.id,
+        full_name: 'Bruger',
+        dietary_goal: 'save_money',
+        people_count: 1,
+        // Use average Danish adult values
+        daily_calories: 2000,
+        daily_protein_target: 75,
+        daily_carbs_target: 250,
+        daily_fat_target: 65,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('profiles')
+        .upsert(profileData)
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Update local state
+      setProfile(updatedProfile);
+      setIsOnboarded(true);
+      reset();
+
+      toast({
+        title: '💰 ' + t('onboarding.skipSuccess', 'Klar til at spare!'),
+        description: t('onboarding.skipSuccessDesc', 'Vi genererer madplaner baseret på tilbud.'),
+      });
+
+      navigate('/home');
+    } catch (error: any) {
+      console.error('Error skipping onboarding:', error);
+      toast({
+        title: t('common.error'),
+        description: t('onboarding.errorSaving'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -791,7 +863,43 @@ export default function Onboarding() {
           <span className="text-sm text-muted-foreground">
             {t('common.step')} {currentStep} {t('common.of')} {TOTAL_STEPS}
           </span>
-          <div className="w-10" />
+          
+          {/* Skip button */}
+          <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary">
+                <Zap className="w-3 h-3 mr-1" />
+                {t('onboarding.skipAll', 'Spring over')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <span className="text-2xl">💰</span>
+                  {t('onboarding.skipTitle', 'Bare billige madplaner?')}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="space-y-2">
+                  <p>
+                    {t('onboarding.skipDescription', 'Hvis du bare vil have billige madplaner baseret på tilbud, kan du springe onboarding over.')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('onboarding.skipNote2', 'Du kan altid tilføje dine præferencer senere i profilen.')}
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel', 'Annuller')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSkipOnboarding} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4 mr-2" />
+                  )}
+                  {t('onboarding.skipConfirm', 'Giv mig billige retter!')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </header>
 
         {/* Content */}
