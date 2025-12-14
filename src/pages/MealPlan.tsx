@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,14 +10,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import type { Recipe } from '@/lib/supabase';
 
-const weekDays = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
-
 export default function MealPlan() {
+  const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(0);
   const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([]);
   const navigate = useNavigate();
   const { user } = useAuthStore();
+
+  const weekDays = [
+    t('mealPlan.days.mon'),
+    t('mealPlan.days.tue'),
+    t('mealPlan.days.wed'),
+    t('mealPlan.days.thu'),
+    t('mealPlan.days.fri'),
+    t('mealPlan.days.sat'),
+    t('mealPlan.days.sun'),
+  ];
 
   useEffect(() => {
     if (user) {
@@ -66,15 +76,21 @@ export default function MealPlan() {
     .filter(Boolean)
     .reduce((sum, meal) => sum + (meal?.calories || 0), 0);
 
+  const getWeekLabel = () => {
+    if (currentWeek === 0) return t('mealPlan.thisWeek');
+    if (currentWeek > 0) return t('mealPlan.nextWeek');
+    return t('mealPlan.lastWeek');
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold">Din Madplan</h1>
+            <h1 className="text-xl font-bold">{t('mealPlan.title')}</h1>
             <Button variant="ghost" size="sm" className="text-primary">
               <Sparkles className="w-4 h-4 mr-1.5" />
-              Generer
+              {t('mealPlan.generate')}
             </Button>
           </div>
 
@@ -83,7 +99,7 @@ export default function MealPlan() {
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <span className="font-medium">
-              Uge {Math.abs(currentWeek) + 1} - {currentWeek === 0 ? 'Denne uge' : currentWeek > 0 ? 'Næste uge' : 'Sidste uge'}
+              {t('mealPlan.weekNumber', { number: Math.abs(currentWeek) + 1 })} - {getWeekLabel()}
             </span>
             <Button variant="ghost" size="icon" onClick={() => setCurrentWeek(currentWeek + 1)}>
               <ChevronRight className="w-5 h-5" />
@@ -112,9 +128,9 @@ export default function MealPlan() {
         {likedRecipes.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
             <div className="text-6xl mb-4">📋</div>
-            <h2 className="text-xl font-bold mb-2">Ingen opskrifter valgt endnu</h2>
-            <p className="text-muted-foreground mb-6">Swipe på opskrifter for at bygge din madplan</p>
-            <Button variant="hero" onClick={() => navigate('/home')}>Find opskrifter</Button>
+            <h2 className="text-xl font-bold mb-2">{t('mealPlan.noRecipesYet')}</h2>
+            <p className="text-muted-foreground mb-6">{t('mealPlan.swipeToAdd')}</p>
+            <Button variant="hero" onClick={() => navigate('/home')}>{t('mealPlan.findRecipes')}</Button>
           </div>
         ) : (
           <>
@@ -122,12 +138,12 @@ export default function MealPlan() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Dagens kalorier</p>
-                    <p className="text-2xl font-bold">{totalCalories} kcal</p>
+                    <p className="text-sm text-muted-foreground">{t('mealPlan.todaysCalories')}</p>
+                    <p className="text-2xl font-bold">{totalCalories} {t('common.kcal')}</p>
                   </div>
                   <div className="text-right">
-                    <Badge variant="secondary" className="mb-1">Spar 45 kr</Badge>
-                    <p className="text-xs text-muted-foreground">Fra tilbud</p>
+                    <Badge variant="secondary" className="mb-1">{t('mealPlan.saveFromOffers', { amount: 45 })}</Badge>
+                    <p className="text-xs text-muted-foreground">{t('mealPlan.fromOffers')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -135,9 +151,9 @@ export default function MealPlan() {
 
             <div className="space-y-4">
               {[
-                { time: 'Morgenmad', meal: selectedMeals.breakfast, icon: '🌅' },
-                { time: 'Frokost', meal: selectedMeals.lunch, icon: '☀️' },
-                { time: 'Aftensmad', meal: selectedMeals.dinner, icon: '🌙' },
+                { time: t('mealPlan.meals.breakfast'), meal: selectedMeals.breakfast, icon: '🌅' },
+                { time: t('mealPlan.meals.lunch'), meal: selectedMeals.lunch, icon: '☀️' },
+                { time: t('mealPlan.meals.dinner'), meal: selectedMeals.dinner, icon: '🌙' },
               ].map(({ time, meal, icon }) => (
                 <Card key={time} className="overflow-hidden">
                   <CardContent className="p-0">
@@ -150,13 +166,15 @@ export default function MealPlan() {
                             <span>{time}</span>
                           </div>
                           <h3 className="font-semibold line-clamp-1">{meal.title}</h3>
-                          <p className="text-sm text-muted-foreground">{meal.calories} kcal · {meal.prep_time}+ min</p>
+                          <p className="text-sm text-muted-foreground">
+                            {meal.calories} {t('common.kcal')} · {meal.prep_time}+ {t('common.minutes')}
+                          </p>
                         </div>
                       </div>
                     ) : (
                       <div className="p-4 text-center text-muted-foreground">
                         <span className="text-2xl mb-2 block">{icon}</span>
-                        <p className="text-sm">{time} - Tilføj opskrift</p>
+                        <p className="text-sm">{time} - {t('mealPlan.addRecipe')}</p>
                       </div>
                     )}
                   </CardContent>
@@ -167,7 +185,7 @@ export default function MealPlan() {
             <div className="mt-8">
               <Button variant="hero" size="xl" className="w-full" onClick={() => navigate('/shopping-list')}>
                 <ShoppingCart className="w-5 h-5" />
-                <span>Generer indkøbsliste</span>
+                <span>{t('mealPlan.generateShoppingList')}</span>
               </Button>
             </div>
           </>

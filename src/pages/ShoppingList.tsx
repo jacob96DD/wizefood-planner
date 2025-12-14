@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, Plus, Trash2, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +33,7 @@ const mockItems: ShoppingItem[] = [
 ];
 
 export default function ShoppingList() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ShoppingItem[]>(mockItems);
 
   const toggleItem = (id: string) => {
@@ -63,9 +65,9 @@ export default function ShoppingList() {
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Indkøbsliste</h1>
+            <h1 className="text-xl font-bold">{t('shopping.title')}</h1>
             <Badge variant="secondary">
-              {uncheckedItems.length} varer
+              {uncheckedItems.length} {t('shopping.items')}
             </Badge>
           </div>
         </div>
@@ -78,15 +80,15 @@ export default function ShoppingList() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Estimeret total</p>
-                <p className="text-3xl font-bold">{totalPrice} kr</p>
+                <p className="text-sm opacity-90">{t('shopping.estimatedTotal')}</p>
+                <p className="text-3xl font-bold">{totalPrice} {t('common.kr')}</p>
               </div>
               {totalSavings > 0 && (
                 <div className="text-right">
                   <Badge className="bg-primary-foreground/20 text-primary-foreground border-0">
-                    Spar {totalSavings} kr
+                    {t('shopping.save', { amount: totalSavings })}
                   </Badge>
-                  <p className="text-xs opacity-75 mt-1">{offerItems.length} tilbudsvarer</p>
+                  <p className="text-xs opacity-75 mt-1">{offerItems.length} {t('shopping.offerItems')}</p>
                 </div>
               )}
             </div>
@@ -99,7 +101,7 @@ export default function ShoppingList() {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Store className="w-5 h-5 text-primary" />
-                <CardTitle className="text-base">Tilbud denne uge</CardTitle>
+                <CardTitle className="text-base">{t('shopping.offersThisWeek')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -116,9 +118,9 @@ export default function ShoppingList() {
                       <span className="font-medium">{item.name}</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-primary">{item.offerPrice} kr</span>
+                      <span className="font-bold text-primary">{item.offerPrice} {t('common.kr')}</span>
                       <span className="text-sm text-muted-foreground line-through ml-2">
-                        {item.price} kr
+                        {item.price} {t('common.kr')}
                       </span>
                     </div>
                   </div>
@@ -131,7 +133,7 @@ export default function ShoppingList() {
         {/* Unchecked items */}
         {uncheckedItems.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">At købe</h2>
+            <h2 className="text-sm font-medium text-muted-foreground mb-3">{t('shopping.toBuy')}</h2>
             <div className="space-y-2">
               {uncheckedItems.map((item) => (
                 <div
@@ -150,7 +152,7 @@ export default function ShoppingList() {
                     </p>
                   </div>
                   <span className="font-medium">
-                    {item.offerPrice || item.price} kr
+                    {item.offerPrice || item.price} {t('common.kr')}
                   </span>
                 </div>
               ))}
@@ -161,7 +163,7 @@ export default function ShoppingList() {
         {/* Checked items */}
         {checkedItems.length > 0 && (
           <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-3">Købt</h2>
+            <h2 className="text-sm font-medium text-muted-foreground mb-3">{t('shopping.bought')}</h2>
             <div className="space-y-2">
               {checkedItems.map((item) => (
                 <div
@@ -195,9 +197,9 @@ export default function ShoppingList() {
         {items.length === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
             <div className="text-6xl mb-4">🛒</div>
-            <h2 className="text-xl font-bold mb-2">Indkøbslisten er tom</h2>
+            <h2 className="text-xl font-bold mb-2">{t('shopping.emptyList')}</h2>
             <p className="text-muted-foreground">
-              Generer en liste fra din madplan
+              {t('shopping.generateFromPlan')}
             </p>
           </div>
         )}

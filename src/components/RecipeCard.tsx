@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock, Users, Flame, Heart, X, Star, ChevronDown } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ interface RecipeCardProps {
 }
 
 export function RecipeCard({ recipe, onSwipe }: RecipeCardProps) {
+  const { t } = useTranslation();
   const [swipeDirection, setSwipeDirection] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -126,10 +128,10 @@ export function RecipeCard({ recipe, onSwipe }: RecipeCardProps) {
             style={{ opacity: getOverlayOpacity() }}
           >
             <div className="text-4xl font-bold text-card rotate-[-15deg] border-4 px-4 py-2 rounded-xl">
-              {getOverlayType() === 'like' && '❤️ JA!'}
-              {getOverlayType() === 'skip' && '👋 NEJ'}
-              {getOverlayType() === 'super' && '⭐ SUPER!'}
-              {getOverlayType() === 'never' && '🚫 ALDRIG'}
+              {getOverlayType() === 'like' && t('recipe.swipe.yes')}
+              {getOverlayType() === 'skip' && t('recipe.swipe.no')}
+              {getOverlayType() === 'super' && t('recipe.swipe.super')}
+              {getOverlayType() === 'never' && t('recipe.swipe.never')}
             </div>
           </div>
         )}
@@ -155,15 +157,15 @@ export function RecipeCard({ recipe, onSwipe }: RecipeCardProps) {
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Clock className="w-4 h-4" />
-            <span>{(recipe.prep_time || 0) + (recipe.cook_time || 0)} min</span>
+            <span>{(recipe.prep_time || 0) + (recipe.cook_time || 0)} {t('common.minutes')}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Users className="w-4 h-4" />
-            <span>{recipe.servings} pers</span>
+            <span>{recipe.servings} {t('common.persons')}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Flame className="w-4 h-4" />
-            <span>{recipe.calories} kcal</span>
+            <span>{recipe.calories} {t('common.kcal')}</span>
           </div>
         </div>
       </div>

@@ -1,14 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { User, Settings, LogOut, ChevronRight, Target, Wallet, AlertTriangle, Edit2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { User, Settings, LogOut, ChevronRight, Target, Wallet, AlertTriangle, Edit2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BottomNavigation } from '@/components/BottomNavigation';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const { data } = useOnboardingStore();
 
@@ -49,20 +52,6 @@ export default function Profile() {
   const dailyCarbs = Math.round((dailyCalories * 0.45) / 4);
   const dailyFat = Math.round((dailyCalories * 0.30) / 9);
 
-  const goalLabels: Record<string, string> = {
-    lose: 'Tab vægt',
-    maintain: 'Vedligehold',
-    gain: 'Byg muskler',
-  };
-
-  const activityLabels: Record<string, string> = {
-    sedentary: 'Stillesiddende',
-    light: 'Let aktiv',
-    moderate: 'Moderat aktiv',
-    active: 'Meget aktiv',
-    athlete: 'Atlet',
-  };
-
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -71,7 +60,7 @@ export default function Profile() {
           <div className="w-20 h-20 rounded-full bg-primary-foreground/20 flex items-center justify-center mx-auto mb-4">
             <User className="w-10 h-10" />
           </div>
-          <h1 className="text-xl font-bold">{data.fullName || 'Bruger'}</h1>
+          <h1 className="text-xl font-bold">{data.fullName || t('profile.user')}</h1>
           <p className="text-primary-foreground/80">{user?.email || 'demo@wizefood.dk'}</p>
         </div>
       </header>
@@ -84,7 +73,7 @@ export default function Profile() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Target className="w-5 h-5 text-primary" />
-                Daglige makro-mål
+                {t('profile.dailyMacros')}
               </CardTitle>
               <Button variant="ghost" size="sm">
                 <Edit2 className="w-4 h-4" />
@@ -95,19 +84,19 @@ export default function Profile() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{dailyCalories}</p>
-                <p className="text-xs text-muted-foreground">Kalorier</p>
+                <p className="text-xs text-muted-foreground">{t('profile.calories')}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold">{dailyProtein}g</p>
-                <p className="text-xs text-muted-foreground">Protein</p>
+                <p className="text-xs text-muted-foreground">{t('profile.protein')}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold">{dailyCarbs}g</p>
-                <p className="text-xs text-muted-foreground">Kulhydrater</p>
+                <p className="text-xs text-muted-foreground">{t('profile.carbs')}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold">{dailyFat}g</p>
-                <p className="text-xs text-muted-foreground">Fedt</p>
+                <p className="text-xs text-muted-foreground">{t('profile.fat')}</p>
               </div>
             </div>
           </CardContent>
@@ -123,9 +112,11 @@ export default function Profile() {
                     <Target className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Mål</p>
+                    <p className="font-medium">{t('profile.goal')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {goalLabels[data.dietaryGoal] || 'Ikke valgt'}
+                      {data.dietaryGoal 
+                        ? t(`profile.goals.${data.dietaryGoal}`) 
+                        : t('profile.notSelected')}
                     </p>
                   </div>
                 </div>
@@ -138,9 +129,11 @@ export default function Profile() {
                     <Wallet className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Ugentligt budget</p>
+                    <p className="font-medium">{t('profile.weeklyBudget')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {data.budgetPerWeek ? `${data.budgetPerWeek} kr for ${data.peopleCount} pers` : 'Ikke angivet'}
+                      {data.budgetPerWeek 
+                        ? t('profile.budgetForPeople', { budget: data.budgetPerWeek, count: data.peopleCount })
+                        : t('profile.notSpecified')}
                     </p>
                   </div>
                 </div>
@@ -153,11 +146,11 @@ export default function Profile() {
                     <AlertTriangle className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Allergier</p>
+                    <p className="font-medium">{t('profile.allergies')}</p>
                     <p className="text-sm text-muted-foreground">
                       {data.selectedAllergens.length > 0
-                        ? `${data.selectedAllergens.length} registrerede`
-                        : 'Ingen'}
+                        ? t('profile.allergiesRegistered', { count: data.selectedAllergens.length })
+                        : t('profile.none')}
                     </p>
                   </div>
                 </div>
@@ -176,9 +169,22 @@ export default function Profile() {
             <Badge variant="secondary">{data.weightKg} kg</Badge>
           )}
           {data.activityLevel && (
-            <Badge variant="secondary">{activityLabels[data.activityLevel]}</Badge>
+            <Badge variant="secondary">{t(`profile.activities.${data.activityLevel}`)}</Badge>
           )}
         </div>
+
+        {/* Language selector */}
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Globe className="w-5 h-5 text-primary" />
+              {t('profile.language')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LanguageSelector />
+          </CardContent>
+        </Card>
 
         {/* Actions */}
         <div className="space-y-2">
@@ -188,7 +194,7 @@ export default function Profile() {
             onClick={() => navigate('/onboarding')}
           >
             <Settings className="w-5 h-5 mr-3" />
-            Rediger profil
+            {t('profile.editProfile')}
           </Button>
 
           <Button
@@ -197,13 +203,13 @@ export default function Profile() {
             onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 mr-3" />
-            Log ud
+            {t('profile.logout')}
           </Button>
         </div>
 
         {/* Version info */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          WizeFood v1.0.0 · Demo tilstand
+          {t('profile.version')}
         </p>
       </main>
 
