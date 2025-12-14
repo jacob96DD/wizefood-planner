@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 const genderOptions = [
   { value: 'male', icon: '👨' },
@@ -144,7 +145,7 @@ export default function Onboarding() {
         age_years: age,
         activity_level: data.activityLevel,
         dietary_goal: data.dietaryGoal,
-        budget_per_week: data.budgetPerWeek,
+        budget_per_week: null,
         people_count: data.peopleCount,
         daily_calories: macros.dailyCalories,
         daily_protein_target: macros.dailyProtein,
@@ -253,7 +254,7 @@ export default function Onboarding() {
       case 4:
         return data.dietaryGoal;
       case 5:
-        return data.budgetPerWeek !== null && data.peopleCount > 0;
+        return data.peopleCount > 0;
       case 6:
         return true; // Allergens are optional
       default:
@@ -422,41 +423,29 @@ export default function Onboarding() {
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
-              <span className="text-5xl mb-4 block">💰</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.budgetHousehold.title')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.budgetHousehold.subtitle')}</p>
+              <span className="text-5xl mb-4 block">👨‍👩‍👧‍👦</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.household.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.household.subtitle')}</p>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">{t('onboarding.weeklyBudget')}</label>
-                <Input
-                  type="number"
-                  placeholder={t('onboarding.budgetPlaceholder')}
-                  value={data.budgetPerWeek || ''}
-                  onChange={(e) => updateData({ budgetPerWeek: Number(e.target.value) || null })}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('onboarding.householdSize')}</label>
-                <div className="flex items-center justify-center gap-4">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateData({ peopleCount: Math.max(1, data.peopleCount - 1) })}
-                  >
-                    -
-                  </Button>
-                  <span className="text-3xl font-bold w-16 text-center">{data.peopleCount}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateData({ peopleCount: data.peopleCount + 1 })}
-                  >
-                    +
-                  </Button>
-                </div>
+            <div>
+              <label className="text-sm font-medium mb-3 block">{t('onboarding.householdSize')}</label>
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateData({ peopleCount: Math.max(1, data.peopleCount - 1) })}
+                >
+                  -
+                </Button>
+                <span className="text-3xl font-bold w-16 text-center">{data.peopleCount}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateData({ peopleCount: data.peopleCount + 1 })}
+                >
+                  +
+                </Button>
               </div>
             </div>
           </div>
@@ -538,7 +527,7 @@ export default function Onboarding() {
           <span className="text-sm text-muted-foreground">
             {t('common.step')} {currentStep} {t('common.of')} 6
           </span>
-          <div className="w-10" />
+          <LanguageSelector />
         </header>
 
         {/* Content */}

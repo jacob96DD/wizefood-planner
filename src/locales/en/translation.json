@@ -123,13 +123,11 @@
         "description": "Eat above your calorie needs"
       }
     },
-    "budgetHousehold": {
-      "title": "Budget and household",
-      "subtitle": "How much do you want to spend on food per week?"
+    "household": {
+      "title": "Household size",
+      "subtitle": "We'll adjust portion sizes for your household"
     },
-    "weeklyBudget": "Weekly food budget (DKK)",
-    "budgetPlaceholder": "e.g. 800",
-    "householdSize": "Number of people in household",
+    "householdSize": "Number of people",
     "allergies": {
       "title": "Allergies and intolerances",
       "subtitle": "Select foods you need to avoid",
@@ -186,9 +184,8 @@
       "gain": "Build muscle"
     },
     "notSelected": "Not selected",
-    "weeklyBudget": "Weekly budget",
-    "budgetForPeople": "{{budget}} DKK for {{count}} people",
-    "notSpecified": "Not specified",
+    "household": "Household",
+    "peopleCount": "{{count}} people",
     "allergies": "Allergies",
     "allergiesRegistered": "{{count}} registered",
     "none": "None",

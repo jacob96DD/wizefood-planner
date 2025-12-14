@@ -123,13 +123,11 @@
         "description": "Spis over dit kaloriebehov"
       }
     },
-    "budgetHousehold": {
-      "title": "Budget og husstand",
-      "subtitle": "Hvor meget vil du bruge på mad om ugen?"
+    "household": {
+      "title": "Husstandsstørrelse",
+      "subtitle": "Vi tilpasser portionsstørrelser til din husstand"
     },
-    "weeklyBudget": "Ugentligt madbudget (kr)",
-    "budgetPlaceholder": "f.eks. 800",
-    "householdSize": "Antal personer i husstanden",
+    "householdSize": "Antal personer",
     "allergies": {
       "title": "Allergier og intoleranser",
       "subtitle": "Vælg de fødevarer du skal undgå",
@@ -186,9 +184,8 @@
       "gain": "Byg muskler"
     },
     "notSelected": "Ikke valgt",
-    "weeklyBudget": "Ugentligt budget",
-    "budgetForPeople": "{{budget}} kr for {{count}} pers",
-    "notSpecified": "Ikke angivet",
+    "household": "Husstand",
+    "peopleCount": "{{count}} personer",
     "allergies": "Allergier",
     "allergiesRegistered": "{{count}} registrerede",
     "none": "Ingen",

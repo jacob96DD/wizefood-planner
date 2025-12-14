@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronRight, Target, Wallet, AlertTriangle, Edit2, Globe } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -126,14 +126,12 @@ export default function Profile() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-primary" />
+                    <Users className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">{t('profile.weeklyBudget')}</p>
+                    <p className="font-medium">{t('profile.household')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {data.budgetPerWeek 
-                        ? t('profile.budgetForPeople', { budget: data.budgetPerWeek, count: data.peopleCount })
-                        : t('profile.notSpecified')}
+                      {t('profile.peopleCount', { count: data.peopleCount })}
                     </p>
                   </div>
                 </div>
