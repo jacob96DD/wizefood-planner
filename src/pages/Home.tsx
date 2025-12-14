@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RecipeCard } from '@/components/RecipeCard';
 import { SwipeActions } from '@/components/SwipeActions';
 import { BottomNavigation } from '@/components/BottomNavigation';
@@ -11,6 +12,7 @@ import type { Recipe } from '@/lib/supabase';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, isOnboarded, isLoading: authLoading } = useAuthStore();
   const { data: recipes, isLoading: recipesLoading, refetch } = useRecipes();
   const { saveSwipe } = useSaveSwipe();
@@ -67,7 +69,7 @@ export default function Home() {
             <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center">
               <span className="text-lg">🍳</span>
             </div>
-            <span className="font-bold text-lg">WizeFood</span>
+            <span className="font-bold text-lg">{t('common.appName')}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-muted-foreground">
@@ -87,26 +89,26 @@ export default function Home() {
             
             {/* Instructions */}
             <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground mt-2">
-              <span>← Nej</span>
-              <span>↓ Aldrig</span>
-              <span>↑ Super!</span>
-              <span>→ Ja!</span>
+              <span>{t('home.swipe.no')}</span>
+              <span>{t('home.swipe.never')}</span>
+              <span>{t('home.swipe.super')}</span>
+              <span>{t('home.swipe.yes')}</span>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold mb-2">Du har set alle opskrifter!</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('home.allRecipesSeen')}</h2>
             <p className="text-muted-foreground mb-6">
-              Du har liket {likedRecipes.length} opskrifter
+              {t('home.likedCount', { count: likedRecipes.length })}
             </p>
             <div className="flex gap-3">
               <Button variant="outline" onClick={handleReset}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Start forfra
+                {t('home.startOver')}
               </Button>
               <Button variant="hero" onClick={() => navigate('/meal-plan')}>
-                Se madplan
+                {t('home.viewMealPlan')}
               </Button>
             </div>
           </div>

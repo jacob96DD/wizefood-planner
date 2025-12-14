@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Mail, Lock, Eye, EyeOff, Loader2, ChefHat, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function Auth() {
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,8 +48,8 @@ export default function Auth() {
         }
 
         toast({
-          title: 'Velkommen tilbage!',
-          description: 'Du er nu logget ind.',
+          title: t('auth.welcomeBack'),
+          description: t('auth.loggedIn'),
         });
       } else {
         // Sign up
@@ -66,26 +68,26 @@ export default function Auth() {
         }
 
         toast({
-          title: 'Konto oprettet!',
-          description: 'Tjek din email for at bekræfte din konto, eller fortsæt direkte.',
+          title: t('auth.accountCreated'),
+          description: t('auth.checkEmail'),
         });
       }
     } catch (error: any) {
-      let errorMessage = 'Der opstod en fejl. Prøv igen.';
+      let errorMessage = t('auth.errorOccurred');
       
       // Handle specific error messages
       if (error.message.includes('Invalid login credentials')) {
-        errorMessage = 'Forkert email eller adgangskode.';
+        errorMessage = t('auth.wrongCredentials');
       } else if (error.message.includes('User already registered')) {
-        errorMessage = 'Denne email er allerede registreret. Prøv at logge ind.';
+        errorMessage = t('auth.alreadyRegistered');
       } else if (error.message.includes('Password should be at least')) {
-        errorMessage = 'Adgangskoden skal være mindst 6 tegn.';
+        errorMessage = t('auth.passwordTooShort');
       } else if (error.message.includes('Invalid email')) {
-        errorMessage = 'Ugyldig email adresse.';
+        errorMessage = t('auth.invalidEmail');
       }
 
       toast({
-        title: 'Fejl',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       });
@@ -104,7 +106,7 @@ export default function Auth() {
         onClick={() => navigate('/')}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Tilbage
+        {t('common.back')}
       </Button>
 
       {/* Logo */}
@@ -114,17 +116,17 @@ export default function Auth() {
             <ChefHat className="w-7 h-7 text-primary-foreground" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gradient">WizeFood</h1>
-        <p className="text-muted-foreground mt-1">Spar penge på mad</p>
+        <h1 className="text-3xl font-bold text-gradient">{t('common.appName')}</h1>
+        <p className="text-muted-foreground mt-1">{t('auth.saveOnFood')}</p>
       </div>
 
       <Card className="w-full max-w-sm animate-slide-up">
         <CardHeader className="text-center">
-          <CardTitle>{isLogin ? 'Log ind' : 'Opret konto'}</CardTitle>
+          <CardTitle>{isLogin ? t('auth.login') : t('auth.signup')}</CardTitle>
           <CardDescription>
             {isLogin
-              ? 'Log ind for at fortsætte'
-              : 'Opret en gratis konto for at komme i gang'}
+              ? t('auth.loginToContinue')
+              : t('auth.createFreeAccount')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,7 +135,7 @@ export default function Auth() {
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="Email"
+                placeholder={t('auth.email')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-12"
@@ -145,7 +147,7 @@ export default function Auth() {
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Adgangskode"
+                placeholder={t('auth.password')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-12 pr-12"
@@ -171,12 +173,12 @@ export default function Auth() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Vent venligst...</span>
+                  <span>{t('common.pleaseWait')}</span>
                 </>
               ) : isLogin ? (
-                'Log ind'
+                t('auth.login')
               ) : (
-                'Opret konto'
+                t('auth.signup')
               )}
             </Button>
           </form>
@@ -188,8 +190,8 @@ export default function Auth() {
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               {isLogin
-                ? 'Har du ikke en konto? Opret en gratis'
-                : 'Har du allerede en konto? Log ind'}
+                ? t('auth.noAccount')
+                : t('auth.hasAccount')}
             </button>
           </div>
         </CardContent>
@@ -197,7 +199,7 @@ export default function Auth() {
 
       {/* Info notice */}
       <p className="mt-6 text-xs text-muted-foreground text-center max-w-xs">
-        Ved at oprette en konto accepterer du vores vilkår og betingelser
+        {t('auth.termsNotice')}
       </p>
     </div>
   );

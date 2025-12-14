@@ -1,36 +1,38 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChefHat, Sparkles, TrendingDown, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
 
-const features = [
-  {
-    icon: Sparkles,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    title: 'AI-genererede madplaner',
-    description: 'Få personlige madplaner tilpasset dine præferencer, allergier og budget.',
-  },
-  {
-    icon: TrendingDown,
-    iconBg: 'bg-accent/10',
-    iconColor: 'text-accent',
-    title: 'Spar penge',
-    description: 'Optimer dit madbudget med smarte tilbudsforslag og budgetvenlige opskrifter.',
-  },
-  {
-    icon: Clock,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    title: 'Spar tid',
-    description: 'Automatisk indkøbsliste og nem madplanlægning. Brug mindre tid i køkkenet.',
-  },
-];
-
 export default function Landing() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, isOnboarded } = useAuthStore();
+
+  const features = [
+    {
+      icon: Sparkles,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+      title: t('landing.features.aiPlans.title'),
+      description: t('landing.features.aiPlans.description'),
+    },
+    {
+      icon: TrendingDown,
+      iconBg: 'bg-accent/10',
+      iconColor: 'text-accent',
+      title: t('landing.features.saveMoney.title'),
+      description: t('landing.features.saveMoney.description'),
+    },
+    {
+      icon: Clock,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+      title: t('landing.features.saveTime.title'),
+      description: t('landing.features.saveTime.description'),
+    },
+  ];
 
   const handleGetStarted = () => {
     if (user && isOnboarded) {
@@ -56,7 +58,7 @@ export default function Landing() {
 
           {/* Title */}
           <h1 className="text-5xl md:text-6xl font-bold text-gradient mb-6 animate-slide-up">
-            WizeFood
+            {t('common.appName')}
           </h1>
 
           {/* Subtitle */}
@@ -64,7 +66,7 @@ export default function Landing() {
             className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10 animate-slide-up"
             style={{ animationDelay: '0.1s' }}
           >
-            Din personlige AI-drevne madplanlægger. Spar tid, penge og spis sundere.
+            {t('landing.subtitle')}
           </p>
 
           {/* CTA Button */}
@@ -78,7 +80,7 @@ export default function Landing() {
               onClick={handleGetStarted}
               className="group"
             >
-              <span>Kom i gang gratis</span>
+              <span>{t('landing.getStarted')}</span>
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
@@ -114,7 +116,7 @@ export default function Landing() {
       <footer className="px-4 py-8 border-t border-border">
         <div className="max-w-5xl mx-auto text-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 WizeFood. Alle rettigheder forbeholdes.
+            {t('landing.footer')}
           </p>
         </div>
       </footer>

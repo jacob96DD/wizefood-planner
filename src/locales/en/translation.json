@@ -1,0 +1,260 @@
+{
+  "common": {
+    "appName": "WizeFood",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "save": "Save",
+    "cancel": "Cancel",
+    "error": "Error",
+    "loading": "Loading...",
+    "pleaseWait": "Please wait...",
+    "minutes": "min",
+    "persons": "servings",
+    "kcal": "kcal",
+    "kr": "DKK",
+    "week": "week",
+    "step": "Step",
+    "of": "of"
+  },
+  "landing": {
+    "subtitle": "Your personal AI-powered meal planner. Save time, money, and eat healthier.",
+    "getStarted": "Get started for free",
+    "footer": "© 2024 WizeFood. All rights reserved.",
+    "features": {
+      "aiPlans": {
+        "title": "AI-generated meal plans",
+        "description": "Get personalized meal plans tailored to your preferences, allergies, and budget."
+      },
+      "saveMoney": {
+        "title": "Save money",
+        "description": "Optimize your food budget with smart deal suggestions and budget-friendly recipes."
+      },
+      "saveTime": {
+        "title": "Save time",
+        "description": "Automatic shopping lists and easy meal planning. Spend less time in the kitchen."
+      }
+    }
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Create account",
+    "loginToContinue": "Log in to continue",
+    "createFreeAccount": "Create a free account to get started",
+    "email": "Email",
+    "password": "Password",
+    "welcomeBack": "Welcome back!",
+    "loggedIn": "You are now logged in.",
+    "accountCreated": "Account created!",
+    "checkEmail": "Check your email to verify your account, or continue directly.",
+    "errorOccurred": "An error occurred. Please try again.",
+    "wrongCredentials": "Wrong email or password.",
+    "alreadyRegistered": "This email is already registered. Try logging in.",
+    "passwordTooShort": "Password must be at least 6 characters.",
+    "invalidEmail": "Invalid email address.",
+    "noAccount": "Don't have an account? Create one for free",
+    "hasAccount": "Already have an account? Log in",
+    "termsNotice": "By creating an account, you agree to our terms and conditions",
+    "saveOnFood": "Save money on food"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to WizeFood!",
+      "subtitle": "Let's get to know you"
+    },
+    "yourName": "Your name",
+    "enterName": "Enter your name",
+    "gender": "Gender",
+    "birthDate": "Date of birth",
+    "genders": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "physicalMeasurements": {
+      "title": "Physical measurements",
+      "subtitle": "We use this to calculate your calorie needs"
+    },
+    "height": "Height (cm)",
+    "heightPlaceholder": "e.g. 175",
+    "weight": "Weight (kg)",
+    "weightPlaceholder": "e.g. 70",
+    "activityLevel": {
+      "title": "Activity level",
+      "subtitle": "How active are you in your daily life?"
+    },
+    "activities": {
+      "sedentary": {
+        "label": "Sedentary",
+        "description": "Little or no exercise"
+      },
+      "light": {
+        "label": "Lightly active",
+        "description": "Light exercise 1-3 days/week"
+      },
+      "moderate": {
+        "label": "Moderately active",
+        "description": "Moderate exercise 3-5 days/week"
+      },
+      "active": {
+        "label": "Very active",
+        "description": "Hard exercise 6-7 days/week"
+      },
+      "athlete": {
+        "label": "Athlete",
+        "description": "Very hard training"
+      }
+    },
+    "goal": {
+      "title": "Your goal",
+      "subtitle": "What do you want to achieve?"
+    },
+    "goals": {
+      "lose": {
+        "label": "Lose weight",
+        "description": "Eat below your calorie needs"
+      },
+      "maintain": {
+        "label": "Maintain",
+        "description": "Keep your current weight"
+      },
+      "gain": {
+        "label": "Build muscle",
+        "description": "Eat above your calorie needs"
+      }
+    },
+    "budgetHousehold": {
+      "title": "Budget and household",
+      "subtitle": "How much do you want to spend on food per week?"
+    },
+    "weeklyBudget": "Weekly food budget (DKK)",
+    "budgetPlaceholder": "e.g. 800",
+    "householdSize": "Number of people in household",
+    "allergies": {
+      "title": "Allergies and intolerances",
+      "subtitle": "Select foods you need to avoid",
+      "skipNote": "You can skip this step if you have no allergies"
+    },
+    "allergens": {
+      "gluten": "Gluten",
+      "dairy": "Dairy",
+      "eggs": "Eggs",
+      "nuts": "Nuts",
+      "fish": "Fish",
+      "shellfish": "Shellfish",
+      "soy": "Soy",
+      "celery": "Celery"
+    },
+    "getStarted": "Get started",
+    "saving": "Saving...",
+    "profileSaved": "Profile saved!",
+    "profileSavedDesc": "Your profile is now created. Let's find some recipes!",
+    "mustBeLoggedIn": "You must be logged in to continue.",
+    "errorSaving": "An error occurred while saving your profile. Please try again."
+  },
+  "home": {
+    "swipe": {
+      "no": "← No",
+      "never": "↓ Never",
+      "super": "↑ Super!",
+      "yes": "→ Yes!"
+    },
+    "allRecipesSeen": "You've seen all recipes!",
+    "likedCount": "You liked {{count}} recipes",
+    "startOver": "Start over",
+    "viewMealPlan": "View meal plan"
+  },
+  "recipe": {
+    "swipe": {
+      "yes": "❤️ YES!",
+      "no": "👋 NO",
+      "super": "⭐ SUPER!",
+      "never": "🚫 NEVER"
+    }
+  },
+  "profile": {
+    "user": "User",
+    "dailyMacros": "Daily macro goals",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbohydrates",
+    "fat": "Fat",
+    "goal": "Goal",
+    "goals": {
+      "lose": "Lose weight",
+      "maintain": "Maintain",
+      "gain": "Build muscle"
+    },
+    "notSelected": "Not selected",
+    "weeklyBudget": "Weekly budget",
+    "budgetForPeople": "{{budget}} DKK for {{count}} people",
+    "notSpecified": "Not specified",
+    "allergies": "Allergies",
+    "allergiesRegistered": "{{count}} registered",
+    "none": "None",
+    "editProfile": "Edit profile",
+    "logout": "Log out",
+    "version": "WizeFood v1.0.0 · Demo mode",
+    "language": "Language",
+    "activities": {
+      "sedentary": "Sedentary",
+      "light": "Lightly active",
+      "moderate": "Moderately active",
+      "active": "Very active",
+      "athlete": "Athlete"
+    }
+  },
+  "mealPlan": {
+    "title": "Your Meal Plan",
+    "generate": "Generate",
+    "thisWeek": "This week",
+    "nextWeek": "Next week",
+    "lastWeek": "Last week",
+    "weekNumber": "Week {{number}}",
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "meals": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner"
+    },
+    "todaysCalories": "Today's calories",
+    "saveFromOffers": "Save {{amount}} DKK",
+    "fromOffers": "From offers",
+    "noRecipesYet": "No recipes selected yet",
+    "swipeToAdd": "Swipe on recipes to build your meal plan",
+    "findRecipes": "Find recipes",
+    "addRecipe": "Add recipe",
+    "generateShoppingList": "Generate shopping list"
+  },
+  "shopping": {
+    "title": "Shopping List",
+    "items": "items",
+    "estimatedTotal": "Estimated total",
+    "save": "Save {{amount}} DKK",
+    "offerItems": "items on sale",
+    "offersThisWeek": "Offers this week",
+    "toBuy": "To buy",
+    "bought": "Bought",
+    "emptyList": "Shopping list is empty",
+    "generateFromPlan": "Generate a list from your meal plan"
+  },
+  "nav": {
+    "discover": "Discover",
+    "mealPlan": "Meal Plan",
+    "shopping": "Shopping",
+    "profile": "Profile"
+  },
+  "language": {
+    "select": "Select language",
+    "danish": "Dansk",
+    "english": "English"
+  }
+}

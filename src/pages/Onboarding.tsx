@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,34 +11,34 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const genderOptions = [
-  { value: 'male', label: 'Mand', icon: '👨' },
-  { value: 'female', label: 'Kvinde', icon: '👩' },
-  { value: 'other', label: 'Andet', icon: '🧑' },
+  { value: 'male', icon: '👨' },
+  { value: 'female', icon: '👩' },
+  { value: 'other', icon: '🧑' },
 ];
 
 const activityLevels = [
-  { value: 'sedentary', label: 'Stillesiddende', description: 'Lidt eller ingen motion', icon: '🪑' },
-  { value: 'light', label: 'Let aktiv', description: 'Let motion 1-3 dage/uge', icon: '🚶' },
-  { value: 'moderate', label: 'Moderat aktiv', description: 'Moderat motion 3-5 dage/uge', icon: '🏃' },
-  { value: 'active', label: 'Meget aktiv', description: 'Hård motion 6-7 dage/uge', icon: '💪' },
-  { value: 'athlete', label: 'Atlet', description: 'Meget hård træning', icon: '🏆' },
+  { value: 'sedentary', icon: '🪑' },
+  { value: 'light', icon: '🚶' },
+  { value: 'moderate', icon: '🏃' },
+  { value: 'active', icon: '💪' },
+  { value: 'athlete', icon: '🏆' },
 ];
 
 const dietaryGoals = [
-  { value: 'lose', label: 'Tab vægt', description: 'Spis under dit kaloriebehov', icon: '📉' },
-  { value: 'maintain', label: 'Vedligehold', description: 'Hold din nuværende vægt', icon: '⚖️' },
-  { value: 'gain', label: 'Byg muskler', description: 'Spis over dit kaloriebehov', icon: '📈' },
+  { value: 'lose', icon: '📉' },
+  { value: 'maintain', icon: '⚖️' },
+  { value: 'gain', icon: '📈' },
 ];
 
-const allergens = [
-  { id: 'gluten', name: 'Gluten', icon: '🌾' },
-  { id: 'dairy', name: 'Mælk', icon: '🥛' },
-  { id: 'eggs', name: 'Æg', icon: '🥚' },
-  { id: 'nuts', name: 'Nødder', icon: '🥜' },
-  { id: 'fish', name: 'Fisk', icon: '🐟' },
-  { id: 'shellfish', name: 'Skaldyr', icon: '🦐' },
-  { id: 'soy', name: 'Soja', icon: '🫘' },
-  { id: 'celery', name: 'Selleri', icon: '🥬' },
+const allergensList = [
+  { id: 'gluten', icon: '🌾' },
+  { id: 'dairy', icon: '🥛' },
+  { id: 'eggs', icon: '🥚' },
+  { id: 'nuts', icon: '🥜' },
+  { id: 'fish', icon: '🐟' },
+  { id: 'shellfish', icon: '🦐' },
+  { id: 'soy', icon: '🫘' },
+  { id: 'celery', icon: '🥬' },
 ];
 
 // Calculate calories using Mifflin-St Jeor formula
@@ -93,6 +94,7 @@ function calculateMacros(
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { currentStep, data, nextStep, prevStep, updateData, reset } = useOnboardingStore();
   const { user, setIsOnboarded, setProfile } = useAuthStore();
   const { toast } = useToast();
@@ -101,8 +103,8 @@ export default function Onboarding() {
   const handleComplete = async () => {
     if (!user) {
       toast({
-        title: 'Fejl',
-        description: 'Du skal være logget ind for at fortsætte.',
+        title: t('common.error'),
+        description: t('onboarding.mustBeLoggedIn'),
         variant: 'destructive',
       });
       navigate('/auth');
@@ -180,10 +182,20 @@ export default function Onboarding() {
           allergenMap[a.name.toLowerCase()] = a.id;
         });
 
+        const allergenNameMap: Record<string, string> = {
+          gluten: 'gluten',
+          dairy: 'mælk',
+          eggs: 'æg',
+          nuts: 'nødder',
+          fish: 'fisk',
+          shellfish: 'skaldyr',
+          soy: 'soja',
+          celery: 'selleri',
+        };
+
         const userAllergens = data.selectedAllergens
           .map(allergenId => {
-            // Find matching allergen in database
-            const allergenName = allergens.find(a => a.id === allergenId)?.name.toLowerCase();
+            const allergenName = allergenNameMap[allergenId];
             const dbAllergenId = allergenName ? allergenMap[allergenName] : null;
             
             if (dbAllergenId) {
@@ -213,16 +225,16 @@ export default function Onboarding() {
       reset();
 
       toast({
-        title: 'Profil gemt!',
-        description: 'Din profil er nu oprettet. Lad os finde nogle opskrifter!',
+        title: t('onboarding.profileSaved'),
+        description: t('onboarding.profileSavedDesc'),
       });
 
       navigate('/home');
     } catch (error: any) {
       console.error('Error saving profile:', error);
       toast({
-        title: 'Fejl',
-        description: 'Der opstod en fejl ved gemning af din profil. Prøv igen.',
+        title: t('common.error'),
+        description: t('onboarding.errorSaving'),
         variant: 'destructive',
       });
     } finally {
@@ -256,22 +268,22 @@ export default function Onboarding() {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">👋</span>
-              <h2 className="text-2xl font-bold mb-2">Velkommen til WizeFood!</h2>
-              <p className="text-muted-foreground">Lad os lære dig at kende</p>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.welcome.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.welcome.subtitle')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Dit navn</label>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.yourName')}</label>
                 <Input
-                  placeholder="Indtast dit navn"
+                  placeholder={t('onboarding.enterName')}
                   value={data.fullName}
                   onChange={(e) => updateData({ fullName: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-3 block">Køn</label>
+                <label className="text-sm font-medium mb-3 block">{t('onboarding.gender')}</label>
                 <div className="grid grid-cols-3 gap-3">
                   {genderOptions.map((option) => (
                     <button
@@ -285,14 +297,16 @@ export default function Onboarding() {
                       )}
                     >
                       <span className="text-2xl">{option.icon}</span>
-                      <span className="text-sm font-medium">{option.label}</span>
+                      <span className="text-sm font-medium">
+                        {t(`onboarding.genders.${option.value}`)}
+                      </span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Fødselsdato</label>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.birthDate')}</label>
                 <Input
                   type="date"
                   value={data.dateOfBirth}
@@ -308,26 +322,26 @@ export default function Onboarding() {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">📏</span>
-              <h2 className="text-2xl font-bold mb-2">Fysiske mål</h2>
-              <p className="text-muted-foreground">Vi bruger dette til at beregne dit kaloriebehov</p>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.physicalMeasurements.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.physicalMeasurements.subtitle')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Højde (cm)</label>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.height')}</label>
                 <Input
                   type="number"
-                  placeholder="f.eks. 175"
+                  placeholder={t('onboarding.heightPlaceholder')}
                   value={data.heightCm || ''}
                   onChange={(e) => updateData({ heightCm: Number(e.target.value) || null })}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Vægt (kg)</label>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.weight')}</label>
                 <Input
                   type="number"
-                  placeholder="f.eks. 70"
+                  placeholder={t('onboarding.weightPlaceholder')}
                   value={data.weightKg || ''}
                   onChange={(e) => updateData({ weightKg: Number(e.target.value) || null })}
                 />
@@ -341,8 +355,8 @@ export default function Onboarding() {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">🏃</span>
-              <h2 className="text-2xl font-bold mb-2">Aktivitetsniveau</h2>
-              <p className="text-muted-foreground">Hvor aktiv er du i hverdagen?</p>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.activityLevel.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.activityLevel.subtitle')}</p>
             </div>
 
             <div className="space-y-3">
@@ -359,8 +373,10 @@ export default function Onboarding() {
                 >
                   <span className="text-2xl">{level.icon}</span>
                   <div>
-                    <p className="font-medium">{level.label}</p>
-                    <p className="text-sm text-muted-foreground">{level.description}</p>
+                    <p className="font-medium">{t(`onboarding.activities.${level.value}.label`)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t(`onboarding.activities.${level.value}.description`)}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -373,8 +389,8 @@ export default function Onboarding() {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">🎯</span>
-              <h2 className="text-2xl font-bold mb-2">Dit mål</h2>
-              <p className="text-muted-foreground">Hvad vil du gerne opnå?</p>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.goal.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.goal.subtitle')}</p>
             </div>
 
             <div className="space-y-3">
@@ -391,8 +407,10 @@ export default function Onboarding() {
                 >
                   <span className="text-2xl">{goal.icon}</span>
                   <div>
-                    <p className="font-medium">{goal.label}</p>
-                    <p className="text-sm text-muted-foreground">{goal.description}</p>
+                    <p className="font-medium">{t(`onboarding.goals.${goal.value}.label`)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t(`onboarding.goals.${goal.value}.description`)}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -405,23 +423,23 @@ export default function Onboarding() {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">💰</span>
-              <h2 className="text-2xl font-bold mb-2">Budget og husstand</h2>
-              <p className="text-muted-foreground">Hvor meget vil du bruge på mad om ugen?</p>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.budgetHousehold.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.budgetHousehold.subtitle')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Ugentligt madbudget (kr)</label>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.weeklyBudget')}</label>
                 <Input
                   type="number"
-                  placeholder="f.eks. 800"
+                  placeholder={t('onboarding.budgetPlaceholder')}
                   value={data.budgetPerWeek || ''}
                   onChange={(e) => updateData({ budgetPerWeek: Number(e.target.value) || null })}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-3 block">Antal personer i husstanden</label>
+                <label className="text-sm font-medium mb-3 block">{t('onboarding.householdSize')}</label>
                 <div className="flex items-center justify-center gap-4">
                   <Button
                     variant="outline"
@@ -449,12 +467,12 @@ export default function Onboarding() {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center mb-8">
               <span className="text-5xl mb-4 block">⚠️</span>
-              <h2 className="text-2xl font-bold mb-2">Allergier og intoleranser</h2>
-              <p className="text-muted-foreground">Vælg de fødevarer du skal undgå</p>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.allergies.title')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.allergies.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {allergens.map((allergen) => {
+              {allergensList.map((allergen) => {
                 const isSelected = data.selectedAllergens.includes(allergen.id);
                 return (
                   <button
@@ -478,7 +496,7 @@ export default function Onboarding() {
                     )}
                   >
                     <span className="text-2xl">{allergen.icon}</span>
-                    <span className="font-medium">{allergen.name}</span>
+                    <span className="font-medium">{t(`onboarding.allergens.${allergen.id}`)}</span>
                     {isSelected && <Check className="w-4 h-4 ml-auto text-primary" />}
                   </button>
                 );
@@ -486,7 +504,7 @@ export default function Onboarding() {
             </div>
 
             <p className="text-sm text-muted-foreground text-center">
-              Du kan springe dette trin over hvis du ikke har allergier
+              {t('onboarding.allergies.skipNote')}
             </p>
           </div>
         );
@@ -517,7 +535,9 @@ export default function Onboarding() {
           ) : (
             <div className="w-10" />
           )}
-          <span className="text-sm text-muted-foreground">Trin {currentStep} af 6</span>
+          <span className="text-sm text-muted-foreground">
+            {t('common.step')} {currentStep} {t('common.of')} 6
+          </span>
           <div className="w-10" />
         </header>
 
@@ -538,16 +558,16 @@ export default function Onboarding() {
             {isSaving ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Gemmer...</span>
+                <span>{t('onboarding.saving')}</span>
               </>
             ) : currentStep === 6 ? (
               <>
                 <Check className="w-5 h-5" />
-                <span>Kom i gang</span>
+                <span>{t('onboarding.getStarted')}</span>
               </>
             ) : (
               <>
-                <span>Fortsæt</span>
+                <span>{t('common.continue')}</span>
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
