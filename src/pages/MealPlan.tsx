@@ -219,6 +219,14 @@ export default function MealPlan() {
         )}
       </main>
 
+      <MealPlanConfigDialog
+        open={configOpen}
+        onOpenChange={setConfigOpen}
+        onGenerate={handleGenerate}
+        generating={generating}
+        profile={profile}
+      />
+
       <BottomNavigation />
     </div>
   );
