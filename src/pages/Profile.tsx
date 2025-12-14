@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, Scale } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { EditMacrosDialog } from '@/components/EditMacrosDialog';
 import { EditProfileDialog } from '@/components/EditProfileDialog';
+import { EditAllergiesDialog } from '@/components/EditAllergiesDialog';
+import { EditDislikesDialog } from '@/components/EditDislikesDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useProfileSync } from '@/hooks/useProfileSync';
@@ -22,8 +24,12 @@ export default function Profile() {
   const { data, updateData } = useOnboardingStore();
   const [macrosDialogOpen, setMacrosDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [allergiesDialogOpen, setAllergiesDialogOpen] = useState(false);
+  const [dislikesDialogOpen, setDislikesDialogOpen] = useState(false);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [preferredStoresCount, setPreferredStoresCount] = useState<number>(0);
+  const [allergiesCount, setAllergiesCount] = useState<number>(0);
+  const [dislikesCount, setDislikesCount] = useState<number>(0);
 
   // Sync profile from database to store
   useProfileSync();
@@ -54,7 +60,25 @@ export default function Profile() {
       .then(({ count }) => {
         setPreferredStoresCount(count || 0);
       });
-  }, [user]);
+
+    // Fetch allergies count
+    supabase
+      .from('user_allergens')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => {
+        setAllergiesCount(count || 0);
+      });
+
+    // Fetch dislikes count
+    supabase
+      .from('user_food_dislikes')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => {
+        setDislikesCount(count || 0);
+      });
+  }, [user, allergiesDialogOpen, dislikesDialogOpen]);
 
   const handleLogout = () => {
     logout();
@@ -263,7 +287,10 @@ export default function Profile() {
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setAllergiesDialogOpen(true)}
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
                     <AlertTriangle className="w-5 h-5 text-primary" />
@@ -271,8 +298,28 @@ export default function Profile() {
                   <div>
                     <p className="font-medium">{t('profile.allergies')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {data.selectedAllergens.length > 0
-                        ? t('profile.allergiesRegistered', { count: data.selectedAllergens.length })
+                      {allergiesCount > 0
+                        ? t('profile.allergiesRegistered', { count: allergiesCount })
+                        : t('profile.none')}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setDislikesDialogOpen(true)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <ThumbsDown className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{t('profile.dislikes', 'Ting du ikke kan lide')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {dislikesCount > 0
+                        ? t('profile.dislikesRegistered', { count: dislikesCount }) || `${dislikesCount} registrerede`
                         : t('profile.none')}
                     </p>
                   </div>
@@ -370,6 +417,16 @@ export default function Profile() {
       <EditProfileDialog
         open={profileDialogOpen}
         onOpenChange={setProfileDialogOpen}
+      />
+
+      <EditAllergiesDialog
+        open={allergiesDialogOpen}
+        onOpenChange={setAllergiesDialogOpen}
+      />
+
+      <EditDislikesDialog
+        open={dislikesDialogOpen}
+        onOpenChange={setDislikesDialogOpen}
       />
     </div>
   );

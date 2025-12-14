@@ -17,6 +17,10 @@ export interface MealException {
   meal: 'breakfast' | 'lunch' | 'dinner';
   type: 'cheat_meal' | 'skip' | 'restaurant';
   description?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
 }
 
 export interface ExtraCalories {

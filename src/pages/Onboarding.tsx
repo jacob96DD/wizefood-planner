@@ -152,7 +152,7 @@ const days = Array.from({ length: 31 }, (_, i) => i + 1);
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 91 }, (_, i) => currentYear - 10 - i);
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -550,6 +550,8 @@ export default function Onboarding() {
         return true; // Allergens are optional
       case 7:
         return true; // Dislikes are optional
+      case 8:
+        return true; // Stores are optional
       default:
         return false;
     }
@@ -957,6 +959,22 @@ export default function Onboarding() {
 
             <p className="text-sm text-muted-foreground text-center">
               {t('onboarding.dislikes.skipNote')}
+            </p>
+          </div>
+        );
+
+      case 8:
+        // Preferred stores (Step 8)
+        return (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center mb-8">
+              <span className="text-5xl mb-4 block">🛒</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.stores.title', 'Foretrukne butikker')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.stores.subtitle', 'Hvilke butikker handler du typisk i?')}</p>
+            </div>
+
+            <p className="text-sm text-muted-foreground text-center">
+              {t('onboarding.stores.note', 'Du kan ændre dette senere i profilen under "Foretrukne butikker".')}
             </p>
           </div>
         );
