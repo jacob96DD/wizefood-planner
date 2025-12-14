@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown, Pizza } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { EditMacrosDialog } from '@/components/EditMacrosDialog';
 import { EditProfileDialog } from '@/components/EditProfileDialog';
 import { EditAllergiesDialog } from '@/components/EditAllergiesDialog';
 import { EditDislikesDialog } from '@/components/EditDislikesDialog';
+import { EditRealLifeCaloriesDialog } from '@/components/EditRealLifeCaloriesDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useProfileSync } from '@/hooks/useProfileSync';
@@ -26,10 +27,18 @@ export default function Profile() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [allergiesDialogOpen, setAllergiesDialogOpen] = useState(false);
   const [dislikesDialogOpen, setDislikesDialogOpen] = useState(false);
+  const [realLifeDialogOpen, setRealLifeDialogOpen] = useState(false);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [preferredStoresCount, setPreferredStoresCount] = useState<number>(0);
   const [allergiesCount, setAllergiesCount] = useState<number>(0);
   const [dislikesCount, setDislikesCount] = useState<number>(0);
+  
+  // Real-life calories state
+  const [realLifeDescription, setRealLifeDescription] = useState<string | null>(null);
+  const [realLifeCaloriesPerWeek, setRealLifeCaloriesPerWeek] = useState<number | null>(null);
+  const [realLifeProtein, setRealLifeProtein] = useState<number | null>(null);
+  const [realLifeCarbs, setRealLifeCarbs] = useState<number | null>(null);
+  const [realLifeFat, setRealLifeFat] = useState<number | null>(null);
 
   // Sync profile from database to store
   useProfileSync();
@@ -78,7 +87,23 @@ export default function Profile() {
       .then(({ count }) => {
         setDislikesCount(count || 0);
       });
-  }, [user, allergiesDialogOpen, dislikesDialogOpen]);
+
+    // Fetch real-life calories from profile
+    supabase
+      .from('profiles')
+      .select('real_life_description, real_life_calories_per_week, real_life_protein_per_week, real_life_carbs_per_week, real_life_fat_per_week')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setRealLifeDescription(data.real_life_description);
+          setRealLifeCaloriesPerWeek(data.real_life_calories_per_week);
+          setRealLifeProtein(data.real_life_protein_per_week);
+          setRealLifeCarbs(data.real_life_carbs_per_week);
+          setRealLifeFat(data.real_life_fat_per_week);
+        }
+      });
+  }, [user, allergiesDialogOpen, dislikesDialogOpen, realLifeDialogOpen]);
 
   const handleLogout = () => {
     logout();
@@ -248,6 +273,59 @@ export default function Profile() {
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Real-life kalorier */}
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Pizza className="w-5 h-5 text-primary" />
+                Real-life kalorier
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setRealLifeDialogOpen(true)}>
+                <Edit2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {realLifeCaloriesPerWeek ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-secondary/50 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{realLifeCaloriesPerWeek}</p>
+                    <p className="text-xs text-muted-foreground">kcal/uge</p>
+                  </div>
+                  <div className="bg-secondary/50 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{Math.round(realLifeCaloriesPerWeek / 7)}</p>
+                    <p className="text-xs text-muted-foreground">kcal/dag fratrukket</p>
+                  </div>
+                </div>
+                {realLifeDescription && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    "{realLifeDescription}"
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Fratrækkes automatisk fra din madplan
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Ingen real-life kalorier sat
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRealLifeDialogOpen(true)}
+                >
+                  <Pizza className="w-4 h-4 mr-2" />
+                  Tilføj (øl, vin, pizza, etc.)
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -434,6 +512,23 @@ export default function Profile() {
       <EditDislikesDialog
         open={dislikesDialogOpen}
         onOpenChange={setDislikesDialogOpen}
+      />
+
+      <EditRealLifeCaloriesDialog
+        open={realLifeDialogOpen}
+        onOpenChange={setRealLifeDialogOpen}
+        currentDescription={realLifeDescription}
+        currentCaloriesPerWeek={realLifeCaloriesPerWeek}
+        currentProtein={realLifeProtein}
+        currentCarbs={realLifeCarbs}
+        currentFat={realLifeFat}
+        onSave={(data) => {
+          setRealLifeDescription(data.description);
+          setRealLifeCaloriesPerWeek(data.calories_per_week);
+          setRealLifeProtein(data.protein);
+          setRealLifeCarbs(data.carbs);
+          setRealLifeFat(data.fat);
+        }}
       />
     </div>
   );

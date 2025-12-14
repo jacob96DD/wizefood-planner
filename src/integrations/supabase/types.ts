@@ -392,6 +392,11 @@ export type Database = {
           height_cm: number | null
           id: string
           people_count: number | null
+          real_life_calories_per_week: number | null
+          real_life_carbs_per_week: number | null
+          real_life_description: string | null
+          real_life_fat_per_week: number | null
+          real_life_protein_per_week: number | null
           updated_at: string | null
           weight_kg: number | null
         }
@@ -412,6 +417,11 @@ export type Database = {
           height_cm?: number | null
           id: string
           people_count?: number | null
+          real_life_calories_per_week?: number | null
+          real_life_carbs_per_week?: number | null
+          real_life_description?: string | null
+          real_life_fat_per_week?: number | null
+          real_life_protein_per_week?: number | null
           updated_at?: string | null
           weight_kg?: number | null
         }
@@ -432,6 +442,11 @@ export type Database = {
           height_cm?: number | null
           id?: string
           people_count?: number | null
+          real_life_calories_per_week?: number | null
+          real_life_carbs_per_week?: number | null
+          real_life_description?: string | null
+          real_life_fat_per_week?: number | null
+          real_life_protein_per_week?: number | null
           updated_at?: string | null
           weight_kg?: number | null
         }
