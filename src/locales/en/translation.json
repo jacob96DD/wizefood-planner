@@ -348,7 +348,12 @@
     "addRecipe": "Add recipe",
     "generateShoppingList": "Generate shopping list",
     "noPlansYet": "No meal plans yet",
-    "generateFirst": "Create your first meal plan to get started"
+    "generateFirst": "Create your first meal plan to get started",
+    "loadingCheckingOffers": "Checking the latest store offers...",
+    "loadingFindingDeals": "Finding the best deals for you...",
+    "loadingCreatingRecipes": "Creating delicious recipes...",
+    "loadingFinalizing": "Finalizing your personal meal plan...",
+    "loadingTime": "This takes about 30 seconds"
   },
   "shopping": {
     "title": "Shopping List",
