@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      discover_recipes: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          key_ingredients: string[] | null
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          key_ingredients?: string[] | null
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          key_ingredients?: string[] | null
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
       household_inventory: {
         Row: {
           added_at: string | null
@@ -652,25 +685,38 @@ export type Database = {
         Row: {
           created_at: string | null
           direction: string
+          discover_recipe_id: string | null
           id: string
-          recipe_id: string
+          rating: string | null
+          recipe_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           direction: string
+          discover_recipe_id?: string | null
           id?: string
-          recipe_id: string
+          rating?: string | null
+          recipe_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           direction?: string
+          discover_recipe_id?: string | null
           id?: string
-          recipe_id?: string
+          rating?: string | null
+          recipe_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "swipes_discover_recipe_id_fkey"
+            columns: ["discover_recipe_id"]
+            isOneToOne: false
+            referencedRelation: "discover_recipes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "swipes_recipe_id_fkey"
             columns: ["recipe_id"]
