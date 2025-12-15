@@ -9,10 +9,9 @@ import { useFridgeScanner, type DetectedIngredient } from '@/hooks/useFridgeScan
 
 interface FridgeScannerProps {
   onComplete?: () => void;
-  scanType?: 'fridge' | 'pantry';
 }
 
-export function FridgeScanner({ onComplete, scanType = 'fridge' }: FridgeScannerProps) {
+export function FridgeScanner({ onComplete }: FridgeScannerProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -37,8 +36,8 @@ export function FridgeScanner({ onComplete, scanType = 'fridge' }: FridgeScanner
         const base64 = event.target?.result as string;
         setPreviews(prev => [...prev, base64]);
         
-        // Pass the scan type to the scanner - it will set the category
-        const ingredients = await scanFridgePhoto(base64, scanType);
+        // Scan with default category (pantry)
+        const ingredients = await scanFridgePhoto(base64, 'pantry');
         
         // Select all high/medium confidence ingredients by default
         const highConfidence = new Set<number>();
@@ -111,9 +110,7 @@ export function FridgeScanner({ onComplete, scanType = 'fridge' }: FridgeScanner
     }
   };
 
-  const buttonLabel = scanType === 'fridge' 
-    ? t('inventory.scanFridge', '📷 Scan køleskab')
-    : t('inventory.scanPantry', '📷 Scan kolonialskab');
+  const buttonLabel = t('inventory.scanItems', '📸 Send billede af dine varer');
 
   // Show scanner button if no image yet
   if (previews.length === 0 && detectedIngredients.length === 0) {
@@ -149,7 +146,7 @@ export function FridgeScanner({ onComplete, scanType = 'fridge' }: FridgeScanner
         </Button>
         
         <p className="text-xs text-muted-foreground text-center">
-          Tag ét eller flere billeder - vi finder ingredienserne automatisk
+          {t('inventory.scanHint', 'Tag ét eller flere billeder - vi finder ingredienserne automatisk')}
         </p>
       </div>
     );
@@ -172,7 +169,7 @@ export function FridgeScanner({ onComplete, scanType = 'fridge' }: FridgeScanner
           </div>
           <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary mb-2" />
           <p className="text-sm text-muted-foreground">
-            AI analyserer {scanType === 'fridge' ? 'dit køleskab' : 'dit kolonialskab'}...
+            {t('inventory.analyzing', 'AI analyserer dine varer...')}
           </p>
         </CardContent>
       </Card>

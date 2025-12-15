@@ -93,7 +93,7 @@ export default function Inventory() {
         )}
 
         {/* Scan button */}
-        <FridgeScanner onComplete={refetch} scanType="fridge" />
+        <FridgeScanner onComplete={refetch} />
 
         {/* Items list */}
         {sortedItems.length > 0 ? (

@@ -422,8 +422,9 @@
     "markUsed": "Marker som brugt",
     "addToInventory": "Tilføj til køkken?",
     "addedToInventory": "Tilføjet til køkken",
-    "scanFridge": "Scan køleskab",
-    "scanPantry": "Scan kolonialskab"
+    "scanItems": "📸 Send billede af dine varer",
+    "scanHint": "Tag ét eller flere billeder - vi finder ingredienserne automatisk",
+    "analyzing": "AI analyserer dine varer..."
   },
   "dietaryPreferences": {
     "title": "Kosttype",

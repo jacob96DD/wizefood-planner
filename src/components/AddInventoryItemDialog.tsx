@@ -46,7 +46,7 @@ export function AddInventoryItemDialog({
   
   // Manual entry state
   const [manualItems, setManualItems] = useState('');
-  const [category, setCategory] = useState<'fridge' | 'pantry'>(defaultCategory);
+  const [category] = useState<'fridge' | 'pantry'>('pantry');
   const [expiryDays, setExpiryDays] = useState<number | null>(null);
   
   // AI entry state
@@ -67,7 +67,6 @@ export function AddInventoryItemDialog({
     setManualItems('');
     setAiText('');
     setExpiryDays(null);
-    setCategory(defaultCategory);
   };
 
   // Handle manual list submission (comma-separated items like "æg, kartofler, mælk")
@@ -205,30 +204,7 @@ export function AddInventoryItemDialog({
             </TabsTrigger>
           </TabsList>
 
-          {/* Category selector - shared across all tabs */}
-          <div className="mt-4 mb-3">
-            <Label className="text-xs text-muted-foreground mb-2 block">{t('inventory.category')}</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={category === 'fridge' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCategory('fridge')}
-                className="flex items-center gap-2"
-              >
-                🧊 {t('inventory.tabs.fridge')}
-              </Button>
-              <Button
-                type="button"
-                variant={category === 'pantry' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCategory('pantry')}
-                className="flex items-center gap-2"
-              >
-                🗄️ {t('inventory.tabs.pantry')}
-              </Button>
-            </div>
-          </div>
+          {/* Category is set to pantry by default - no need for UI selection */}
 
           {/* Manual entry tab */}
           <TabsContent value="manual" className="space-y-4 mt-0">
