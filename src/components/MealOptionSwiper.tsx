@@ -72,7 +72,15 @@ export function MealOptionSwiper({
   const { t } = useTranslation();
   const { toast } = useToast();
   
-  const [currentMealType, setCurrentMealType] = useState<MealType>('breakfast');
+  // Initialize to the first meal type that has recipes
+  const getInitialMealType = (): MealType => {
+    if (recipeOptions.breakfast.length > 0) return 'breakfast';
+    if (recipeOptions.lunch.length > 0) return 'lunch';
+    if (recipeOptions.dinner.length > 0) return 'dinner';
+    return 'breakfast'; // fallback
+  };
+  
+  const [currentMealType, setCurrentMealType] = useState<MealType>(getInitialMealType);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedMeals, setSelectedMeals] = useState<{
     breakfast: MealRecipe[];
@@ -84,7 +92,7 @@ export function MealOptionSwiper({
     dinner: [],
   });
   const [images, setImages] = useState<Record<string, string>>({});
-  const [loadingImages, setLoadingImages] = useState(false);
+  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [localRecipeOptions, setLocalRecipeOptions] = useState(recipeOptions);
 
@@ -139,46 +147,82 @@ export function MealOptionSwiper({
     };
   }, [selectedMeals]);
 
-  // Generate images for current meal type recipes
+  // Generate images for ALL recipes in background (non-blocking)
   useEffect(() => {
-    const generateImages = async () => {
-      const recipesToGenerate = currentOptions.filter(r => !images[r.id]);
-      
+    const generateAllImages = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Collect all recipes from all meal types
+      const allRecipes = [
+        ...localRecipeOptions.breakfast,
+        ...localRecipeOptions.lunch,
+        ...localRecipeOptions.dinner,
+      ];
+
+      // Filter out recipes that already have images or are being loaded
+      const recipesToGenerate = allRecipes.filter(
+        r => !images[r.id] && !loadingImages[r.id]
+      );
+
       if (recipesToGenerate.length === 0) return;
 
-      setLoadingImages(true);
-      
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const { data, error } = await supabase.functions.invoke('generate-meal-images', {
-          body: { recipes: recipesToGenerate.slice(0, 5) }, // Batch of 5 at a time
+      // Process in batches of 3 for faster individual loading
+      const batchSize = 3;
+      for (let i = 0; i < recipesToGenerate.length; i += batchSize) {
+        const batch = recipesToGenerate.slice(i, i + batchSize);
+        
+        // Mark batch as loading
+        setLoadingImages(prev => {
+          const next = { ...prev };
+          batch.forEach(r => { next[r.id] = true; });
+          return next;
         });
 
-        if (error) {
-          console.error('Image generation error:', error);
-          return;
-        }
+        // Generate images for batch (fire and forget, don't await between batches)
+        supabase.functions.invoke('generate-meal-images', {
+          body: { recipes: batch },
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error('Image generation error:', error);
+            // Clear loading state on error
+            setLoadingImages(prev => {
+              const next = { ...prev };
+              batch.forEach(r => { next[r.id] = false; });
+              return next;
+            });
+            return;
+          }
 
-        if (data?.images) {
-          const newImages: Record<string, string> = {};
-          data.images.forEach((img: { id: string; image_url: string | null }) => {
-            if (img.image_url) {
-              newImages[img.id] = img.image_url;
-            }
+          if (data?.images) {
+            const newImages: Record<string, string> = {};
+            data.images.forEach((img: { id: string; image_url: string | null }) => {
+              if (img.image_url) {
+                newImages[img.id] = img.image_url;
+              }
+            });
+            setImages(prev => ({ ...prev, ...newImages }));
+          }
+
+          // Clear loading state
+          setLoadingImages(prev => {
+            const next = { ...prev };
+            batch.forEach(r => { next[r.id] = false; });
+            return next;
           });
-          setImages(prev => ({ ...prev, ...newImages }));
-        }
-      } catch (err) {
-        console.error('Failed to generate images:', err);
-      } finally {
-        setLoadingImages(false);
+        }).catch(err => {
+          console.error('Failed to generate images:', err);
+          setLoadingImages(prev => {
+            const next = { ...prev };
+            batch.forEach(r => { next[r.id] = false; });
+            return next;
+          });
+        });
       }
     };
 
-    generateImages();
-  }, [currentMealType, currentOptions, images]);
+    generateAllImages();
+  }, [localRecipeOptions]); // Only re-run when recipe options change
 
   const handleSwipe = (direction: 'left' | 'right') => {
     if (!currentRecipe) return;
@@ -390,9 +434,9 @@ export function MealOptionSwiper({
                   className="w-full h-full object-cover animate-in fade-in duration-500"
                 />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-muted to-muted/50">
                   <span className="text-5xl mb-2">🍽️</span>
-                  {loadingImages && (
+                  {loadingImages[currentRecipe.id] && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>{t('mealSwiper.imageLoading', 'Billede indlæses...')}</span>
