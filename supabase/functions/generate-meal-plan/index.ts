@@ -296,8 +296,30 @@ serve(async (req) => {
     // 'maintain' with low budget OR explicit budget focus = prioritize inventory
     const prioritizeBudget = dietaryGoal === 'maintain' || (weeklyBudget && weeklyBudget < 600);
 
-    // ============ ALWAYS GENERATE 5 OPTIONS PER MEAL TYPE ============
-    const recipesPerMealType = 5;
+    // ============ CALCULATE RECIPES PER MEAL TYPE BASED ON COOKING STYLE ============
+    // User will swipe and select meals. We generate enough options for them to choose from.
+    const getRecipesPerMealType = () => {
+      switch (prefs.cooking_style) {
+        case 'meal_prep_2': return 4;  // Show 4 options, user picks 2
+        case 'meal_prep_3': return 5;  // Show 5 options, user picks 3
+        case 'meal_prep_4': return 6;  // Show 6 options, user picks 4
+        case 'daily': return 10;       // Show 10 options, user picks 7
+        default: return 5;
+      }
+    };
+    const recipesPerMealType = getRecipesPerMealType();
+    
+    // Calculate how many unique meals user needs per type
+    const getMealsToSelect = () => {
+      switch (prefs.cooking_style) {
+        case 'meal_prep_2': return 2;
+        case 'meal_prep_3': return 3;
+        case 'meal_prep_4': return 4;
+        case 'daily': return duration_days;
+        default: return duration_days;
+      }
+    };
+    const mealsToSelect = getMealsToSelect();
 
     // ============ BUILD PRIORITIZED AI PROMPT ============
 
@@ -371,6 +393,14 @@ ${formattedOffers || 'Ingen tilbud fundet'}
 2. Inkluder flere af disse ingredienser (bruger elsker): ${allLikes.length > 0 ? allLikes.join(', ') : 'Ingen præferencer'}
 3. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
 
+🔶 SMART VARIATION (udnyt tilbud!):
+- Hvis der er tilbud på en PROTEIN (f.eks. kylling, oksekød, fisk), lav FLERE retter med den protein - det er smart at udnytte tilbuddet!
+- Varier TILBEREDNINGSMETODE: stegt, bagt, wok, gryde, salat, ovn
+- Varier MADTYPE: pasta, ris, kartofler, bulgur, quinoa, brød
+- Varier grøntsager og tilbehør
+- Eksempel: Kylling på tilbud? → Kylling-wok, kyllingesalat, ovnbagt kylling med grøntsager (3 forskellige retter, samme protein!)
+- UNDGÅ kun: 3x præcis samme ret (f.eks. IKKE 3x "kylling med ris" - men "kylling med ris", "kylling-wok", "kyllingesalat" er OK)
+
 🟡 NICE-TO-HAVE:
 1. Hverdage max ${weekdayMaxTime} min tilberedning, weekend max ${weekendMaxTime} min
 2. Undgå disse retter fra sidste 2 uger: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 10).join(', ') : 'Ingen'}
@@ -381,7 +411,8 @@ ${formattedOffers || 'Ingen tilbud fundet'}
 3. Prioritet: ${prioritizeBudget ? 'BUDGET (spar penge)' : 'SUNDHED (ernæring først)'}
 
 📊 GENERERING:
-Generér præcis 5 unikke retter PER måltidstype. Brugeren vil swipe og vælge ${duration_days} retter per måltidstype.
+Generér præcis ${recipesPerMealType} unikke retter PER måltidstype.
+Brugeren vil swipe og vælge ${mealsToSelect} retter per måltidstype (${mealPrepDescription}).
 
 OUTPUT FORMAT:
 Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
