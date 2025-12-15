@@ -32,15 +32,6 @@ export default function Inventory() {
     return 'ok';
   };
 
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'fridge': return 'Køleskab';
-      case 'freezer': return 'Fryser';
-      case 'pantry': return 'Kolonial';
-      default: return category;
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-24">
@@ -63,7 +54,7 @@ export default function Inventory() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold">{t('inventory.title')}</h1>
-            <AddInventoryItemDialog />
+            <AddInventoryItemDialog onSuccess={refetch} />
           </div>
         </div>
       </header>
@@ -114,11 +105,8 @@ export default function Inventory() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{item.ingredient_name}</p>
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {getCategoryLabel(item.category)}
-                      </Badge>
-                    </div>
+                       <p className="font-medium truncate">{item.ingredient_name}</p>
+                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       {item.quantity && (
                         <span>
