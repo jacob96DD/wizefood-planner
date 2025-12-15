@@ -110,24 +110,39 @@ export function MealOptionSwiper({
   const currentRecipe = currentOptions[currentIndex];
   
   // Calculate how many meals needed per type based on cooking style
+  // We distribute a TOTAL number of unique retter på tværs af de måltider der faktisk har opskrifter
   const getMealsNeeded = (mealType: MealType): number => {
     // If no recipes for this meal type, need 0
     if (recipeOptions[mealType].length === 0) return 0;
-    
-    // Based on cooking style:
-    // - daily: need 7 unique meals (1 per day)
-    // - meal_prep_2: need 2 unique meals (repeat through week)
-    // - meal_prep_3: need 3 unique meals
-    // - meal_prep_4: need 4 unique meals
-    switch (cookingStyle) {
-      case 'meal_prep_2': return 2;
-      case 'meal_prep_3': return 3;
-      case 'meal_prep_4': return 4;
-      case 'daily':
-      default: return durationDays;
-    }
+
+    // How many unique meals in total should the user select?
+    const totalToSelect = (() => {
+      switch (cookingStyle) {
+        case 'meal_prep_2': return 2;
+        case 'meal_prep_3': return 3;
+        case 'meal_prep_4': return 4;
+        case 'daily':
+        default:
+          return durationDays;
+      }
+    })();
+
+    // How many meal types actually have options?
+    const activeMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'].filter(
+      (type) => recipeOptions[type].length > 0
+    ) as MealType[];
+
+    const slots = activeMealTypes.length || 1;
+    const basePerType = Math.floor(totalToSelect / slots);
+    const remainder = totalToSelect % slots;
+
+    // Give the "extra" to the first N meal types
+    const index = activeMealTypes.indexOf(mealType);
+    if (index === -1) return 0;
+
+    return basePerType + (index < remainder ? 1 : 0);
   };
-  
+
   const mealsNeeded = getMealsNeeded(currentMealType);
   
   // Check if we've swiped through all options without selecting enough
@@ -437,14 +452,14 @@ export function MealOptionSwiper({
       {/* Swipe Card */}
       <div className="flex-1 p-4 flex flex-col">
         <Card 
-          className={`flex-1 overflow-hidden transition-transform duration-200 ${
+          className={`flex-1 overflow-hidden transition-transform duration-200 rounded-3xl shadow-lg ${
             swipeDirection === 'left' ? '-translate-x-full opacity-0' :
             swipeDirection === 'right' ? 'translate-x-full opacity-0' : ''
           }`}
         >
           <CardContent className="p-0 h-full flex flex-col">
             {/* Image */}
-            <div className="relative h-48 bg-muted overflow-hidden">
+            <div className="relative h-[60vh] max-h-[70vh] bg-muted overflow-hidden">
               {images[currentRecipe.id] ? (
                 <img
                   src={images[currentRecipe.id]}
