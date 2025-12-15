@@ -111,6 +111,7 @@ serve(async (req) => {
       ingredientPrefsResult,
       swipesResult,
       recentMealsResult,
+      discoverSwipesResult,
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('meal_plan_preferences').select('*').eq('user_id', user.id).maybeSingle(),
@@ -118,8 +119,10 @@ serve(async (req) => {
       supabase.from('user_preferred_chains').select('chain_id, store_chains(name)').eq('user_id', user.id),
       supabase.from('household_inventory').select('ingredient_name, quantity, unit, category, expires_at').eq('user_id', user.id).eq('is_depleted', false),
       supabase.from('ingredient_preferences').select('ingredient_name, preference').eq('user_id', user.id),
-      supabase.from('swipes').select('recipe_id, direction, recipes(title, ingredients)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
+      supabase.from('swipes').select('recipe_id, direction, rating, recipes(title, ingredients)').eq('user_id', user.id).not('recipe_id', 'is', null).order('created_at', { ascending: false }).limit(100),
       supabase.from('meal_plans').select('meals, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
+      // Hent discover swipes med ratings
+      supabase.from('swipes').select('discover_recipe_id, direction, rating, discover_recipes(title, key_ingredients)').eq('user_id', user.id).not('discover_recipe_id', 'is', null),
     ]);
 
     const profile = profileResult.data;
@@ -143,14 +146,35 @@ serve(async (req) => {
       .map((ua: any) => ua.allergens?.name)
       .filter(Boolean);
 
-    // 1.2 Hard dislikes (from ingredient_preferences + "never" swipes)
+    // 1.2 Process discover ratings for preferences
+    const discoverSwipes = discoverSwipesResult.data || [];
+    
+    // LIVRETTER (love) - ingredienser brugeren ELSKER
+    const lovedDishes = discoverSwipes.filter((s: any) => s.rating === 'love');
+    const lovedIngredients = [...new Set(lovedDishes.flatMap((s: any) => s.discover_recipes?.key_ingredients || []))];
+    const lovedDishNames = lovedDishes.map((s: any) => s.discover_recipes?.title).filter(Boolean);
+    
+    // Gode retter (like) - brugeren kan lide disse
+    const likedDishes = discoverSwipes.filter((s: any) => s.rating === 'like');
+    const likedIngredients = [...new Set(likedDishes.flatMap((s: any) => s.discover_recipes?.key_ingredients || []))];
+    
+    // Ikke fan (dislike) - undgå helst disse
+    const dislikedDishes = discoverSwipes.filter((s: any) => s.rating === 'dislike');
+    const dislikedIngredients = [...new Set(dislikedDishes.flatMap((s: any) => s.discover_recipes?.key_ingredients || []))];
+    
+    // HADER (hate) - ALDRIG brug disse ingredienser
+    const hatedDishes = discoverSwipes.filter((s: any) => s.rating === 'hate');
+    const hatedIngredients = [...new Set(hatedDishes.flatMap((s: any) => s.discover_recipes?.key_ingredients || []))];
+    const hatedDishNames = hatedDishes.map((s: any) => s.discover_recipes?.title).filter(Boolean);
+
+    // 1.3 Hard dislikes (from ingredient_preferences + "never" swipes + hated discover dishes)
     const hardDislikes = (ingredientPrefsResult.data || [])
       .filter((p: any) => p.preference === 'dislike' || p.preference === 'never')
       .map((p: any) => p.ingredient_name);
 
-    // Add ingredients from "never" swipes
+    // Add ingredients from "never" swipes on regular recipes
     const neverSwipes = (swipesResult.data || [])
-      .filter((s: any) => s.direction === 'down')
+      .filter((s: any) => s.direction === 'down' || s.rating === 'hate')
       .flatMap((s: any) => {
         const ingredients = s.recipes?.ingredients;
         if (Array.isArray(ingredients)) {
@@ -158,7 +182,9 @@ serve(async (req) => {
         }
         return [];
       });
-    const allDislikes = [...new Set([...hardDislikes, ...neverSwipes])];
+    
+    // Kombiner alle hårde dislikes (inkl. hated fra discover)
+    const allDislikes = [...new Set([...hardDislikes, ...neverSwipes, ...hatedIngredients])];
 
     // 1.3 Calculate adjusted macros
     const baseCalories = profile?.daily_calories || 2000;
@@ -394,8 +420,20 @@ ${inventoryItems || 'Ingen varer i lageret'}`;
 - Inkluder grøntsager, fuldkorn og magre proteiner
 - Budget: max ${weeklyBudget} kr (sekundær prioritet)`;
 
+    // Build discover preferences section
+    const discoverPreferencesSection = lovedDishes.length > 0 || hatedDishes.length > 0 ? `
+
+🔥 BRUGERENS SMAGSPROFIL (fra Discover):
+${lovedDishNames.length > 0 ? `LIVRETTER (lav lignende retter!): ${lovedDishNames.join(', ')}
+Elskede ingredienser: ${lovedIngredients.slice(0, 10).join(', ')}` : ''}
+${likedIngredients.length > 0 ? `Kan godt lide: ${likedIngredients.slice(0, 10).join(', ')}` : ''}
+${dislikedIngredients.length > 0 ? `Undgå helst: ${dislikedIngredients.slice(0, 10).join(', ')}` : ''}
+${hatedDishNames.length > 0 ? `🤮 HADER DISSE RETTER (ALDRIG lignende!): ${hatedDishNames.join(', ')}
+ALDRIG brug disse ingredienser: ${hatedIngredients.slice(0, 10).join(', ')}` : ''}` : '';
+
     const systemPrompt = `Du er en erfaren dansk madplanlægger og kok. Du laver sunde, budgetvenlige madplaner for danske familier.
 ${customRequestSection}
+${discoverPreferencesSection}
 
 🔴 KRITISKE REGLER (UFRAVIGELIGE):
 1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen allergener'}
@@ -417,7 +455,7 @@ ${focusSection}
 🟠 VIGTIGE PRIORITETER:
 1. PRIORITER disse tilbud aktivt:
 ${formattedOffers || 'Ingen tilbud fundet'}
-2. Inkluder flere af disse ingredienser (bruger elsker): ${allLikes.length > 0 ? allLikes.join(', ') : 'Ingen præferencer'}
+2. Inkluder flere af disse ingredienser (bruger elsker): ${[...lovedIngredients, ...allLikes].slice(0, 15).join(', ') || 'Ingen præferencer'}
 3. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
 
 🔶 SMART VARIATION (udnyt tilbud!):

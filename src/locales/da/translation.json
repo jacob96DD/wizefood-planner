@@ -444,5 +444,17 @@
     "veganDesc": "Ingen animalske produkter",
     "flexitarian": "Flexitarianer",
     "flexitarianDesc": "Mest plantebaseret"
+  },
+  "discover": {
+    "title": "Discover",
+    "remaining": "retter tilbage",
+    "hint": "Swipe eller tryk på knapperne for at bedømme",
+    "complete": "Du er færdig!",
+    "completeDesc": "Du har bedømt alle retter. Vi bruger dine præferencer til at lave bedre madplaner.",
+    "startOver": "Start forfra",
+    "goToMealPlan": "Se madplan",
+    "noRecipes": "Ingen retter at vise",
+    "reset": "Nulstillet",
+    "resetDesc": "Du kan nu starte forfra med at bedømme retter"
   }
 }
