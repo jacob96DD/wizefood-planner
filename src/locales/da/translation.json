@@ -353,7 +353,16 @@
     "loadingFindingDeals": "Finder de bedste tilbud til dig...",
     "loadingCreatingRecipes": "Sammensætter lækre opskrifter...",
     "loadingFinalizing": "Finpudser din personlige madplan...",
-    "loadingTime": "Det tager ca. 30 sekunder"
+    "loadingTime": "Det tager ca. 30 sekunder",
+    "mealTracking": {
+      "completed": "Spist",
+      "skipped": "Sprunget over",
+      "markEaten": "Marker som spist",
+      "skip": "Spring over",
+      "extraFood": "Ekstra mad i dag",
+      "addPhoto": "Tilføj billede",
+      "photosToday": "Billeder i dag"
+    }
   },
   "shopping": {
     "title": "Indkøbsliste",
@@ -368,7 +377,9 @@
     "generateFromPlan": "Generer en liste fra din madplan",
     "shoppingDate": "Indkøbsdag",
     "goToMealPlan": "Gå til madplan",
-    "currentOffers": "Aktuelle tilbud"
+    "currentOffers": "Aktuelle tilbud",
+    "listCleared": "Liste ryddet",
+    "listClearedDesc": "Din indkøbsliste er blevet slettet"
   },
   "nav": {
     "discover": "Opdag",

@@ -20,7 +20,7 @@ export default function ShoppingList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [shoppingDate, setShoppingDate] = useState<Date>(new Date());
-  const { shoppingList, loading, toggleItem, removeItem } = useShoppingList();
+  const { shoppingList, loading, toggleItem, removeItem, clearList } = useShoppingList();
   const { offers, loading: offersLoading } = useOffers(shoppingDate);
   const { addItem: addToInventory } = useInventory();
 
@@ -64,9 +64,27 @@ export default function ShoppingList() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold">{t('shopping.title')}</h1>
-            <Badge variant="secondary">
-              {uncheckedItems.length} {t('shopping.items')}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {items.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => {
+                    clearList();
+                    toast({
+                      title: t('shopping.listCleared', 'Liste ryddet'),
+                      description: t('shopping.listClearedDesc', 'Din indkøbsliste er blevet slettet'),
+                    });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+              <Badge variant="secondary">
+                {uncheckedItems.length} {t('shopping.items')}
+              </Badge>
+            </div>
           </div>
           
           {/* Shopping date picker */}
