@@ -141,6 +141,26 @@ export function useShoppingList() {
     }
   };
 
+  const clearList = async () => {
+    if (!user || !shoppingList) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('shopping_lists')
+        .delete()
+        .eq('id', shoppingList.id);
+
+      if (error) throw error;
+
+      setShoppingList(null);
+    } catch (err) {
+      console.error('Fejl ved sletning af indkøbsseddel:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     shoppingList,
     loading,
@@ -148,6 +168,7 @@ export function useShoppingList() {
     toggleItem,
     removeItem,
     markCompleted,
+    clearList,
     refetch: fetchShoppingList,
   };
 }

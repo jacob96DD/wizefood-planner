@@ -14,6 +14,7 @@ import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecip
 import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
 import { WeekOverview } from '@/components/WeekOverview';
 import { RecipeDetailDialog, type RecipeDetail } from '@/components/RecipeDetailDialog';
+import { MealTrackingCard } from '@/components/MealTrackingCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
@@ -397,38 +398,18 @@ export default function MealPlan() {
 
               <div className="space-y-4">
                 {[
-                  { time: t('mealPlan.meals.breakfast'), meal: selectedMealsForDay?.breakfast, icon: '🌅' },
-                  { time: t('mealPlan.meals.lunch'), meal: selectedMealsForDay?.lunch, icon: '☀️' },
-                  { time: t('mealPlan.meals.dinner'), meal: selectedMealsForDay?.dinner, icon: '🌙' },
-                ].map(({ time, meal, icon }) => (
-                  <Card key={time} className="overflow-hidden">
-                    <CardContent className="p-0">
-                      {meal ? (
-                        <div className="flex">
-                          <img 
-                            src={meal.imageUrl || '/placeholder.svg'} 
-                            alt={meal.title} 
-                            className="w-24 h-24 object-cover" 
-                          />
-                          <div className="flex-1 p-3">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                              <span>{icon}</span>
-                              <span>{time}</span>
-                            </div>
-                            <h3 className="font-semibold line-clamp-1">{meal.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {meal.calories} {t('common.kcal')} · {meal.prepTime}+ {t('common.minutes')}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-center text-muted-foreground">
-                          <span className="text-2xl mb-2 block">{icon}</span>
-                          <p className="text-sm">{time} - {t('mealPlan.addRecipe')}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  { mealType: 'breakfast' as const, label: t('mealPlan.meals.breakfast'), meal: selectedMealsForDay?.breakfast, icon: '🌅' },
+                  { mealType: 'lunch' as const, label: t('mealPlan.meals.lunch'), meal: selectedMealsForDay?.lunch, icon: '☀️' },
+                  { mealType: 'dinner' as const, label: t('mealPlan.meals.dinner'), meal: selectedMealsForDay?.dinner, icon: '🌙' },
+                ].map(({ mealType, label, meal, icon }) => (
+                  <MealTrackingCard
+                    key={mealType}
+                    date={selectedMealsForDay?.date || new Date().toISOString().split('T')[0]}
+                    mealType={mealType}
+                    meal={meal}
+                    icon={icon}
+                    label={label}
+                  />
                 ))}
               </div>
 

@@ -35,6 +35,68 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_meal_log: {
+        Row: {
+          breakfast_completed: boolean | null
+          breakfast_skipped: boolean | null
+          created_at: string | null
+          date: string
+          dinner_completed: boolean | null
+          dinner_skipped: boolean | null
+          extra_calories: number | null
+          extra_description: string | null
+          food_photos: Json | null
+          id: string
+          lunch_completed: boolean | null
+          lunch_skipped: boolean | null
+          meal_plan_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          breakfast_completed?: boolean | null
+          breakfast_skipped?: boolean | null
+          created_at?: string | null
+          date?: string
+          dinner_completed?: boolean | null
+          dinner_skipped?: boolean | null
+          extra_calories?: number | null
+          extra_description?: string | null
+          food_photos?: Json | null
+          id?: string
+          lunch_completed?: boolean | null
+          lunch_skipped?: boolean | null
+          meal_plan_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          breakfast_completed?: boolean | null
+          breakfast_skipped?: boolean | null
+          created_at?: string | null
+          date?: string
+          dinner_completed?: boolean | null
+          dinner_skipped?: boolean | null
+          extra_calories?: number | null
+          extra_description?: string | null
+          food_photos?: Json | null
+          id?: string
+          lunch_completed?: boolean | null
+          lunch_skipped?: boolean | null
+          meal_plan_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_meal_log_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discover_recipes: {
         Row: {
           category: string | null

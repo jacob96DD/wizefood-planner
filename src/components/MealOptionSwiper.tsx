@@ -109,47 +109,38 @@ export function MealOptionSwiper({
   const currentOptions = localRecipeOptions[currentMealType] || [];
   const currentRecipe = currentOptions[currentIndex];
   
-  // Calculate how many meals needed per type based on cooking style
-  // We distribute a TOTAL number of unique retter på tværs af de måltider der faktisk har opskrifter
+  // Calculate TOTAL meals needed based on cooking style (not per type)
+  const getTotalMealsNeeded = (): number => {
+    switch (cookingStyle) {
+      case 'meal_prep_2': return 2;
+      case 'meal_prep_3': return 3;
+      case 'meal_prep_4': return 4;
+      case 'daily':
+      default:
+        return durationDays; // 7 unique meals for 7 days
+    }
+  };
+
+  const totalMealsNeeded = getTotalMealsNeeded();
+  const totalSelected = selectedMeals.breakfast.length + selectedMeals.lunch.length + selectedMeals.dinner.length;
+  
+  // For compatibility with existing code - distribute evenly but we stop based on totalSelected
   const getMealsNeeded = (mealType: MealType): number => {
-    // If no recipes for this meal type, need 0
     if (recipeOptions[mealType].length === 0) return 0;
-
-    // How many unique meals in total should the user select?
-    const totalToSelect = (() => {
-      switch (cookingStyle) {
-        case 'meal_prep_2': return 2;
-        case 'meal_prep_3': return 3;
-        case 'meal_prep_4': return 4;
-        case 'daily':
-        default:
-          return durationDays;
-      }
-    })();
-
-    // How many meal types actually have options?
     const activeMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'].filter(
       (type) => recipeOptions[type].length > 0
     ) as MealType[];
-
     const slots = activeMealTypes.length || 1;
-    const basePerType = Math.floor(totalToSelect / slots);
-    const remainder = totalToSelect % slots;
-
-    // Give the "extra" to the first N meal types
-    const index = activeMealTypes.indexOf(mealType);
-    if (index === -1) return 0;
-
-    return basePerType + (index < remainder ? 1 : 0);
+    return Math.ceil(totalMealsNeeded / slots);
   };
 
   const mealsNeeded = getMealsNeeded(currentMealType);
   
   // Check if we've swiped through all options without selecting enough
-  const needsMoreOptions = currentIndex >= currentOptions.length && selectedMeals[currentMealType].length < mealsNeeded;
+  const needsMoreOptions = currentIndex >= currentOptions.length && totalSelected < totalMealsNeeded;
 
-  // Check if current meal type is complete
-  const currentTypeComplete = selectedMeals[currentMealType].length >= mealsNeeded;
+  // Check if we have enough total meals selected
+  const allComplete = totalSelected >= totalMealsNeeded;
 
   // Calculate current macro averages from selected meals
   const calculateCurrentMacros = useCallback(() => {
@@ -265,6 +256,8 @@ export function MealOptionSwiper({
     setSwipeDirection(direction);
 
     setTimeout(() => {
+      const newTotalSelected = totalSelected + (direction === 'right' ? 1 : 0);
+      
       if (direction === 'right') {
         // Add to selected
         setSelectedMeals(prev => ({
@@ -276,21 +269,22 @@ export function MealOptionSwiper({
           title: t('mealSwiper.added', 'Tilføjet!'),
           description: currentRecipe.title,
         });
+
+        // Check if we have enough total meals - stop immediately!
+        if (newTotalSelected >= totalMealsNeeded) {
+          setSwipeDirection(null);
+          // Use setTimeout to let state update before completing
+          setTimeout(() => handleComplete(), 100);
+          return;
+        }
       }
 
       // Move to next recipe or meal type
       if (currentIndex < currentOptions.length - 1) {
         setCurrentIndex(prev => prev + 1);
       } else {
-        // Check if we need more meals of this type
-        const selectedCount = selectedMeals[currentMealType].length + (direction === 'right' ? 1 : 0);
-        if (selectedCount < mealsNeeded) {
-          // Go back to start of this meal type
-          setCurrentIndex(0);
-        } else {
-          // Move to next meal type
-          moveToNextMealType();
-        }
+        // Try next meal type
+        moveToNextMealType();
       }
 
       setSwipeDirection(null);
@@ -301,18 +295,30 @@ export function MealOptionSwiper({
     const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
     const currentIdx = mealTypes.indexOf(currentMealType);
     
+    // Try to find next meal type with available recipes
     for (let i = currentIdx + 1; i < mealTypes.length; i++) {
       const nextType = mealTypes[i];
-      const neededForType = getMealsNeeded(nextType);
-      if (recipeOptions[nextType].length > 0 && selectedMeals[nextType].length < neededForType) {
+      if (recipeOptions[nextType].length > 0) {
         setCurrentMealType(nextType);
         setCurrentIndex(0);
         return;
       }
     }
 
-    // All done!
-    handleComplete();
+    // Wrap around to beginning if needed
+    for (let i = 0; i <= currentIdx; i++) {
+      const nextType = mealTypes[i];
+      if (recipeOptions[nextType].length > 0 && nextType !== currentMealType) {
+        setCurrentMealType(nextType);
+        setCurrentIndex(0);
+        return;
+      }
+    }
+
+    // No more meal types, complete if we have enough
+    if (totalSelected >= totalMealsNeeded) {
+      handleComplete();
+    }
   };
 
   const handleComplete = () => {
@@ -323,15 +329,7 @@ export function MealOptionSwiper({
     onComplete(selectedMeals);
   };
 
-  // Check if all selections are complete
-  const allComplete = 
-    (localRecipeOptions.breakfast.length === 0 || selectedMeals.breakfast.length >= getMealsNeeded('breakfast')) &&
-    (localRecipeOptions.lunch.length === 0 || selectedMeals.lunch.length >= getMealsNeeded('lunch')) &&
-    (localRecipeOptions.dinner.length === 0 || selectedMeals.dinner.length >= getMealsNeeded('dinner'));
-
   const currentMacros = calculateCurrentMacros();
-  const totalSelected = selectedMeals.breakfast.length + selectedMeals.lunch.length + selectedMeals.dinner.length;
-  const totalNeeded = getMealsNeeded('breakfast') + getMealsNeeded('lunch') + getMealsNeeded('dinner');
 
   const mealTypeLabels: Record<MealType, string> = {
     breakfast: t('mealPlan.meals.breakfast', 'Morgenmad'),
@@ -373,7 +371,7 @@ export function MealOptionSwiper({
           {t('mealSwiper.noMoreOptions', 'Ingen flere forslag')}
         </h2>
         <p className="text-muted-foreground mb-2">
-          Du har valgt {selectedMeals[currentMealType].length} af {durationDays} {mealTypeLabels[currentMealType].toLowerCase()}-retter.
+          Du har valgt {totalSelected} af {totalMealsNeeded} retter.
         </p>
         <p className="text-sm text-muted-foreground mb-6">
           {t('mealSwiper.generateMoreDesc', 'Vil du have 10 nye forslag at vælge imellem?')}
@@ -405,7 +403,7 @@ export function MealOptionSwiper({
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-xl font-bold mb-2">{t('mealSwiper.allDone', 'Alle retter valgt!')}</h2>
         <p className="text-muted-foreground mb-6">
-          {t('mealSwiper.selectedCount', { count: totalSelected })}
+          {t('mealSwiper.selectedCount', { count: totalSelected })} af {totalMealsNeeded}
         </p>
         <Button variant="hero" onClick={handleComplete}>
           {t('mealSwiper.createPlan', 'Opret madplan')}
@@ -428,7 +426,7 @@ export function MealOptionSwiper({
           </span>
         </div>
         
-        <Progress value={(totalSelected / totalNeeded) * 100} className="h-2" />
+        <Progress value={(totalSelected / totalMealsNeeded) * 100} className="h-2" />
         
         <div className="flex gap-2 mt-3 justify-center">
           {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(type => (
