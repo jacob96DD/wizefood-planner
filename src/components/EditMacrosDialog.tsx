@@ -90,7 +90,47 @@ export function EditMacrosDialog({
   };
 
   const handleReset = () => {
-    setValues(calculatedValues);
+    // Genberegn fra profileData direkte
+    if (profileData?.weightKg && profileData?.heightCm && profileData?.age) {
+      const { weightKg, heightCm, age, gender, activityLevel } = profileData;
+      
+      // Harris-Benedict BMR formula
+      const bmr = gender === 'male'
+        ? 88.36 + (13.4 * weightKg) + (4.8 * heightCm) - (5.7 * age)
+        : 447.6 + (9.2 * weightKg) + (3.1 * heightCm) - (4.3 * age);
+
+      const activity = activityMultipliers[activityLevel || 'moderate'];
+      const tdee = bmr * activity.multiplier;
+
+      let calories = Math.round(tdee);
+      if (dietaryGoal === 'lose') calories -= 500;
+      if (dietaryGoal === 'gain') calories += 500;
+
+      // Makro-fordeling baseret på mål
+      let proteinRatio = 0.25;
+      let carbsRatio = 0.45;
+      let fatRatio = 0.30;
+
+      if (dietaryGoal === 'lose') {
+        proteinRatio = 0.30;
+        carbsRatio = 0.40;
+        fatRatio = 0.30;
+      } else if (dietaryGoal === 'gain') {
+        proteinRatio = 0.30;
+        carbsRatio = 0.45;
+        fatRatio = 0.25;
+      }
+
+      setValues({
+        calories,
+        protein: Math.round((calories * proteinRatio) / 4),
+        carbs: Math.round((calories * carbsRatio) / 4),
+        fat: Math.round((calories * fatRatio) / 9),
+      });
+    } else {
+      // Fallback til calculatedValues hvis ingen profileData
+      setValues(calculatedValues);
+    }
   };
 
   const handleChange = (field: keyof MacroValues, value: string) => {
