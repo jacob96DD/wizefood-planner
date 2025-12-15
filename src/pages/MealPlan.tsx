@@ -40,6 +40,7 @@ export default function MealPlan() {
   const { user } = useAuthStore();
   const { currentPlan, loading, fetchMealPlans, saveMealPlan } = useMealPlans();
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
+  const [loadingMessage, setLoadingMessage] = useState(0);
   const { generateShoppingList, generating: generatingList } = useGenerateShoppingList();
 
   // Fetch profile for macro display
@@ -52,6 +53,27 @@ export default function MealPlan() {
   }, [user?.id]);
 
   const handleOpenConfig = () => setConfigOpen(true);
+
+  // Loading message rotation
+  useEffect(() => {
+    if (!generating) {
+      setLoadingMessage(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setLoadingMessage(prev => (prev + 1) % 4);
+    }, 8000);
+    
+    return () => clearInterval(interval);
+  }, [generating]);
+
+  const loadingMessages = [
+    { emoji: '🛒', text: t('mealPlan.loadingCheckingOffers', 'Vi tjekker lige tilbuddene i supermarkedet...') },
+    { emoji: '🔍', text: t('mealPlan.loadingFindingDeals', 'Finder de bedste tilbud til dig...') },
+    { emoji: '📋', text: t('mealPlan.loadingCreatingRecipes', 'Sammensætter lækre opskrifter...') },
+    { emoji: '✨', text: t('mealPlan.loadingFinalizing', 'Finpudser din personlige madplan...') },
+  ];
 
   const handleGenerate = async () => {
     setConfigOpen(false);
@@ -177,6 +199,25 @@ export default function MealPlan() {
         .filter(Boolean)
         .reduce((sum, meal) => sum + (meal?.calories || 0), 0)
     : 0;
+
+  // Vis full-screen loading når vi genererer
+  if (generating) {
+    const currentMessage = loadingMessages[loadingMessage];
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <div className="text-7xl mb-6 animate-bounce">{currentMessage.emoji}</div>
+          <h2 className="text-xl font-bold mb-3">{currentMessage.text}</h2>
+          <p className="text-muted-foreground mb-6">
+            {t('mealPlan.loadingTime', 'Det tager ca. 30 sekunder')}
+          </p>
+          <div className="flex justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Vis swipe interface hvis i swipe mode
   if (swipeMode && recipeOptions && macroTargets) {

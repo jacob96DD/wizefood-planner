@@ -382,20 +382,22 @@ export function MealOptionSwiper({
         >
           <CardContent className="p-0 h-full flex flex-col">
             {/* Image */}
-            <div className="relative h-48 bg-muted">
-              {loadingImages && !images[currentRecipe.id] ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : images[currentRecipe.id] ? (
+            <div className="relative h-48 bg-muted overflow-hidden">
+              {images[currentRecipe.id] ? (
                 <img
                   src={images[currentRecipe.id]}
                   alt={currentRecipe.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover animate-in fade-in duration-500"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-4xl">
-                  🍽️
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-5xl mb-2">🍽️</span>
+                  {loadingImages && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{t('mealSwiper.imageLoading', 'Billede indlæses...')}</span>
+                    </div>
+                  )}
                 </div>
               )}
               

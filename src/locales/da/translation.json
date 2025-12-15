@@ -348,7 +348,12 @@
     "addRecipe": "Tilføj opskrift",
     "generateShoppingList": "Generer indkøbsliste",
     "noPlansYet": "Ingen madplaner endnu",
-    "generateFirst": "Opret din første madplan for at komme i gang"
+    "generateFirst": "Opret din første madplan for at komme i gang",
+    "loadingCheckingOffers": "Vi tjekker lige tilbuddene i supermarkedet...",
+    "loadingFindingDeals": "Finder de bedste tilbud til dig...",
+    "loadingCreatingRecipes": "Sammensætter lækre opskrifter...",
+    "loadingFinalizing": "Finpudser din personlige madplan...",
+    "loadingTime": "Det tager ca. 30 sekunder"
   },
   "shopping": {
     "title": "Indkøbsliste",
