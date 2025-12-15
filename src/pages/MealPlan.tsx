@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
 import { useMealPlanPreferences } from '@/hooks/useMealPlanPreferences';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface SelectedMeals {
   breakfast: MealRecipe[];
@@ -42,10 +53,11 @@ export default function MealPlan() {
   
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { currentPlan, loading, fetchMealPlans, saveMealPlan } = useMealPlans();
+  const { currentPlan, loading, fetchMealPlans, saveMealPlan, deleteMealPlan } = useMealPlans();
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
   const [loadingMessage, setLoadingMessage] = useState(0);
   const { generateShoppingList, generating: generatingList } = useGenerateShoppingList();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { preferences } = useMealPlanPreferences();
 
   // Fetch profile for macro display
@@ -174,6 +186,25 @@ export default function MealPlan() {
       return null;
     } finally {
       setGeneratingMore(false);
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!currentPlan?.id) return;
+    
+    const success = await deleteMealPlan(currentPlan.id);
+    if (success) {
+      toast({
+        title: '🗑️ Madplan slettet',
+        description: 'Start forfra ved at generere en ny madplan.',
+      });
+      setDeleteDialogOpen(false);
+    } else {
+      toast({
+        title: 'Fejl',
+        description: 'Kunne ikke slette madplanen',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -339,7 +370,8 @@ export default function MealPlan() {
             <TabsContent value="week">
               <WeekOverview 
                 plan={currentPlan} 
-                onShoppingListClick={() => navigate('/shopping-list')} 
+                onShoppingListClick={() => navigate('/shopping-list')}
+                onDeletePlan={() => setDeleteDialogOpen(true)}
               />
             </TabsContent>
 
@@ -418,6 +450,23 @@ export default function MealPlan() {
         generating={generating}
         profile={profile}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>🗑️ Slet madplan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Er du sikker på du vil slette denne madplan? Du kan altid generere en ny bagefter.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuller</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePlan} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Slet og start forfra
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNavigation />
     </div>

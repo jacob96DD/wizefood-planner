@@ -3,13 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Flame } from 'lucide-react';
+import { ShoppingCart, Flame, Trash2 } from 'lucide-react';
 import { RecipeDetailDialog, type RecipeDetail } from './RecipeDetailDialog';
 import type { MealPlan, MealPlanDay, MealPlanMeal } from '@/hooks/useMealPlans';
+
+interface MealWithPrice extends MealPlanMeal {
+  estimated_price?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}
 
 interface WeekOverviewProps {
   plan: MealPlan;
   onShoppingListClick: () => void;
+  onDeletePlan?: () => void;
 }
 
 interface UniqueDish {
@@ -26,12 +34,46 @@ interface UniqueDish {
   mealType: 'breakfast' | 'lunch' | 'dinner';
 }
 
-export function WeekOverview({ plan, onShoppingListClick }: WeekOverviewProps) {
+export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOverviewProps) {
   const { t } = useTranslation();
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const weekDayLabels = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
+
+  // Beregn samlet indkøbspris for hele ugen
+  const calculateWeeklyTotals = () => {
+    const uniqueMeals = new Map<string, { title: string; price: number; servings: number }>();
+    let totalPortions = 0;
+    
+    plan.meals.forEach(day => {
+      [day.breakfast, day.lunch, day.dinner].forEach(meal => {
+        if (meal?.recipeId) {
+          totalPortions++;
+          const mealWithPrice = meal as MealWithPrice;
+          if (!uniqueMeals.has(meal.recipeId)) {
+            uniqueMeals.set(meal.recipeId, {
+              title: meal.title,
+              price: mealWithPrice.estimated_price || 0,
+              servings: 1,
+            });
+          }
+        }
+      });
+    });
+    
+    // Samlet pris = sum af unikke retter (batch cooking = køb kun én gang)
+    const totalCost = Array.from(uniqueMeals.values())
+      .reduce((sum, m) => sum + m.price, 0);
+    
+    const totalSavings = plan.total_savings || 0;
+    const uniqueCount = uniqueMeals.size;
+    const costPerPortion = totalPortions > 0 ? totalCost / totalPortions : 0;
+    
+    return { totalCost, totalSavings, uniqueCount, costPerPortion, totalPortions };
+  };
+
+  const weeklyTotals = calculateWeeklyTotals();
 
   // Extract unique dishes with usage days
   const getUniqueDishes = (): UniqueDish[] => {
@@ -126,22 +168,35 @@ export function WeekOverview({ plan, onShoppingListClick }: WeekOverviewProps) {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center p-3 bg-background rounded-xl">
               <Flame className="w-5 h-5 mx-auto mb-1 text-orange-500" />
               <div className="text-lg font-bold">{dailyAvgCalories}</div>
-              <div className="text-xs text-muted-foreground">kcal/dag (gns.)</div>
+              <div className="text-xs text-muted-foreground">kcal/dag</div>
             </div>
             <div className="text-center p-3 bg-background rounded-xl">
               <span className="text-xl">💰</span>
-              <div className="text-lg font-bold">{plan.total_cost ? `${plan.total_cost} kr` : '-'}</div>
-              <div className="text-xs text-muted-foreground">
-                {plan.total_savings && plan.total_savings > 0 && (
-                  <span className="text-green-600">Spar {plan.total_savings} kr</span>
-                )}
+              <div className="text-lg font-bold">
+                {weeklyTotals.totalCost > 0 ? `${weeklyTotals.totalCost.toFixed(0)} kr` : (plan.total_cost ? `${plan.total_cost} kr` : '-')}
               </div>
+              <div className="text-xs text-muted-foreground">samlet indkøb</div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-xl">
+              <span className="text-xl">🍽️</span>
+              <div className="text-lg font-bold">
+                {weeklyTotals.costPerPortion > 0 ? `~${weeklyTotals.costPerPortion.toFixed(0)} kr` : '-'}
+              </div>
+              <div className="text-xs text-muted-foreground">per portion</div>
             </div>
           </div>
+
+          {weeklyTotals.totalSavings > 0 && (
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
+              <span className="text-green-600 font-semibold">
+                🎉 Du sparer {weeklyTotals.totalSavings} kr fra tilbud!
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -194,11 +249,25 @@ export function WeekOverview({ plan, onShoppingListClick }: WeekOverviewProps) {
         </div>
       </div>
 
-      {/* Shopping List Button */}
-      <Button variant="hero" size="xl" className="w-full" onClick={onShoppingListClick}>
-        <ShoppingCart className="w-5 h-5" />
-        <span>{t('mealPlan.viewShoppingList', 'Se indkøbsliste')}</span>
-      </Button>
+      {/* Action Buttons */}
+      <div className="space-y-3">
+        <Button variant="hero" size="xl" className="w-full" onClick={onShoppingListClick}>
+          <ShoppingCart className="w-5 h-5" />
+          <span>{t('mealPlan.viewShoppingList', 'Se indkøbsliste')}</span>
+        </Button>
+        
+        {onDeletePlan && (
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={onDeletePlan}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Slet og start forfra
+          </Button>
+        )}
+      </div>
 
       <RecipeDetailDialog
         recipe={selectedRecipe}
