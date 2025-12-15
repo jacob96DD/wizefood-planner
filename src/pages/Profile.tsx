@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown, Pizza } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown, Pizza, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { EditRealLifeCaloriesDialog } from '@/components/EditRealLifeCaloriesDia
 import { useAuthStore } from '@/stores/authStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useProfileSync } from '@/hooks/useProfileSync';
+import { useInventory } from '@/hooks/useInventory';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -42,6 +43,9 @@ export default function Profile() {
 
   // Sync profile from database to store
   useProfileSync();
+
+  // Get inventory data
+  const { items: inventoryItems, expiringItems } = useInventory();
 
   // Fetch latest progress entry and preferred stores count
   useEffect(() => {
@@ -326,6 +330,36 @@ export default function Profile() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Mit køkken / Lager */}
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="w-5 h-5 text-primary" />
+                Mit køkken
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/inventory')}>
+                Se alt
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-primary">{inventoryItems.length}</p>
+                <p className="text-sm text-muted-foreground">varer i dit køkken</p>
+              </div>
+              {expiringItems.length > 0 && (
+                <Badge variant="outline" className="text-amber-600 border-amber-300">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  {expiringItems.length} udløber snart
+                </Badge>
+              )}
+            </div>
           </CardContent>
         </Card>
 
