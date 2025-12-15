@@ -289,8 +289,12 @@ serve(async (req) => {
       .filter(Boolean)
       .slice(0, 10);
 
-    // 4.3 Dietary goal
+    // 4.3 Dietary goal - determines inventory prioritization
     const dietaryGoal = profile?.dietary_goal || 'maintain';
+    
+    // Check if user prioritizes saving money
+    // 'maintain' with low budget OR explicit budget focus = prioritize inventory
+    const prioritizeBudget = dietaryGoal === 'maintain' || (weeklyBudget && weeklyBudget < 600);
 
     // ============ ALWAYS GENERATE 5 OPTIONS PER MEAL TYPE ============
     const recipesPerMealType = 5;
@@ -315,6 +319,36 @@ serve(async (req) => {
         ).join('\n')
       : 'Ingen';
 
+    // Build dynamic inventory section based on dietary goal priority
+    const inventorySection = prioritizeBudget && inventory.length > 0
+      ? `
+🔴 KRITISK - BRUG LAGER-INGREDIENSER FØRST (bruger har dem = GRATIS):
+${inventoryItems}
+⚠️ UFRAVIGELIGT: Retter der bruger ingredienser fra lageret SKAL prioriteres højest!
+- Inkluder MINDST 1-2 ingredienser fra lageret i HVER ret hvor det giver mening
+- Sorter opskrifter så dem der bruger flest lager-ingredienser kommer først
+- Dette sparer brugeren penge!`
+      : `
+🟡 Brug fra lager hvis det passer:
+${inventoryItems || 'Ingen varer i lageret'}`;
+
+    // Build dynamic budget/health focus section
+    const focusSection = prioritizeBudget
+      ? `
+🔴 KRITISK - BUDGET-FOKUS (bruger vil spare penge):
+- HOLD max ugentligt budget: ${weeklyBudget} kr
+- Prioriter BILLIGE ingredienser og tilbud
+- Brug lager-ingredienser = gratis = lavere pris
+- Sorter tilbud efter BESPARELSE (ikke bare pris)
+- Simple retter med få ingredienser foretrækkes`
+      : `
+🔴 KRITISK - SUNDHEDS-FOKUS:
+- Ernæringsmål: ${dietaryGoal === 'lose' ? 'VÆGTTAB - reducer kalorier, bevar protein, vælg mættende mad' : dietaryGoal === 'gain' ? 'MUSKELOPBYGNING - højt protein, kalorieoverskud, næringsstof-tæt' : 'vedligehold'}
+- Fokuser på NÆRINGSINDHOLD og makrobalance
+- Vælg ingredienser baseret på sundhed, ikke kun pris
+- Inkluder grøntsager, fuldkorn og magre proteiner
+- Budget: max ${weeklyBudget} kr (sekundær prioritet)`;
+
     const systemPrompt = `Du er en erfaren dansk madplanlægger og kok. Du laver sunde, budgetvenlige madplaner for danske familier.
 
 🔴 KRITISKE REGLER (UFRAVIGELIGE):
@@ -328,24 +362,23 @@ serve(async (req) => {
 ${fixedMealsDescription}
 8. Undtagelser (spring over):
 ${exceptionsDescription}
+${inventorySection}
+${focusSection}
 
 🟠 VIGTIGE PRIORITETER:
 1. PRIORITER disse tilbud aktivt:
 ${formattedOffers || 'Ingen tilbud fundet'}
-2. Max ugentligt budget: ${weeklyBudget} kr
-3. Inkluder flere af disse ingredienser (bruger elsker): ${allLikes.length > 0 ? allLikes.join(', ') : 'Ingen præferencer'}
-4. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
+2. Inkluder flere af disse ingredienser (bruger elsker): ${allLikes.length > 0 ? allLikes.join(', ') : 'Ingen præferencer'}
+3. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
 
 🟡 NICE-TO-HAVE:
 1. Hverdage max ${weekdayMaxTime} min tilberedning, weekend max ${weekendMaxTime} min
-2. Brug fra lager først:
-${inventoryItems || 'Ingen varer i lageret'}
-3. Undgå disse retter fra sidste 2 uger: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 10).join(', ') : 'Ingen'}
+2. Undgå disse retter fra sidste 2 uger: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 10).join(', ') : 'Ingen'}
 
 🟢 KONTEKST:
 1. Brugerens favoritretter: ${likedRecipes.length > 0 ? likedRecipes.join(', ') : 'Ingen data'}
-2. Ernæringsmål: ${dietaryGoal === 'lose' ? 'vægttab' : dietaryGoal === 'gain' ? 'muskelopbygning' : 'vedligehold'}
-3. Antal personer: ${profile?.people_count || 1}
+2. Antal personer: ${profile?.people_count || 1}
+3. Prioritet: ${prioritizeBudget ? 'BUDGET (spar penge)' : 'SUNDHED (ernæring først)'}
 
 📊 GENERERING:
 Generér præcis 5 unikke retter PER måltidstype. Brugeren vil swipe og vælge ${duration_days} retter per måltidstype.
@@ -389,7 +422,7 @@ Hver ret skal have dette format:
     const userPrompt = `Lav ${recipesPerMealType} unikke retter per måltidstype (total ${recipesPerMealType * mealsToInclude.length} retter) for en ${duration_days}-dages madplan startende ${startDate.toISOString().split('T')[0]}.
 
 Husk:
-- Prioriter tilbud og lager aktivt
+${prioritizeBudget ? '- PRIORITER lager-ingredienser og tilbud for at spare penge!' : '- Fokuser på sunde, næringsrige retter!'}
 - Hver ret skal ramme ~${Math.round(availableCalories / mealsToInclude.length)} kcal
 - ${mealPrepDescription}
 - Beregn besparelser fra tilbud
