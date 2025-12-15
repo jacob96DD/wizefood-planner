@@ -9,6 +9,7 @@ const corsHeaders = {
 interface MealPlanRequest {
   duration_days: number;
   start_date: string;
+  custom_request?: string;  // Brugerens specifikke ønsker
 }
 
 interface FixedMeal {
@@ -97,7 +98,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { duration_days = 7, start_date } = await req.json() as MealPlanRequest;
+    const { duration_days = 7, start_date, custom_request } = await req.json() as MealPlanRequest;
     const startDate = start_date ? new Date(start_date) : new Date();
 
     // ============ FETCH ALL DATA IN PARALLEL ============
@@ -192,12 +193,34 @@ serve(async (req) => {
     if (!prefs.skip_lunch) mealsToInclude.push('lunch');
     if (!prefs.skip_dinner) mealsToInclude.push('dinner');
 
-    const mealPrepDescription = {
-      'daily': 'lav en ny ret hver dag',
-      'meal_prep_2': 'lav 2 retter der gentages hele ugen',
-      'meal_prep_3': 'lav 3-4 retter der gentages hele ugen',
-      'meal_prep_4': 'lav 4+ retter der gentages hele ugen',
-    }[prefs.cooking_style] || 'lav en ny ret hver dag';
+    // Detaljeret beskrivelse baseret på cooking_style
+    const cookingStyleInstructions: Record<string, string> = {
+      'daily': `LAV PRÆCIS ${duration_days} FORSKELLIGE RETTER - én ny ret hver dag. Brugeren ønsker VARIATION og vil ikke spise det samme to gange.`,
+      'meal_prep_2': `LAV PRÆCIS 2 UNIKKE RETTER der skal genbruges hele ugen.
+KRITISK INSTRUKS:
+- Du skal KUN generere 2 opskrifter per måltidstype (fx 2 morgenmad, 2 frokost, 2 aftensmad)
+- Brugeren laver kun mad 2 gange og genopvarmer resten af ugen
+- Hver ret skal holde sig godt i køleskab (3-4 dage)
+- Fokus på batch-cooking venlige retter`,
+      'meal_prep_3': `LAV PRÆCIS 3 UNIKKE RETTER der skal genbruges hele ugen.
+KRITISK INSTRUKS:
+- Du skal KUN generere 3 opskrifter per måltidstype
+- Brugeren laver kun mad 3 gange om ugen
+- Retter skal være gode til genopvarmning`,
+      'meal_prep_4': `LAV 4+ UNIKKE RETTER der skal genbruges hele ugen.
+- Du skal generere 4-5 opskrifter per måltidstype
+- God balance mellem frisk madlavning og meal prep`,
+    };
+    
+    const mealPrepDescription = cookingStyleInstructions[prefs.cooking_style] || cookingStyleInstructions['daily'];
+    
+    // Custom request sektion
+    const customRequestSection = custom_request && custom_request.trim() 
+      ? `
+🎯 BRUGERENS SPECIFIKKE ØNSKE (HØJESTE PRIORITET):
+"${custom_request}"
+⚠️ UFRAVIGELIGT: Dette ønske har ABSOLUT HØJESTE prioritet og SKAL respekteres!`
+      : '';
 
     // ============ PRIORITY 2: IMPORTANT ============
 
@@ -372,6 +395,7 @@ ${inventoryItems || 'Ingen varer i lageret'}`;
 - Budget: max ${weeklyBudget} kr (sekundær prioritet)`;
 
     const systemPrompt = `Du er en erfaren dansk madplanlægger og kok. Du laver sunde, budgetvenlige madplaner for danske familier.
+${customRequestSection}
 
 🔴 KRITISKE REGLER (UFRAVIGELIGE):
 1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen allergener'}
@@ -379,7 +403,10 @@ ${inventoryItems || 'Ingen varer i lageret'}`;
 3. Hver ret skal ramme ca. ${Math.round(availableCalories / mealsToInclude.length)} kcal (total dag: ${availableCalories} kcal)
 4. Protein per dag: ${availableProtein}g (±10%)
 5. Måltider: ${mealsToInclude.length > 0 ? mealsToInclude.join(', ') : 'alle'}
-6. Madlavningsstil: ${mealPrepDescription}
+
+📋 MADLAVNINGSSTIL (KRITISK):
+${mealPrepDescription}
+
 7. Faste måltider (medregnet allerede):
 ${fixedMealsDescription}
 8. Undtagelser (spring over):

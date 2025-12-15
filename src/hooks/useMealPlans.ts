@@ -117,11 +117,36 @@ export function useMealPlans() {
     }
   };
 
+  const deleteMealPlan = async (planId: string) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from('meal_plans')
+        .delete()
+        .eq('id', planId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setMealPlans(prev => prev.filter(p => p.id !== planId));
+      if (currentPlan?.id === planId) {
+        setCurrentPlan(null);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Fejl ved sletning af madplan:', err);
+      return false;
+    }
+  };
+
   return {
     mealPlans,
     currentPlan,
     loading,
     fetchMealPlans,
     saveMealPlan,
+    deleteMealPlan,
   };
 }
