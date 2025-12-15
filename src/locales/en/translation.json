@@ -422,8 +422,9 @@
     "markUsed": "Mark as used",
     "addToInventory": "Add to kitchen?",
     "addedToInventory": "Added to kitchen",
-    "scanFridge": "Scan fridge",
-    "scanPantry": "Scan pantry"
+    "scanItems": "📸 Send photo of your items",
+    "scanHint": "Take one or more photos - we'll find the ingredients automatically",
+    "analyzing": "AI is analyzing your items..."
   },
   "dietaryPreferences": {
     "title": "Dietary Type",
