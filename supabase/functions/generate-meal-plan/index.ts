@@ -82,10 +82,10 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -441,26 +441,27 @@ Lav retterne nu!`;
       dislikes: allDislikes.length,
     });
 
-    // Call Claude Sonnet 4 via Lovable AI Gateway
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call Claude Sonnet 4.5 via Anthropic's API
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'x-api-key': anthropicApiKey!,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-5-20250514',
+        max_tokens: 8000,
+        system: systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 8000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      console.error('Anthropic API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
@@ -470,20 +471,20 @@ Lav retterne nu!`;
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402) {
+      if (response.status === 401) {
         return new Response(JSON.stringify({ 
-          error: 'AI credits opbrugt. Tilføj flere credits i Lovable indstillinger.' 
+          error: 'Ugyldig Anthropic API nøgle.' 
         }), {
-          status: 402,
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      throw new Error(`Anthropic API error: ${response.status}`);
     }
 
     const aiResponse = await response.json();
-    const content = aiResponse.choices[0]?.message?.content;
+    const content = aiResponse.content?.[0]?.text;
 
     if (!content) {
       throw new Error('No content from AI');
