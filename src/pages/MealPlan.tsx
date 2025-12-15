@@ -5,12 +5,15 @@ import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2 } from 'luci
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { useMealPlans, type MealPlanDay, type MealPlanMeal } from '@/hooks/useMealPlans';
 import { useGenerateMealPlan, type GenerateMealPlanResult } from '@/hooks/useGenerateMealPlan';
 import { MealPlanConfigDialog } from '@/components/MealPlanConfigDialog';
 import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecipe, type CookingStyle } from '@/components/MealOptionSwiper';
 import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
+import { WeekOverview } from '@/components/WeekOverview';
+import { RecipeDetailDialog, type RecipeDetail } from '@/components/RecipeDetailDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
@@ -92,6 +95,7 @@ export default function MealPlan() {
 
   const handleSwipeComplete = async (selectedMeals: SelectedMeals) => {
     // Konverter valgte retter til MealPlanDay format
+    // GENBRUG retter med modulo så de roterer henover ugen
     const meals: MealPlanDay[] = [];
     const today = new Date();
     
@@ -99,11 +103,16 @@ export default function MealPlan() {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
       
+      // Brug modulo til at genbruge retter på tværs af ugen
+      const breakfastIndex = selectedMeals.breakfast.length > 0 ? i % selectedMeals.breakfast.length : -1;
+      const lunchIndex = selectedMeals.lunch.length > 0 ? i % selectedMeals.lunch.length : -1;
+      const dinnerIndex = selectedMeals.dinner.length > 0 ? i % selectedMeals.dinner.length : -1;
+      
       const dayMeals: MealPlanDay = {
         date: date.toISOString().split('T')[0],
-        breakfast: selectedMeals.breakfast[i] ? convertToMealPlanMeal(selectedMeals.breakfast[i]) : null,
-        lunch: selectedMeals.lunch[i] ? convertToMealPlanMeal(selectedMeals.lunch[i]) : null,
-        dinner: selectedMeals.dinner[i] ? convertToMealPlanMeal(selectedMeals.dinner[i]) : null,
+        breakfast: breakfastIndex >= 0 ? convertToMealPlanMeal(selectedMeals.breakfast[breakfastIndex]) : null,
+        lunch: lunchIndex >= 0 ? convertToMealPlanMeal(selectedMeals.lunch[lunchIndex]) : null,
+        dinner: dinnerIndex >= 0 ? convertToMealPlanMeal(selectedMeals.dinner[dinnerIndex]) : null,
       };
       meals.push(dayMeals);
     }
@@ -194,10 +203,10 @@ export default function MealPlan() {
 
   // Hent måltider for valgt dag fra aktuel plan
   const meals = currentPlan?.meals || [];
-  const selectedMeals: MealPlanDay | null = meals[selectedDay] || null;
+  const selectedMealsForDay: MealPlanDay | null = meals[selectedDay] || null;
 
-  const totalCalories = selectedMeals
-    ? [selectedMeals.breakfast, selectedMeals.lunch, selectedMeals.dinner]
+  const totalCalories = selectedMealsForDay
+    ? [selectedMealsForDay.breakfast, selectedMealsForDay.lunch, selectedMealsForDay.dinner]
         .filter(Boolean)
         .reduce((sum, meal) => sum + (meal?.calories || 0), 0)
     : 0;
@@ -321,70 +330,84 @@ export default function MealPlan() {
             </Button>
           </div>
         ) : (
-          <>
-            <Card className="mb-6">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('mealPlan.todaysCalories')}</p>
-                    <p className="text-2xl font-bold">{totalCalories} {t('common.kcal')}</p>
-                  </div>
-                  {currentPlan.total_savings && currentPlan.total_savings > 0 && (
-                    <div className="text-right">
-                      <Badge variant="secondary" className="mb-1">
-                        {t('mealPlan.saveFromOffers', { amount: currentPlan.total_savings })}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground">{t('mealPlan.fromOffers')}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="week" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="week">📅 {t('mealPlan.weekView', 'Ugeoversigt')}</TabsTrigger>
+              <TabsTrigger value="day">📆 {t('mealPlan.dayView', 'Dag for dag')}</TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-4">
-              {[
-                { time: t('mealPlan.meals.breakfast'), meal: selectedMeals?.breakfast, icon: '🌅' },
-                { time: t('mealPlan.meals.lunch'), meal: selectedMeals?.lunch, icon: '☀️' },
-                { time: t('mealPlan.meals.dinner'), meal: selectedMeals?.dinner, icon: '🌙' },
-              ].map(({ time, meal, icon }) => (
-                <Card key={time} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    {meal ? (
-                      <div className="flex">
-                        <img 
-                          src={meal.imageUrl || '/placeholder.svg'} 
-                          alt={meal.title} 
-                          className="w-24 h-24 object-cover" 
-                        />
-                        <div className="flex-1 p-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <span>{icon}</span>
-                            <span>{time}</span>
-                          </div>
-                          <h3 className="font-semibold line-clamp-1">{meal.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {meal.calories} {t('common.kcal')} · {meal.prepTime}+ {t('common.minutes')}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center text-muted-foreground">
-                        <span className="text-2xl mb-2 block">{icon}</span>
-                        <p className="text-sm">{time} - {t('mealPlan.addRecipe')}</p>
+            <TabsContent value="week">
+              <WeekOverview 
+                plan={currentPlan} 
+                onShoppingListClick={() => navigate('/shopping-list')} 
+              />
+            </TabsContent>
+
+            <TabsContent value="day">
+              <Card className="mb-6">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t('mealPlan.todaysCalories')}</p>
+                      <p className="text-2xl font-bold">{totalCalories} {t('common.kcal')}</p>
+                    </div>
+                    {currentPlan.total_savings && currentPlan.total_savings > 0 && (
+                      <div className="text-right">
+                        <Badge variant="secondary" className="mb-1">
+                          {t('mealPlan.saveFromOffers', { amount: currentPlan.total_savings })}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">{t('mealPlan.fromOffers')}</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <div className="mt-8">
-              <Button variant="hero" size="xl" className="w-full" onClick={() => navigate('/shopping-list')}>
-                <ShoppingCart className="w-5 h-5" />
-                <span>{t('mealPlan.generateShoppingList')}</span>
-              </Button>
-            </div>
-          </>
+              <div className="space-y-4">
+                {[
+                  { time: t('mealPlan.meals.breakfast'), meal: selectedMealsForDay?.breakfast, icon: '🌅' },
+                  { time: t('mealPlan.meals.lunch'), meal: selectedMealsForDay?.lunch, icon: '☀️' },
+                  { time: t('mealPlan.meals.dinner'), meal: selectedMealsForDay?.dinner, icon: '🌙' },
+                ].map(({ time, meal, icon }) => (
+                  <Card key={time} className="overflow-hidden">
+                    <CardContent className="p-0">
+                      {meal ? (
+                        <div className="flex">
+                          <img 
+                            src={meal.imageUrl || '/placeholder.svg'} 
+                            alt={meal.title} 
+                            className="w-24 h-24 object-cover" 
+                          />
+                          <div className="flex-1 p-3">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                              <span>{icon}</span>
+                              <span>{time}</span>
+                            </div>
+                            <h3 className="font-semibold line-clamp-1">{meal.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {meal.calories} {t('common.kcal')} · {meal.prepTime}+ {t('common.minutes')}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-muted-foreground">
+                          <span className="text-2xl mb-2 block">{icon}</span>
+                          <p className="text-sm">{time} - {t('mealPlan.addRecipe')}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="mt-8">
+                <Button variant="hero" size="xl" className="w-full" onClick={() => navigate('/shopping-list')}>
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>{t('mealPlan.generateShoppingList')}</span>
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </main>
 
