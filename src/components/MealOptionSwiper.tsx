@@ -48,9 +48,12 @@ export interface MacroTargets {
   fat: number;
 }
 
+export type CookingStyle = 'daily' | 'meal_prep_2' | 'meal_prep_3' | 'meal_prep_4';
+
 interface MealOptionSwiperProps {
   recipeOptions: RecipeOptions;
   durationDays: number;
+  cookingStyle: CookingStyle;
   macroTargets: MacroTargets;
   onComplete: (selectedMeals: { breakfast: MealRecipe[]; lunch: MealRecipe[]; dinner: MealRecipe[] }) => void;
   onCancel: () => void;
@@ -63,6 +66,7 @@ type MealType = 'breakfast' | 'lunch' | 'dinner';
 export function MealOptionSwiper({
   recipeOptions,
   durationDays,
+  cookingStyle,
   macroTargets,
   onComplete,
   onCancel,
@@ -105,13 +109,29 @@ export function MealOptionSwiper({
   const currentOptions = localRecipeOptions[currentMealType] || [];
   const currentRecipe = currentOptions[currentIndex];
   
+  // Calculate how many meals needed per type based on cooking style
+  const getMealsNeeded = (mealType: MealType): number => {
+    // If no recipes for this meal type, need 0
+    if (recipeOptions[mealType].length === 0) return 0;
+    
+    // Based on cooking style:
+    // - daily: need 7 unique meals (1 per day)
+    // - meal_prep_2: need 2 unique meals (repeat through week)
+    // - meal_prep_3: need 3 unique meals
+    // - meal_prep_4: need 4 unique meals
+    switch (cookingStyle) {
+      case 'meal_prep_2': return 2;
+      case 'meal_prep_3': return 3;
+      case 'meal_prep_4': return 4;
+      case 'daily':
+      default: return durationDays;
+    }
+  };
+  
+  const mealsNeeded = getMealsNeeded(currentMealType);
+  
   // Check if we've swiped through all options without selecting enough
-  const needsMoreOptions = currentIndex >= currentOptions.length && selectedMeals[currentMealType].length < durationDays;
-
-  // Calculate how many meals needed per type
-  const mealsNeeded = currentMealType === 'breakfast' && recipeOptions.breakfast.length === 0
-    ? 0
-    : durationDays;
+  const needsMoreOptions = currentIndex >= currentOptions.length && selectedMeals[currentMealType].length < mealsNeeded;
 
   // Check if current meal type is complete
   const currentTypeComplete = selectedMeals[currentMealType].length >= mealsNeeded;
@@ -268,7 +288,8 @@ export function MealOptionSwiper({
     
     for (let i = currentIdx + 1; i < mealTypes.length; i++) {
       const nextType = mealTypes[i];
-      if (recipeOptions[nextType].length > 0 && selectedMeals[nextType].length < durationDays) {
+      const neededForType = getMealsNeeded(nextType);
+      if (recipeOptions[nextType].length > 0 && selectedMeals[nextType].length < neededForType) {
         setCurrentMealType(nextType);
         setCurrentIndex(0);
         return;
@@ -289,16 +310,13 @@ export function MealOptionSwiper({
 
   // Check if all selections are complete
   const allComplete = 
-    (localRecipeOptions.breakfast.length === 0 || selectedMeals.breakfast.length >= durationDays) &&
-    (localRecipeOptions.lunch.length === 0 || selectedMeals.lunch.length >= durationDays) &&
-    (localRecipeOptions.dinner.length === 0 || selectedMeals.dinner.length >= durationDays);
+    (localRecipeOptions.breakfast.length === 0 || selectedMeals.breakfast.length >= getMealsNeeded('breakfast')) &&
+    (localRecipeOptions.lunch.length === 0 || selectedMeals.lunch.length >= getMealsNeeded('lunch')) &&
+    (localRecipeOptions.dinner.length === 0 || selectedMeals.dinner.length >= getMealsNeeded('dinner'));
 
   const currentMacros = calculateCurrentMacros();
   const totalSelected = selectedMeals.breakfast.length + selectedMeals.lunch.length + selectedMeals.dinner.length;
-  const totalNeeded = 
-    (localRecipeOptions.breakfast.length > 0 ? durationDays : 0) +
-    (localRecipeOptions.lunch.length > 0 ? durationDays : 0) +
-    (localRecipeOptions.dinner.length > 0 ? durationDays : 0);
+  const totalNeeded = getMealsNeeded('breakfast') + getMealsNeeded('lunch') + getMealsNeeded('dinner');
 
   const mealTypeLabels: Record<MealType, string> = {
     breakfast: t('mealPlan.meals.breakfast', 'Morgenmad'),
@@ -409,7 +427,7 @@ export function MealOptionSwiper({
                   setCurrentIndex(0);
                 }}
               >
-                {mealTypeLabels[type]} ({selectedMeals[type].length}/{durationDays})
+                {mealTypeLabels[type]} ({selectedMeals[type].length}/{getMealsNeeded(type)})
               </Badge>
             )
           ))}

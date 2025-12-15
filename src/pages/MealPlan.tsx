@@ -9,11 +9,12 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { useMealPlans, type MealPlanDay, type MealPlanMeal } from '@/hooks/useMealPlans';
 import { useGenerateMealPlan, type GenerateMealPlanResult } from '@/hooks/useGenerateMealPlan';
 import { MealPlanConfigDialog } from '@/components/MealPlanConfigDialog';
-import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecipe } from '@/components/MealOptionSwiper';
+import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecipe, type CookingStyle } from '@/components/MealOptionSwiper';
 import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
+import { useMealPlanPreferences } from '@/hooks/useMealPlanPreferences';
 
 interface SelectedMeals {
   breakfast: MealRecipe[];
@@ -42,6 +43,7 @@ export default function MealPlan() {
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
   const [loadingMessage, setLoadingMessage] = useState(0);
   const { generateShoppingList, generating: generatingList } = useGenerateShoppingList();
+  const { preferences } = useMealPlanPreferences();
 
   // Fetch profile for macro display
   useEffect(() => {
@@ -225,6 +227,7 @@ export default function MealPlan() {
       <MealOptionSwiper
         recipeOptions={recipeOptions}
         durationDays={durationDays}
+        cookingStyle={preferences.cooking_style}
         macroTargets={macroTargets}
         onComplete={handleSwipeComplete}
         onCancel={handleSwipeCancel}
