@@ -86,6 +86,12 @@ export default function MealPlan() {
 
   const handleGenerate = async () => {
     setConfigOpen(false);
+    
+    // Slet eksisterende plan før generering af ny
+    if (currentPlan?.id) {
+      await deleteMealPlan(currentPlan.id);
+    }
+    
     const result = await generateMealPlan({ duration_days: 7 });
     
     if (result) {
@@ -103,20 +109,16 @@ export default function MealPlan() {
     // GENBRUG retter med modulo så de roterer henover ugen
     const meals: MealPlanDay[] = [];
     const today = new Date();
-    const mealsPerDay = 3; // breakfast, lunch, dinner
     
     for (let i = 0; i < durationDays; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
       
-      // Distribuer retter på tværs af måltider og dage
-      const mealIndex = i % selectedMeals.length;
-      
-      // Simple distribution: rotate meals across the week
+      // Alle dage får alle måltider med rotation gennem valgte retter
       const dayMeals: MealPlanDay = {
         date: date.toISOString().split('T')[0],
-        breakfast: i < selectedMeals.length ? convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]) : null,
-        lunch: i + 1 < selectedMeals.length * 2 ? convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]) : null,
+        breakfast: convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]),
+        lunch: convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]),
         dinner: convertToMealPlanMeal(selectedMeals[(i + 2) % selectedMeals.length]),
       };
       meals.push(dayMeals);

@@ -34,6 +34,9 @@ interface UniqueDish {
   mealType: 'breakfast' | 'lunch' | 'dinner';
 }
 
+// Gennemsnitligt dansk husholdningsbudget
+const AVERAGE_WEEKLY_COST = 385; // ~1670 kr/måned ÷ 4.3 uger
+
 export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOverviewProps) {
   const { t } = useTranslation();
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail | null>(null);
@@ -66,11 +69,14 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
     const totalCost = Array.from(uniqueMeals.values())
       .reduce((sum, m) => sum + m.price, 0);
     
+    // Brug plan.total_cost hvis vi ikke har estimerede priser
+    const effectiveCost = totalCost > 0 ? totalCost : (plan.total_cost || 0);
     const totalSavings = plan.total_savings || 0;
     const uniqueCount = uniqueMeals.size;
-    const costPerPortion = totalPortions > 0 ? totalCost / totalPortions : 0;
+    const costPerPortion = totalPortions > 0 ? effectiveCost / totalPortions : 0;
+    const savingsVsAverage = AVERAGE_WEEKLY_COST - effectiveCost;
     
-    return { totalCost, totalSavings, uniqueCount, costPerPortion, totalPortions };
+    return { totalCost: effectiveCost, totalSavings, uniqueCount, costPerPortion, totalPortions, savingsVsAverage };
   };
 
   const weeklyTotals = calculateWeeklyTotals();
@@ -168,18 +174,26 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
             </Badge>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="text-center p-3 bg-background rounded-xl">
+              <span className="text-xl">💰</span>
+              <div className="text-lg font-bold">
+                {weeklyTotals.totalCost > 0 ? `${weeklyTotals.totalCost.toFixed(0)} kr` : '-'}
+              </div>
+              <div className="text-xs text-muted-foreground">denne uge</div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-xl">
+              <span className="text-xl">📊</span>
+              <div className="text-lg font-bold">{AVERAGE_WEEKLY_COST} kr</div>
+              <div className="text-xs text-muted-foreground">gennemsnitligt</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center p-3 bg-background rounded-xl">
               <Flame className="w-5 h-5 mx-auto mb-1 text-orange-500" />
               <div className="text-lg font-bold">{dailyAvgCalories}</div>
               <div className="text-xs text-muted-foreground">kcal/dag</div>
-            </div>
-            <div className="text-center p-3 bg-background rounded-xl">
-              <span className="text-xl">💰</span>
-              <div className="text-lg font-bold">
-                {weeklyTotals.totalCost > 0 ? `${weeklyTotals.totalCost.toFixed(0)} kr` : (plan.total_cost ? `${plan.total_cost} kr` : '-')}
-              </div>
-              <div className="text-xs text-muted-foreground">samlet indkøb</div>
             </div>
             <div className="text-center p-3 bg-background rounded-xl">
               <span className="text-xl">🍽️</span>
@@ -190,10 +204,28 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
             </div>
           </div>
 
+          {/* Besparelser ift. gennemsnit */}
+          {weeklyTotals.totalCost > 0 && (
+            <div className={`rounded-lg p-3 text-center mb-3 ${
+              weeklyTotals.savingsVsAverage >= 0 
+                ? 'bg-green-500/10 border border-green-500/20' 
+                : 'bg-orange-500/10 border border-orange-500/20'
+            }`}>
+              <span className={`font-semibold ${
+                weeklyTotals.savingsVsAverage >= 0 ? 'text-green-600' : 'text-orange-600'
+              }`}>
+                {weeklyTotals.savingsVsAverage >= 0 
+                  ? `🎉 Du sparer ${weeklyTotals.savingsVsAverage.toFixed(0)} kr ift. gennemsnit!`
+                  : `⚠️ ${Math.abs(weeklyTotals.savingsVsAverage).toFixed(0)} kr over gennemsnit`}
+              </span>
+            </div>
+          )}
+
+          {/* Tilbudsbesparelse */}
           {weeklyTotals.totalSavings > 0 && (
-            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
-              <span className="text-green-600 font-semibold">
-                🎉 Du sparer {weeklyTotals.totalSavings} kr fra tilbud!
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
+              <span className="text-blue-600 text-sm">
+                💳 Heraf {weeklyTotals.totalSavings} kr sparet fra tilbud
               </span>
             </div>
           )}
