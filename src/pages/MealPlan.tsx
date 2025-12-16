@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -294,20 +294,32 @@ export default function MealPlan() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold">{t('mealPlan.title')}</h1>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-primary"
-              onClick={handleOpenConfig}
-              disabled={generating}
-            >
-              {generating ? (
-                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-1.5" />
+            <div className="flex items-center gap-2">
+              {currentPlan && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               )}
-              {generating ? t('mealPlan.generating', 'Genererer...') : t('mealPlan.generate')}
-            </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary"
+                onClick={handleOpenConfig}
+                disabled={generating}
+              >
+                {generating ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-1.5" />
+                )}
+                {generating ? t('mealPlan.generating', 'Genererer...') : t('mealPlan.generate')}
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between mb-4">
@@ -365,7 +377,7 @@ export default function MealPlan() {
             <TabsContent value="week">
               <WeekOverview 
                 plan={currentPlan} 
-                onShoppingListClick={() => navigate('/shopping-list')}
+                onShoppingListClick={() => navigate('/shopping')}
                 onDeletePlan={() => setDeleteDialogOpen(true)}
               />
             </TabsContent>
@@ -408,7 +420,7 @@ export default function MealPlan() {
               </div>
 
               <div className="mt-8">
-                <Button variant="default" size="lg" className="w-full" onClick={() => navigate('/shopping-list')}>
+                <Button variant="default" size="lg" className="w-full" onClick={() => navigate('/shopping')}>
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   <span>{t('mealPlan.generateShoppingList')}</span>
                 </Button>
