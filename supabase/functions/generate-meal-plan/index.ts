@@ -9,7 +9,7 @@ const corsHeaders = {
 interface MealPlanRequest {
   duration_days: number;
   start_date: string;
-  custom_request?: string;  // Brugerens specifikke ønsker
+  custom_request?: string;
 }
 
 interface FixedMeal {
@@ -51,7 +51,6 @@ interface MealPlanPreferences {
   max_weekly_budget?: number;
 }
 
-// Get current season based on month
 function getCurrentSeason(): string {
   const month = new Date().getMonth();
   if (month >= 2 && month <= 4) return 'forår';
@@ -112,6 +111,7 @@ serve(async (req) => {
       swipesResult,
       recentMealsResult,
       discoverSwipesResult,
+      mealPlanSwipesResult,
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('meal_plan_preferences').select('*').eq('user_id', user.id).maybeSingle(),
@@ -123,6 +123,8 @@ serve(async (req) => {
       supabase.from('meal_plans').select('meals, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
       // Hent discover swipes med ratings
       supabase.from('swipes').select('discover_recipe_id, direction, rating, discover_recipes(title, key_ingredients)').eq('user_id', user.id).not('discover_recipe_id', 'is', null),
+      // Hent meal plan swipes (AI-genererede retter)
+      supabase.from('swipes').select('rating, meal_plan_recipe_title, meal_plan_key_ingredients').eq('user_id', user.id).not('meal_plan_recipe_title', 'is', null),
     ]);
 
     const profile = profileResult.data;
@@ -167,12 +169,26 @@ serve(async (req) => {
     const hatedIngredients = [...new Set(hatedDishes.flatMap((s: any) => s.discover_recipes?.key_ingredients || []))];
     const hatedDishNames = hatedDishes.map((s: any) => s.discover_recipes?.title).filter(Boolean);
 
-    // 1.3 Hard dislikes (from ingredient_preferences + "never" swipes + hated discover dishes)
+    // 1.3 Process meal plan swipes (AI-genererede retter fra tidligere)
+    const mealPlanSwipes = mealPlanSwipesResult.data || [];
+    const mpLovedIngredients = mealPlanSwipes
+      .filter((s: any) => s.rating === 'love')
+      .flatMap((s: any) => s.meal_plan_key_ingredients || []);
+    const mpLikedIngredients = mealPlanSwipes
+      .filter((s: any) => s.rating === 'like')
+      .flatMap((s: any) => s.meal_plan_key_ingredients || []);
+    const mpHatedIngredients = mealPlanSwipes
+      .filter((s: any) => s.rating === 'hate')
+      .flatMap((s: any) => s.meal_plan_key_ingredients || []);
+    const mpDislikedIngredients = mealPlanSwipes
+      .filter((s: any) => s.rating === 'dislike')
+      .flatMap((s: any) => s.meal_plan_key_ingredients || []);
+
+    // 1.4 Hard dislikes (from ingredient_preferences + "never" swipes + hated discover dishes + meal plan hates)
     const hardDislikes = (ingredientPrefsResult.data || [])
       .filter((p: any) => p.preference === 'dislike' || p.preference === 'never')
       .map((p: any) => p.ingredient_name);
 
-    // Add ingredients from "never" swipes on regular recipes
     const neverSwipes = (swipesResult.data || [])
       .filter((s: any) => s.direction === 'down' || s.rating === 'hate')
       .flatMap((s: any) => {
@@ -183,16 +199,19 @@ serve(async (req) => {
         return [];
       });
     
-    // Kombiner alle hårde dislikes (inkl. hated fra discover)
-    const allDislikes = [...new Set([...hardDislikes, ...neverSwipes, ...hatedIngredients])];
+    // Kombiner alle hårde dislikes
+    const allDislikes = [...new Set([...hardDislikes, ...neverSwipes, ...hatedIngredients, ...mpHatedIngredients])];
+    
+    // Kombiner alle likes
+    const allLovedIngredients = [...new Set([...lovedIngredients, ...mpLovedIngredients])];
+    const allLikedIngredients = [...new Set([...likedIngredients, ...mpLikedIngredients])];
 
-    // 1.3 Calculate adjusted macros
+    // 1.5 Calculate adjusted macros
     const baseCalories = profile?.daily_calories || 2000;
     const baseProtein = profile?.daily_protein_target || 75;
     const baseCarbs = profile?.daily_carbs_target || 250;
     const baseFat = profile?.daily_fat_target || 65;
 
-    // Subtract extra calories (weekly / 7)
     const extraCaloriesPerDay = (prefs.extra_calories || []).reduce(
       (sum: number, item: ExtraCalories) => sum + (item.calories_per_week / 7), 0
     );
@@ -200,7 +219,6 @@ serve(async (req) => {
       (sum: number, item: ExtraCalories) => sum + (item.protein / 7), 0
     );
 
-    // Subtract fixed meals
     const fixedCaloriesPerDay = (prefs.fixed_meals || []).reduce((sum: number, meal: FixedMeal) => {
       if (meal.day === 'all') return sum + meal.calories;
       return sum + (meal.calories / 7);
@@ -213,32 +231,26 @@ serve(async (req) => {
     const availableCalories = Math.round(baseCalories - extraCaloriesPerDay - fixedCaloriesPerDay);
     const availableProtein = Math.round(baseProtein - extraProteinPerDay - fixedProteinPerDay);
 
-    // 1.4 Meal structure
+    // 1.6 Meal structure - only for calorie calculation
     const mealsToInclude: string[] = [];
     if (!prefs.skip_breakfast) mealsToInclude.push('breakfast');
     if (!prefs.skip_lunch) mealsToInclude.push('lunch');
     if (!prefs.skip_dinner) mealsToInclude.push('dinner');
+    const mealsPerDay = mealsToInclude.length || 3;
 
-    // Detaljeret beskrivelse baseret på cooking_style
-    const cookingStyleInstructions: Record<string, string> = {
-      'daily': `LAV PRÆCIS ${duration_days} FORSKELLIGE RETTER - én ny ret hver dag. Brugeren ønsker VARIATION og vil ikke spise det samme to gange.`,
-      'meal_prep_2': `LAV PRÆCIS 2 UNIKKE RETTER der skal genbruges hele ugen.
-KRITISK INSTRUKS:
-- Du skal KUN generere 2 opskrifter per måltidstype (fx 2 morgenmad, 2 frokost, 2 aftensmad)
-- Brugeren laver kun mad 2 gange og genopvarmer resten af ugen
-- Hver ret skal holde sig godt i køleskab (3-4 dage)
-- Fokus på batch-cooking venlige retter`,
-      'meal_prep_3': `LAV PRÆCIS 3 UNIKKE RETTER der skal genbruges hele ugen.
-KRITISK INSTRUKS:
-- Du skal KUN generere 3 opskrifter per måltidstype
-- Brugeren laver kun mad 3 gange om ugen
-- Retter skal være gode til genopvarmning`,
-      'meal_prep_4': `LAV 4+ UNIKKE RETTER der skal genbruges hele ugen.
-- Du skal generere 4-5 opskrifter per måltidstype
-- God balance mellem frisk madlavning og meal prep`,
+    // ============ CALCULATE TOTAL RECIPES TO GENERATE ============
+    // NY LOGIK: Generer (needed + 3) retter TOTAL i én samlet liste
+    const getRecipesToGenerate = (): { needed: number; total: number } => {
+      switch (prefs.cooking_style) {
+        case 'meal_prep_2': return { needed: 2, total: 5 };  // 2 + 3
+        case 'meal_prep_3': return { needed: 3, total: 6 };  // 3 + 3
+        case 'meal_prep_4': return { needed: 4, total: 7 };  // 4 + 3
+        case 'daily':
+        default:
+          return { needed: duration_days, total: duration_days + 3 }; // 7 + 3 = 10
+      }
     };
-    
-    const mealPrepDescription = cookingStyleInstructions[prefs.cooking_style] || cookingStyleInstructions['daily'];
+    const { needed: recipesNeeded, total: recipesToGenerate } = getRecipesToGenerate();
     
     // Custom request sektion
     const customRequestSection = custom_request && custom_request.trim() 
@@ -250,7 +262,6 @@ KRITISK INSTRUKS:
 
     // ============ PRIORITY 2: IMPORTANT ============
 
-    // 2.1 Current offers
     const chainIds = (preferredChainsResult.data || []).map((pc: any) => pc.chain_id);
     const chainNames = (preferredChainsResult.data || []).map((pc: any) => pc.store_chains?.name).filter(Boolean);
 
@@ -280,15 +291,12 @@ KRITISK INSTRUKS:
       return `- ${offer.offer_text || offer.product_name}: ${offer.offer_price_dkk} kr ${savings} @ ${storeName}`;
     }).join('\n');
 
-    // 2.2 Budget - prioritize preferences, fallback to profile
     const weeklyBudget = prefs.max_weekly_budget || profile?.budget_per_week || 800;
 
-    // 2.3 Positive preferences (from likes)
     const likes = (ingredientPrefsResult.data || [])
       .filter((p: any) => p.preference === 'like')
       .map((p: any) => p.ingredient_name);
 
-    // Add ingredients from "yes" and "super" swipes
     const positiveSwipes = (swipesResult.data || [])
       .filter((s: any) => s.direction === 'right' || s.direction === 'up')
       .flatMap((s: any) => {
@@ -298,26 +306,21 @@ KRITISK INSTRUKS:
         }
         return [];
       });
-    const allLikes = [...new Set([...likes, ...positiveSwipes])].slice(0, 20);
+    const allLikes = [...new Set([...likes, ...positiveSwipes, ...allLovedIngredients, ...allLikedIngredients])].slice(0, 20);
 
-    // 2.4 Season & seasonal ingredients
     const season = getCurrentSeason();
     const seasonalIngredients = getSeasonalIngredients(season);
 
     // ============ PRIORITY 3: NICE-TO-HAVE ============
-
-    // 3.1 Cooking time (included in prefs)
     const weekdayMaxTime = prefs.weekday_max_cook_time || 30;
     const weekendMaxTime = prefs.weekend_max_cook_time || 60;
 
-    // 3.3 Inventory
     const inventory = inventoryResult.data || [];
     const inventoryItems = inventory.map((item: any) => {
       const expiry = item.expires_at ? ` (udløber ${item.expires_at})` : '';
       return `- ${item.ingredient_name}${item.quantity ? `: ${item.quantity} ${item.unit || ''}` : ''}${expiry}`;
     }).join('\n');
 
-    // 3.5 Recent meals (avoid repetition)
     const recentMealTitles: string[] = [];
     (recentMealsResult.data || []).forEach((plan: any) => {
       if (Array.isArray(plan.meals)) {
@@ -330,48 +333,16 @@ KRITISK INSTRUKS:
     });
 
     // ============ PRIORITY 4: CONTEXT ============
-
-    // 4.2 Swipe patterns (aggregated)
     const likedRecipes = (swipesResult.data || [])
       .filter((s: any) => s.direction === 'right' || s.direction === 'up')
       .map((s: any) => s.recipes?.title)
       .filter(Boolean)
       .slice(0, 10);
 
-    // 4.3 Dietary goal - determines inventory prioritization
     const dietaryGoal = profile?.dietary_goal || 'maintain';
-    
-    // Check if user prioritizes saving money
-    // 'maintain' with low budget OR explicit budget focus = prioritize inventory
     const prioritizeBudget = dietaryGoal === 'maintain' || (weeklyBudget && weeklyBudget < 600);
 
-    // ============ CALCULATE RECIPES PER MEAL TYPE BASED ON COOKING STYLE ============
-    // User will swipe and select meals. We generate enough options for them to choose from.
-    const getRecipesPerMealType = () => {
-      switch (prefs.cooking_style) {
-        case 'meal_prep_2': return 4;  // Show 4 options, user picks 2
-        case 'meal_prep_3': return 5;  // Show 5 options, user picks 3
-        case 'meal_prep_4': return 6;  // Show 6 options, user picks 4
-        case 'daily': return 10;       // Show 10 options, user picks 7
-        default: return 5;
-      }
-    };
-    const recipesPerMealType = getRecipesPerMealType();
-    
-    // Calculate how many unique meals user needs per type
-    const getMealsToSelect = () => {
-      switch (prefs.cooking_style) {
-        case 'meal_prep_2': return 2;
-        case 'meal_prep_3': return 3;
-        case 'meal_prep_4': return 4;
-        case 'daily': return duration_days;
-        default: return duration_days;
-      }
-    };
-    const mealsToSelect = getMealsToSelect();
-
     // ============ BUILD PRIORITIZED AI PROMPT ============
-
     const fixedMealsDescription = (prefs.fixed_meals || []).length > 0
       ? (prefs.fixed_meals || []).map((m: FixedMeal) => 
           `${m.day === 'all' ? 'Hver dag' : m.day} ${m.meal}: "${m.description}" (${m.calories} kcal)`
@@ -390,154 +361,118 @@ KRITISK INSTRUKS:
         ).join('\n')
       : 'Ingen';
 
-    // Build dynamic inventory section based on dietary goal priority
     const inventorySection = prioritizeBudget && inventory.length > 0
       ? `
 🔴 KRITISK - BRUG LAGER-INGREDIENSER FØRST (bruger har dem = GRATIS):
 ${inventoryItems}
-⚠️ UFRAVIGELIGT: Retter der bruger ingredienser fra lageret SKAL prioriteres højest!
-- Inkluder MINDST 1-2 ingredienser fra lageret i HVER ret hvor det giver mening
-- Sorter opskrifter så dem der bruger flest lager-ingredienser kommer først
-- Dette sparer brugeren penge!`
+⚠️ UFRAVIGELIGT: Retter der bruger ingredienser fra lageret SKAL prioriteres højest!`
       : `
 🟡 Brug fra lager hvis det passer:
 ${inventoryItems || 'Ingen varer i lageret'}`;
 
-    // Build dynamic budget/health focus section
     const focusSection = prioritizeBudget
       ? `
-🔴 KRITISK - BUDGET-FOKUS (bruger vil spare penge):
+🔴 KRITISK - BUDGET-FOKUS:
 - HOLD max ugentligt budget: ${weeklyBudget} kr
-- Prioriter BILLIGE ingredienser og tilbud
-- Brug lager-ingredienser = gratis = lavere pris
-- Sorter tilbud efter BESPARELSE (ikke bare pris)
-- Simple retter med få ingredienser foretrækkes`
+- Prioriter BILLIGE ingredienser og tilbud`
       : `
 🔴 KRITISK - SUNDHEDS-FOKUS:
-- Ernæringsmål: ${dietaryGoal === 'lose' ? 'VÆGTTAB - reducer kalorier, bevar protein, vælg mættende mad' : dietaryGoal === 'gain' ? 'MUSKELOPBYGNING - højt protein, kalorieoverskud, næringsstof-tæt' : 'vedligehold'}
-- Fokuser på NÆRINGSINDHOLD og makrobalance
-- Vælg ingredienser baseret på sundhed, ikke kun pris
-- Inkluder grøntsager, fuldkorn og magre proteiner
-- Budget: max ${weeklyBudget} kr (sekundær prioritet)`;
+- Ernæringsmål: ${dietaryGoal === 'lose' ? 'VÆGTTAB' : dietaryGoal === 'gain' ? 'MUSKELOPBYGNING' : 'vedligehold'}
+- Fokuser på NÆRINGSINDHOLD og makrobalance`;
 
-    // Build discover preferences section
-    const discoverPreferencesSection = lovedDishes.length > 0 || hatedDishes.length > 0 ? `
+    const discoverPreferencesSection = allLovedIngredients.length > 0 || allDislikes.length > 0 ? `
 
-🔥 BRUGERENS SMAGSPROFIL (fra Discover):
-${lovedDishNames.length > 0 ? `LIVRETTER (lav lignende retter!): ${lovedDishNames.join(', ')}
-Elskede ingredienser: ${lovedIngredients.slice(0, 10).join(', ')}` : ''}
-${likedIngredients.length > 0 ? `Kan godt lide: ${likedIngredients.slice(0, 10).join(', ')}` : ''}
-${dislikedIngredients.length > 0 ? `Undgå helst: ${dislikedIngredients.slice(0, 10).join(', ')}` : ''}
-${hatedDishNames.length > 0 ? `🤮 HADER DISSE RETTER (ALDRIG lignende!): ${hatedDishNames.join(', ')}
-ALDRIG brug disse ingredienser: ${hatedIngredients.slice(0, 10).join(', ')}` : ''}` : '';
+🔥 BRUGERENS SMAGSPROFIL (fra tidligere swipes):
+${lovedDishNames.length > 0 ? `LIVRETTER: ${lovedDishNames.slice(0, 5).join(', ')}` : ''}
+${allLovedIngredients.length > 0 ? `Elskede ingredienser (brug OFTE): ${allLovedIngredients.slice(0, 15).join(', ')}` : ''}
+${allLikedIngredients.length > 0 ? `Kan godt lide: ${allLikedIngredients.slice(0, 10).join(', ')}` : ''}
+${[...dislikedIngredients, ...mpDislikedIngredients].length > 0 ? `Undgå helst: ${[...new Set([...dislikedIngredients, ...mpDislikedIngredients])].slice(0, 10).join(', ')}` : ''}
+${hatedDishNames.length > 0 ? `🤮 HADER (ALDRIG lignende!): ${hatedDishNames.slice(0, 5).join(', ')}` : ''}` : '';
 
-    const systemPrompt = `Du er en erfaren dansk madplanlægger og kok. Du laver sunde, budgetvenlige madplaner for danske familier.
+    // NY PROMPT: Én samlet liste af retter
+    const cookingStyleDescription = prefs.cooking_style === 'daily' 
+      ? `DAGLIG MADLAVNING: ${recipesNeeded} forskellige retter (én ny ret hver dag)`
+      : `MEAL PREP: ${recipesNeeded} retter der skal genbruges hele ugen (laves i store portioner)`;
+
+    const systemPrompt = `Du er en erfaren dansk madplanlægger. Du laver sunde, budgetvenlige madplaner.
 ${customRequestSection}
 ${discoverPreferencesSection}
 
 🔴 KRITISKE REGLER (UFRAVIGELIGE):
-1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen allergener'}
-2. ALDRIG foreslå disse ingredienser (bruger hader): ${allDislikes.length > 0 ? allDislikes.slice(0, 15).join(', ') : 'Ingen'}
-3. Hver ret skal ramme ca. ${Math.round(availableCalories / mealsToInclude.length)} kcal (total dag: ${availableCalories} kcal)
-4. Protein per dag: ${availableProtein}g (±10%)
-5. Måltider: ${mealsToInclude.length > 0 ? mealsToInclude.join(', ') : 'alle'}
+1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen'}
+2. ALDRIG foreslå disse (bruger hader): ${allDislikes.length > 0 ? allDislikes.slice(0, 15).join(', ') : 'Ingen'}
+3. Hver ret skal ramme ca. ${Math.round(availableCalories / mealsPerDay)} kcal
+4. Protein per ret: ~${Math.round(availableProtein / mealsPerDay)}g
 
-📋 MADLAVNINGSSTIL (KRITISK):
-${mealPrepDescription}
+📋 MADLAVNINGSSTIL:
+${cookingStyleDescription}
 
-7. Faste måltider (medregnet allerede):
-${fixedMealsDescription}
-8. Undtagelser (spring over):
-${exceptionsDescription}
 ${inventorySection}
 ${focusSection}
 
 🟠 VIGTIGE PRIORITETER:
-1. PRIORITER disse tilbud aktivt:
-${formattedOffers || 'Ingen tilbud fundet'}
-2. Inkluder flere af disse ingredienser (bruger elsker): ${[...lovedIngredients, ...allLikes].slice(0, 15).join(', ') || 'Ingen præferencer'}
+1. PRIORITER disse tilbud:
+${formattedOffers || 'Ingen tilbud'}
+2. Inkluder disse ingredienser (bruger elsker): ${allLikes.slice(0, 15).join(', ') || 'Ingen præferencer'}
 3. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
 
-🔶 SMART VARIATION (udnyt tilbud!):
-- Hvis der er tilbud på en PROTEIN (f.eks. kylling, oksekød, fisk), lav FLERE retter med den protein - det er smart at udnytte tilbuddet!
-- Varier TILBEREDNINGSMETODE: stegt, bagt, wok, gryde, salat, ovn
-- Varier MADTYPE: pasta, ris, kartofler, bulgur, quinoa, brød
-- Varier grøntsager og tilbehør
-- Eksempel: Kylling på tilbud? → Kylling-wok, kyllingesalat, ovnbagt kylling med grøntsager (3 forskellige retter, samme protein!)
-- UNDGÅ kun: 3x præcis samme ret (f.eks. IKKE 3x "kylling med ris" - men "kylling med ris", "kylling-wok", "kyllingesalat" er OK)
-
 🟡 NICE-TO-HAVE:
-1. Hverdage max ${weekdayMaxTime} min tilberedning, weekend max ${weekendMaxTime} min
-2. Undgå disse retter fra sidste 2 uger: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 10).join(', ') : 'Ingen'}
-
-🟢 KONTEKST:
-1. Brugerens favoritretter: ${likedRecipes.length > 0 ? likedRecipes.join(', ') : 'Ingen data'}
-2. Antal personer: ${profile?.people_count || 1}
-3. Prioritet: ${prioritizeBudget ? 'BUDGET (spar penge)' : 'SUNDHED (ernæring først)'}
+1. Max ${weekdayMaxTime}-${weekendMaxTime} min tilberedning
+2. Undgå disse retter fra nyligt: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 8).join(', ') : 'Ingen'}
 
 📊 GENERERING:
-Generér præcis ${recipesPerMealType} unikke retter PER måltidstype.
-Brugeren vil swipe og vælge ${mealsToSelect} retter per måltidstype (${mealPrepDescription}).
+Generér PRÆCIS ${recipesToGenerate} UNIKKE retter i ÉN samlet liste.
+Brugeren skal vælge ${recipesNeeded} af dem (swiper ja/nej).
+Giv varierede forslag: forskellige proteiner, tilberedningsmetoder, cuisines.
 
-OUTPUT FORMAT:
-Returner PRÆCIS dette JSON format (ingen markdown, ingen ekstra tekst):
+OUTPUT FORMAT (KUN JSON, ingen markdown):
 {
-  "recipe_options": {
-    "breakfast": ${prefs.skip_breakfast ? '[]' : `[/* ${recipesPerMealType} morgenmads-retter */]`},
-    "lunch": ${prefs.skip_lunch ? '[]' : `[/* ${recipesPerMealType} frokost-retter */]`},
-    "dinner": ${prefs.skip_dinner ? '[]' : `[/* ${recipesPerMealType} aftensmads-retter */]`}
-  },
-  "total_estimated_savings": number,
-  "shopping_summary": {
-    "by_store": [
-      {"store": "string", "items": ["string"], "estimated_cost": number}
-    ]
-  }
-}
-
-Hver ret skal have dette format:
-{
-  "id": "unique-id",
-  "title": "string",
-  "description": "kort beskrivelse (max 50 ord)",
-  "calories": number,
-  "protein": number,
-  "carbs": number,
-  "fat": number,
-  "prep_time": number,
-  "cook_time": number,
-  "servings": ${profile?.people_count || 1},
-  "ingredients": [{"name": "string", "amount": "string", "unit": "string"}],
-  "instructions": ["trin 1", "trin 2", ...],
-  "tags": ["hurtig", "meal-prep", "høj-protein", etc.],
-  "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
-  "uses_inventory": ["ingredient_name"],
-  "estimated_price": number
+  "recipes": [
+    {
+      "id": "unique-id-1",
+      "title": "string",
+      "description": "kort beskrivelse (max 50 ord)",
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
+      "prep_time": number,
+      "cook_time": number,
+      "servings": ${profile?.people_count || 1},
+      "ingredients": [{"name": "string", "amount": "string", "unit": "string"}],
+      "instructions": ["trin 1", "trin 2"],
+      "tags": ["hurtig", "meal-prep", "høj-protein"],
+      "key_ingredients": ["hovedingrediens1", "hovedingrediens2"],
+      "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
+      "uses_inventory": ["ingredient_name"],
+      "estimated_price": number
+    }
+  ],
+  "total_estimated_savings": number
 }`;
 
-    const userPrompt = `Lav ${recipesPerMealType} unikke retter per måltidstype (total ${recipesPerMealType * mealsToInclude.length} retter) for en ${duration_days}-dages madplan startende ${startDate.toISOString().split('T')[0]}.
+    const userPrompt = `Lav ${recipesToGenerate} unikke retter til en ${duration_days}-dages madplan.
 
 Husk:
-${prioritizeBudget ? '- PRIORITER lager-ingredienser og tilbud for at spare penge!' : '- Fokuser på sunde, næringsrige retter!'}
-- Hver ret skal ramme ~${Math.round(availableCalories / mealsToInclude.length)} kcal
-- ${mealPrepDescription}
+- ${recipesNeeded} retter skal vælges af brugeren
+- Giv ${recipesToGenerate - recipesNeeded} ekstra alternativer
+- Varier proteiner og tilberedningsmetoder
 - Beregn besparelser fra tilbud
-- Giv unikke, varierede forslag så brugeren kan vælge
 
 Lav retterne nu!`;
 
     console.log('Generating meal plan with Claude Sonnet 4:', {
       cooking_style: prefs.cooking_style,
-      meals: mealsToInclude,
+      recipesNeeded,
+      recipesToGenerate,
       availableCalories,
-      recipesPerMealType,
       offers: offers?.length || 0,
       inventory: inventory.length,
       allergens: allergenNames.length,
       dislikes: allDislikes.length,
+      lovedIngredients: allLovedIngredients.length,
     });
 
-    // Call Claude Sonnet 4.5 via Anthropic's API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -567,14 +502,6 @@ Lav retterne nu!`;
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 401) {
-        return new Response(JSON.stringify({ 
-          error: 'Ugyldig Anthropic API nøgle.' 
-        }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
       
       throw new Error(`Anthropic API error: ${response.status}`);
     }
@@ -588,7 +515,6 @@ Lav retterne nu!`;
 
     console.log('AI response received, parsing...');
 
-    // Parse JSON from AI response
     let mealPlanData;
     try {
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -598,29 +524,22 @@ Lav retterne nu!`;
       throw new Error('Failed to parse meal plan from AI');
     }
 
-    // Convert recipe_options to meals array format for backwards compatibility
-    const recipeOptions = mealPlanData.recipe_options || {};
-    const allRecipes = {
-      breakfast: recipeOptions.breakfast || [],
-      lunch: recipeOptions.lunch || [],
-      dinner: recipeOptions.dinner || [],
-    };
-
-    // Always return recipe_options for swipe selection (no traditional meal plan structure needed)
-
-    // Don't save meal plan yet - user will select from swipe options first
-    console.log('Recipe options generated, returning for swipe selection');
+    // NY STRUKTUR: Returner én samlet liste af retter
+    const recipes = mealPlanData.recipes || [];
+    
+    console.log(`Generated ${recipes.length} recipes for swipe selection`);
 
     return new Response(JSON.stringify({
       success: true,
-      recipe_options: allRecipes,
+      recipes: recipes,  // Én samlet liste
+      recipes_needed: recipesNeeded,  // Hvor mange brugeren skal vælge
       macro_targets: {
         calories: availableCalories,
         protein: availableProtein,
         carbs: baseCarbs,
         fat: baseFat,
       },
-      shopping_summary: mealPlanData.shopping_summary,
+      total_estimated_savings: mealPlanData.total_estimated_savings || 0,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

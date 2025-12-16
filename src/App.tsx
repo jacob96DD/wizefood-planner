@@ -16,7 +16,6 @@ import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import StorePreferences from "./pages/StorePreferences";
 import Inventory from "./pages/Inventory";
-import Discover from "./pages/Discover";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -93,7 +92,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/discover" element={<Discover />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/meal-plan" element={<MealPlan />} />

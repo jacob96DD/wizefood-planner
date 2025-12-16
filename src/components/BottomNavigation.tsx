@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { Sparkles, CalendarDays, ShoppingCart, Package, User } from 'lucide-react';
+import { Home, CalendarDays, ShoppingCart, Package, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 
 export function BottomNavigation() {
   const { t } = useTranslation();
 
   const navItems = [
-    { to: '/discover', icon: Sparkles, labelKey: 'nav.discover' },
+    { to: '/home', icon: Home, labelKey: 'nav.home' },
     { to: '/meal-plan', icon: CalendarDays, labelKey: 'nav.mealPlan' },
     { to: '/shopping-list', icon: ShoppingCart, labelKey: 'nav.shopping' },
     { to: '/inventory', icon: Package, labelKey: 'nav.inventory' },

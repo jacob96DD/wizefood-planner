@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import type { RecipeOptions, MacroTargets } from '@/components/MealOptionSwiper';
+import type { MealRecipe, MacroTargets } from '@/components/MealOptionSwiper';
 
 interface GenerateMealPlanOptions {
   duration_days?: number;
@@ -10,7 +10,8 @@ interface GenerateMealPlanOptions {
 }
 
 export interface GenerateMealPlanResult {
-  recipeOptions: RecipeOptions;
+  recipes: MealRecipe[];
+  recipesNeeded: number;
   macroTargets: MacroTargets;
   durationDays: number;
 }
@@ -41,12 +42,9 @@ export function useGenerateMealPlan() {
         throw new Error(data.error);
       }
 
-      // Returnér recipe_options til swipe-interface
-      const recipeOptions: RecipeOptions = data.recipe_options || {
-        breakfast: [],
-        lunch: [],
-        dinner: [],
-      };
+      // NY STRUKTUR: Én samlet liste af retter
+      const recipes: MealRecipe[] = data.recipes || [];
+      const recipesNeeded: number = data.recipes_needed || 7;
 
       const macroTargets: MacroTargets = data.macro_targets || {
         calories: 2000,
@@ -61,7 +59,8 @@ export function useGenerateMealPlan() {
       });
 
       return {
-        recipeOptions,
+        recipes,
+        recipesNeeded,
         macroTargets,
         durationDays: options.duration_days || 7,
       };
