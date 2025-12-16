@@ -749,6 +749,8 @@ export type Database = {
           direction: string
           discover_recipe_id: string | null
           id: string
+          meal_plan_key_ingredients: string[] | null
+          meal_plan_recipe_title: string | null
           rating: string | null
           recipe_id: string | null
           user_id: string
@@ -758,6 +760,8 @@ export type Database = {
           direction: string
           discover_recipe_id?: string | null
           id?: string
+          meal_plan_key_ingredients?: string[] | null
+          meal_plan_recipe_title?: string | null
           rating?: string | null
           recipe_id?: string | null
           user_id: string
@@ -767,6 +771,8 @@ export type Database = {
           direction?: string
           discover_recipe_id?: string | null
           id?: string
+          meal_plan_key_ingredients?: string[] | null
+          meal_plan_recipe_title?: string | null
           rating?: string | null
           recipe_id?: string | null
           user_id?: string

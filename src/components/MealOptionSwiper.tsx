@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Check, Clock, Flame, Loader2, ChevronLeft, RefreshCw } from 'lucide-react';
+import { Clock, Flame, Loader2, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthStore } from '@/stores/authStore';
 
 interface Ingredient {
   name: string;
@@ -28,17 +29,12 @@ export interface MealRecipe {
   ingredients: Ingredient[];
   instructions: string[];
   tags: string[];
+  key_ingredients?: string[];
   uses_offers?: { offer_text: string; store: string; savings: number }[];
   offers?: { offer_text?: string; store?: string; savings?: number }[];
   estimated_price?: number;
   imageUrl?: string;
   image_url?: string;
-}
-
-export interface RecipeOptions {
-  breakfast: MealRecipe[];
-  lunch: MealRecipe[];
-  dinner: MealRecipe[];
 }
 
 export interface MacroTargets {
@@ -49,24 +45,21 @@ export interface MacroTargets {
 }
 
 export type CookingStyle = 'daily' | 'meal_prep_2' | 'meal_prep_3' | 'meal_prep_4';
+export type Rating = 'love' | 'like' | 'dislike' | 'hate';
 
 interface MealOptionSwiperProps {
-  recipeOptions: RecipeOptions;
-  durationDays: number;
-  cookingStyle: CookingStyle;
+  recipes: MealRecipe[];
+  recipesNeeded: number;
   macroTargets: MacroTargets;
-  onComplete: (selectedMeals: { breakfast: MealRecipe[]; lunch: MealRecipe[]; dinner: MealRecipe[] }) => void;
+  onComplete: (selectedMeals: MealRecipe[]) => void;
   onCancel: () => void;
-  onGenerateMore?: () => Promise<RecipeOptions | null>;
+  onGenerateMore?: () => Promise<MealRecipe[] | null>;
   generatingMore?: boolean;
 }
 
-type MealType = 'breakfast' | 'lunch' | 'dinner';
-
 export function MealOptionSwiper({
-  recipeOptions,
-  durationDays,
-  cookingStyle,
+  recipes,
+  recipesNeeded,
   macroTargets,
   onComplete,
   onCancel,
@@ -75,86 +68,32 @@ export function MealOptionSwiper({
 }: MealOptionSwiperProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { user } = useAuthStore();
   
-  // Initialize to the first meal type that has recipes
-  const getInitialMealType = (): MealType => {
-    if (recipeOptions.breakfast.length > 0) return 'breakfast';
-    if (recipeOptions.lunch.length > 0) return 'lunch';
-    if (recipeOptions.dinner.length > 0) return 'dinner';
-    return 'breakfast'; // fallback
-  };
-  
-  const [currentMealType, setCurrentMealType] = useState<MealType>(getInitialMealType);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedMeals, setSelectedMeals] = useState<{
-    breakfast: MealRecipe[];
-    lunch: MealRecipe[];
-    dinner: MealRecipe[];
-  }>({
-    breakfast: [],
-    lunch: [],
-    dinner: [],
-  });
+  const [selectedMeals, setSelectedMeals] = useState<MealRecipe[]>([]);
   const [images, setImages] = useState<Record<string, string>>({});
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const [localRecipeOptions, setLocalRecipeOptions] = useState(recipeOptions);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | 'up' | 'down' | null>(null);
+  const [localRecipes, setLocalRecipes] = useState(recipes);
 
-  // Update local options when recipeOptions changes
+  // Update local recipes when recipes prop changes
   useEffect(() => {
-    setLocalRecipeOptions(recipeOptions);
-  }, [recipeOptions]);
+    setLocalRecipes(recipes);
+  }, [recipes]);
 
-  // Get current options for the meal type
-  const currentOptions = localRecipeOptions[currentMealType] || [];
-  const currentRecipe = currentOptions[currentIndex];
-  
-  // Calculate TOTAL meals needed based on cooking style (not per type)
-  const getTotalMealsNeeded = (): number => {
-    switch (cookingStyle) {
-      case 'meal_prep_2': return 2;
-      case 'meal_prep_3': return 3;
-      case 'meal_prep_4': return 4;
-      case 'daily':
-      default:
-        return durationDays; // 7 unique meals for 7 days
-    }
-  };
-
-  const totalMealsNeeded = getTotalMealsNeeded();
-  const totalSelected = selectedMeals.breakfast.length + selectedMeals.lunch.length + selectedMeals.dinner.length;
-  
-  // For compatibility with existing code - distribute evenly but we stop based on totalSelected
-  const getMealsNeeded = (mealType: MealType): number => {
-    if (recipeOptions[mealType].length === 0) return 0;
-    const activeMealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'].filter(
-      (type) => recipeOptions[type].length > 0
-    ) as MealType[];
-    const slots = activeMealTypes.length || 1;
-    return Math.ceil(totalMealsNeeded / slots);
-  };
-
-  const mealsNeeded = getMealsNeeded(currentMealType);
-  
-  // Check if we've swiped through all options without selecting enough
-  const needsMoreOptions = currentIndex >= currentOptions.length && totalSelected < totalMealsNeeded;
-
-  // Check if we have enough total meals selected
-  const allComplete = totalSelected >= totalMealsNeeded;
+  const currentRecipe = localRecipes[currentIndex];
+  const totalSelected = selectedMeals.length;
+  const needsMoreOptions = currentIndex >= localRecipes.length && totalSelected < recipesNeeded;
+  const allComplete = totalSelected >= recipesNeeded;
 
   // Calculate current macro averages from selected meals
   const calculateCurrentMacros = useCallback(() => {
-    const allSelected = [
-      ...selectedMeals.breakfast,
-      ...selectedMeals.lunch,
-      ...selectedMeals.dinner,
-    ];
-    
-    if (allSelected.length === 0) {
+    if (selectedMeals.length === 0) {
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
 
-    const totals = allSelected.reduce(
+    const totals = selectedMeals.reduce(
       (sum, meal) => ({
         calories: sum.calories + (meal.calories || 0),
         protein: sum.protein + (meal.protein || 0),
@@ -164,7 +103,7 @@ export function MealOptionSwiper({
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
 
-    const count = allSelected.length;
+    const count = selectedMeals.length;
     return {
       calories: Math.round(totals.calories / count),
       protein: Math.round(totals.protein / count),
@@ -173,45 +112,33 @@ export function MealOptionSwiper({
     };
   }, [selectedMeals]);
 
-  // Generate images for ALL recipes in background (non-blocking)
+  // Generate images for ALL recipes in background
   useEffect(() => {
     const generateAllImages = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Collect all recipes from all meal types
-      const allRecipes = [
-        ...localRecipeOptions.breakfast,
-        ...localRecipeOptions.lunch,
-        ...localRecipeOptions.dinner,
-      ];
-
-      // Filter out recipes that already have images or are being loaded
-      const recipesToGenerate = allRecipes.filter(
+      const recipesToGenerate = localRecipes.filter(
         r => !images[r.id] && !loadingImages[r.id]
       );
 
       if (recipesToGenerate.length === 0) return;
 
-      // Process in batches of 3 for faster individual loading
       const batchSize = 3;
       for (let i = 0; i < recipesToGenerate.length; i += batchSize) {
         const batch = recipesToGenerate.slice(i, i + batchSize);
         
-        // Mark batch as loading
         setLoadingImages(prev => {
           const next = { ...prev };
           batch.forEach(r => { next[r.id] = true; });
           return next;
         });
 
-        // Generate images for batch (fire and forget, don't await between batches)
         supabase.functions.invoke('generate-meal-images', {
           body: { recipes: batch },
         }).then(({ data, error }) => {
           if (error) {
             console.error('Image generation error:', error);
-            // Clear loading state on error
             setLoadingImages(prev => {
               const next = { ...prev };
               batch.forEach(r => { next[r.id] = false; });
@@ -230,7 +157,6 @@ export function MealOptionSwiper({
             setImages(prev => ({ ...prev, ...newImages }));
           }
 
-          // Clear loading state
           setLoadingImages(prev => {
             const next = { ...prev };
             batch.forEach(r => { next[r.id] = false; });
@@ -248,77 +174,86 @@ export function MealOptionSwiper({
     };
 
     generateAllImages();
-  }, [localRecipeOptions]); // Only re-run when recipe options change
+  }, [localRecipes]);
 
-  const handleSwipe = (direction: 'left' | 'right') => {
+  // Save swipe to database for AI learning
+  const saveSwipe = async (recipe: MealRecipe, rating: Rating) => {
+    if (!user) return;
+
+    try {
+      // Map rating to direction for backwards compatibility
+      const directionMap: Record<Rating, string> = {
+        love: 'up',
+        like: 'right',
+        dislike: 'left',
+        hate: 'down',
+      };
+
+      // Extract key ingredients from recipe
+      const keyIngredients = recipe.key_ingredients || 
+        recipe.ingredients?.slice(0, 5).map(i => i.name) || [];
+
+      await supabase.from('swipes').insert({
+        user_id: user.id,
+        direction: directionMap[rating],
+        rating: rating,
+        meal_plan_recipe_title: recipe.title,
+        meal_plan_key_ingredients: keyIngredients,
+      });
+    } catch (error) {
+      console.error('Error saving swipe:', error);
+    }
+  };
+
+  const handleRate = async (rating: Rating) => {
     if (!currentRecipe) return;
 
-    setSwipeDirection(direction);
+    // Map rating to visual direction
+    const directionMap: Record<Rating, 'left' | 'right' | 'up' | 'down'> = {
+      love: 'up',
+      like: 'right',
+      dislike: 'left',
+      hate: 'down',
+    };
+
+    setSwipeDirection(directionMap[rating]);
+
+    // Save swipe for AI learning
+    await saveSwipe(currentRecipe, rating);
 
     setTimeout(() => {
-      const newTotalSelected = totalSelected + (direction === 'right' ? 1 : 0);
+      const isPositive = rating === 'like' || rating === 'love';
+      const newTotalSelected = totalSelected + (isPositive ? 1 : 0);
       
-      if (direction === 'right') {
-        // Add to selected
-        setSelectedMeals(prev => ({
-          ...prev,
-          [currentMealType]: [...prev[currentMealType], currentRecipe],
-        }));
+      if (isPositive) {
+        setSelectedMeals(prev => [...prev, currentRecipe]);
 
         toast({
-          title: t('mealSwiper.added', 'Tilføjet!'),
+          title: rating === 'love' ? '🔥 Livret!' : '👍 Tilføjet!',
           description: currentRecipe.title,
         });
 
-        // Check if we have enough total meals - stop immediately!
-        if (newTotalSelected >= totalMealsNeeded) {
+        // Check if we have enough meals - stop immediately!
+        if (newTotalSelected >= recipesNeeded) {
           setSwipeDirection(null);
-          // Use setTimeout to let state update before completing
           setTimeout(() => handleComplete(), 100);
           return;
         }
+      } else {
+        toast({
+          title: rating === 'hate' ? '🤮 Noteret!' : '👎 Sprunget over',
+          description: `${currentRecipe.title} - vi husker det`,
+          variant: rating === 'hate' ? 'destructive' : 'default',
+        });
       }
 
-      // Move to next recipe or meal type
-      if (currentIndex < currentOptions.length - 1) {
+      // Move to next recipe
+      if (currentIndex < localRecipes.length - 1) {
         setCurrentIndex(prev => prev + 1);
-      } else {
-        // Try next meal type
-        moveToNextMealType();
       }
 
       setSwipeDirection(null);
     }, 200);
-  };
-
-  const moveToNextMealType = () => {
-    const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
-    const currentIdx = mealTypes.indexOf(currentMealType);
-    
-    // Try to find next meal type with available recipes
-    for (let i = currentIdx + 1; i < mealTypes.length; i++) {
-      const nextType = mealTypes[i];
-      if (recipeOptions[nextType].length > 0) {
-        setCurrentMealType(nextType);
-        setCurrentIndex(0);
-        return;
-      }
-    }
-
-    // Wrap around to beginning if needed
-    for (let i = 0; i <= currentIdx; i++) {
-      const nextType = mealTypes[i];
-      if (recipeOptions[nextType].length > 0 && nextType !== currentMealType) {
-        setCurrentMealType(nextType);
-        setCurrentIndex(0);
-        return;
-      }
-    }
-
-    // No more meal types, complete if we have enough
-    if (totalSelected >= totalMealsNeeded) {
-      handleComplete();
-    }
   };
 
   const handleComplete = () => {
@@ -329,29 +264,45 @@ export function MealOptionSwiper({
     onComplete(selectedMeals);
   };
 
-  const currentMacros = calculateCurrentMacros();
-
-  const mealTypeLabels: Record<MealType, string> = {
-    breakfast: t('mealPlan.meals.breakfast', 'Morgenmad'),
-    lunch: t('mealPlan.meals.lunch', 'Frokost'),
-    dinner: t('mealPlan.meals.dinner', 'Aftensmad'),
-  };
-
   // Handle generate more options
   const handleGenerateMore = async () => {
     if (!onGenerateMore) return;
     
-    const newOptions = await onGenerateMore();
-    if (newOptions) {
-      setLocalRecipeOptions(prev => ({
-        breakfast: [...prev.breakfast, ...newOptions.breakfast],
-        lunch: [...prev.lunch, ...newOptions.lunch],
-        dinner: [...prev.dinner, ...newOptions.dinner],
-      }));
-      // Reset index to show new options
-      setCurrentIndex(currentOptions.length);
+    const newRecipes = await onGenerateMore();
+    if (newRecipes) {
+      setLocalRecipes(prev => [...prev, ...newRecipes]);
     }
   };
+
+  const currentMacros = calculateCurrentMacros();
+
+  // Rating actions configuration
+  const ratingActions: { rating: Rating; emoji: string; label: string; colors: string }[] = [
+    {
+      rating: 'hate',
+      emoji: '🤮',
+      label: 'Aldrig!',
+      colors: 'bg-red-500/10 border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white',
+    },
+    {
+      rating: 'dislike',
+      emoji: '👎',
+      label: 'Nej tak',
+      colors: 'bg-orange-500/10 border-orange-500/50 text-orange-500 hover:bg-orange-500 hover:text-white',
+    },
+    {
+      rating: 'like',
+      emoji: '👍',
+      label: 'Ja tak',
+      colors: 'bg-green-500/10 border-green-500/50 text-green-500 hover:bg-green-500 hover:text-white',
+    },
+    {
+      rating: 'love',
+      emoji: '🔥',
+      label: 'Livret!',
+      colors: 'bg-pink-500/10 border-pink-500/50 text-pink-500 hover:bg-pink-500 hover:text-white',
+    },
+  ];
 
   if (!currentRecipe && !allComplete && !needsMoreOptions) {
     return (
@@ -371,17 +322,17 @@ export function MealOptionSwiper({
           {t('mealSwiper.noMoreOptions', 'Ingen flere forslag')}
         </h2>
         <p className="text-muted-foreground mb-2">
-          Du har valgt {totalSelected} af {totalMealsNeeded} retter.
+          Du har valgt {totalSelected} af {recipesNeeded} retter.
         </p>
         <p className="text-sm text-muted-foreground mb-6">
-          {t('mealSwiper.generateMoreDesc', 'Vil du have 10 nye forslag at vælge imellem?')}
+          {t('mealSwiper.generateMoreDesc', 'Vil du have flere forslag at vælge imellem?')}
         </p>
         <div className="flex gap-3">
           <Button variant="outline" onClick={onCancel}>
             {t('common.cancel', 'Annuller')}
           </Button>
           <Button 
-            variant="hero" 
+            variant="default" 
             onClick={handleGenerateMore}
             disabled={generatingMore}
           >
@@ -390,7 +341,7 @@ export function MealOptionSwiper({
             ) : (
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
-            {generatingMore ? 'Genererer...' : 'Generer 10 nye'}
+            {generatingMore ? 'Genererer...' : 'Generer flere'}
           </Button>
         </div>
       </div>
@@ -403,9 +354,9 @@ export function MealOptionSwiper({
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-xl font-bold mb-2">{t('mealSwiper.allDone', 'Alle retter valgt!')}</h2>
         <p className="text-muted-foreground mb-6">
-          {t('mealSwiper.selectedCount', { count: totalSelected })} af {totalMealsNeeded}
+          {totalSelected} retter valgt
         </p>
-        <Button variant="hero" onClick={handleComplete}>
+        <Button variant="default" onClick={handleComplete}>
           {t('mealSwiper.createPlan', 'Opret madplan')}
         </Button>
       </div>
@@ -422,42 +373,30 @@ export function MealOptionSwiper({
             {t('common.cancel', 'Annuller')}
           </Button>
           <span className="text-sm font-medium">
-            {mealTypeLabels[currentMealType]}: {selectedMeals[currentMealType].length}/{mealsNeeded}
+            {totalSelected}/{recipesNeeded} retter valgt
           </span>
         </div>
         
-        <Progress value={(totalSelected / totalMealsNeeded) * 100} className="h-2" />
+        <Progress value={(totalSelected / recipesNeeded) * 100} className="h-2" />
         
-        <div className="flex gap-2 mt-3 justify-center">
-          {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(type => (
-            recipeOptions[type].length > 0 && (
-              <Badge
-                key={type}
-                variant={currentMealType === type ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => {
-                  setCurrentMealType(type);
-                  setCurrentIndex(0);
-                }}
-              >
-                {mealTypeLabels[type]} ({selectedMeals[type].length}/{getMealsNeeded(type)})
-              </Badge>
-            )
-          ))}
+        <div className="flex justify-center gap-2 mt-3 text-xs text-muted-foreground">
+          <span>Ret {currentIndex + 1} af {localRecipes.length}</span>
         </div>
       </div>
 
       {/* Swipe Card */}
-      <div className="flex-1 p-4 flex flex-col">
+      <div className="flex-1 p-4 flex flex-col overflow-hidden">
         <Card 
-          className={`flex-1 overflow-hidden transition-transform duration-200 rounded-3xl shadow-lg ${
-            swipeDirection === 'left' ? '-translate-x-full opacity-0' :
-            swipeDirection === 'right' ? 'translate-x-full opacity-0' : ''
+          className={`flex-1 overflow-hidden transition-all duration-200 rounded-3xl shadow-lg ${
+            swipeDirection === 'left' ? '-translate-x-full rotate-[-10deg] opacity-0' :
+            swipeDirection === 'right' ? 'translate-x-full rotate-[10deg] opacity-0' :
+            swipeDirection === 'up' ? '-translate-y-full scale-110 opacity-0' :
+            swipeDirection === 'down' ? 'translate-y-full scale-90 opacity-0' : ''
           }`}
         >
           <CardContent className="p-0 h-full flex flex-col">
             {/* Image */}
-            <div className="relative h-[60vh] max-h-[70vh] bg-muted overflow-hidden">
+            <div className="relative h-[45vh] bg-muted overflow-hidden">
               {images[currentRecipe.id] ? (
                 <img
                   src={images[currentRecipe.id]}
@@ -470,7 +409,7 @@ export function MealOptionSwiper({
                   {loadingImages[currentRecipe.id] && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{t('mealSwiper.imageLoading', 'Billede indlæses...')}</span>
+                      <span>Billede indlæses...</span>
                     </div>
                   )}
                 </div>
@@ -506,7 +445,7 @@ export function MealOptionSwiper({
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
                   <div className="text-sm font-bold">{currentRecipe.carbs}g</div>
-                  <div className="text-xs text-muted-foreground">kulhydrat</div>
+                  <div className="text-xs text-muted-foreground">kulh.</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
                   <div className="text-sm font-bold">{currentRecipe.fat}g</div>
@@ -515,71 +454,54 @@ export function MealOptionSwiper({
               </div>
 
               {/* Time & Price */}
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  <span>{currentRecipe.prep_time + (currentRecipe.cook_time || 0)} min</span>
+                  <span>{(currentRecipe.prep_time || 0) + (currentRecipe.cook_time || 0)} min</span>
                 </div>
                 {currentRecipe.estimated_price && (
-                  <div className="flex items-center gap-1">
-                    <span>💰</span>
-                    <span>{currentRecipe.estimated_price} kr</span>
-                  </div>
+                  <span className="font-medium text-foreground">
+                    ~{currentRecipe.estimated_price} kr
+                  </span>
                 )}
               </div>
 
-              {/* Offers used */}
-              {currentRecipe.uses_offers && currentRecipe.uses_offers.length > 0 && (
-                <div className="mb-3">
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-600">
-                    🏷️ Bruger tilbud: {currentRecipe.uses_offers[0].offer_text}
-                    {currentRecipe.uses_offers[0].savings > 0 && ` (spar ${currentRecipe.uses_offers[0].savings} kr)`}
-                  </Badge>
-                </div>
-              )}
-
-              {/* Spacer */}
-              <div className="flex-1" />
-
-              {/* Current macro average */}
-              {totalSelected > 0 && (
-                <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                  <p className="font-medium mb-1">📊 Gennemsnit af valgte retter:</p>
-                  <div className="flex gap-3">
-                    <span className={currentMacros.calories <= macroTargets.calories * 1.1 ? 'text-green-600' : 'text-orange-500'}>
-                      {currentMacros.calories} kcal
-                    </span>
-                    <span className={currentMacros.protein >= macroTargets.protein * 0.9 ? 'text-green-600' : 'text-orange-500'}>
-                      {currentMacros.protein}g protein
-                    </span>
-                  </div>
+              {/* Offers */}
+              {(currentRecipe.uses_offers?.length || 0) > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {currentRecipe.uses_offers?.slice(0, 2).map((offer, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
+                      💰 {offer.store}: spar {offer.savings} kr
+                    </Badge>
+                  ))}
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Swipe Buttons */}
-        <div className="flex justify-center gap-8 mt-4 pb-4">
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-16 h-16 rounded-full border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={() => handleSwipe('left')}
-          >
-            <X className="w-8 h-8" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-16 h-16 rounded-full border-2 border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-            onClick={() => handleSwipe('right')}
-          >
-            <Check className="w-8 h-8" />
-          </Button>
+        {/* 4-level Rating Buttons */}
+        <div className="grid grid-cols-4 gap-2 pt-4 pb-2">
+          {ratingActions.map(({ rating, emoji, label, colors }) => (
+            <Button
+              key={rating}
+              variant="outline"
+              onClick={() => handleRate(rating)}
+              className={`flex flex-col items-center justify-center h-20 rounded-2xl border-2 transition-all ${colors}`}
+            >
+              <span className="text-2xl mb-1">{emoji}</span>
+              <span className="text-xs font-medium">{label}</span>
+            </Button>
+          ))}
         </div>
       </div>
     </div>
   );
+}
+
+// Legacy exports for backwards compatibility
+export interface RecipeOptions {
+  breakfast: MealRecipe[];
+  lunch: MealRecipe[];
+  dinner: MealRecipe[];
 }

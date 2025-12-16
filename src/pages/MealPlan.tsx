@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,15 +10,13 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { useMealPlans, type MealPlanDay, type MealPlanMeal } from '@/hooks/useMealPlans';
 import { useGenerateMealPlan, type GenerateMealPlanResult } from '@/hooks/useGenerateMealPlan';
 import { MealPlanConfigDialog } from '@/components/MealPlanConfigDialog';
-import { MealOptionSwiper, type RecipeOptions, type MacroTargets, type MealRecipe, type CookingStyle } from '@/components/MealOptionSwiper';
+import { MealOptionSwiper, type MacroTargets, type MealRecipe } from '@/components/MealOptionSwiper';
 import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
 import { WeekOverview } from '@/components/WeekOverview';
-import { RecipeDetailDialog, type RecipeDetail } from '@/components/RecipeDetailDialog';
 import { MealTrackingCard } from '@/components/MealTrackingCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
-import { useMealPlanPreferences } from '@/hooks/useMealPlanPreferences';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,14 +26,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-interface SelectedMeals {
-  breakfast: MealRecipe[];
-  lunch: MealRecipe[];
-  dinner: MealRecipe[];
-}
 
 export default function MealPlan() {
   const { t } = useTranslation();
@@ -47,7 +38,8 @@ export default function MealPlan() {
   
   // Swipe mode state
   const [swipeMode, setSwipeMode] = useState(false);
-  const [recipeOptions, setRecipeOptions] = useState<RecipeOptions | null>(null);
+  const [recipes, setRecipes] = useState<MealRecipe[]>([]);
+  const [recipesNeeded, setRecipesNeeded] = useState(7);
   const [macroTargets, setMacroTargets] = useState<MacroTargets | null>(null);
   const [durationDays, setDurationDays] = useState(7);
   const [generatingMore, setGeneratingMore] = useState(false);
@@ -57,9 +49,8 @@ export default function MealPlan() {
   const { currentPlan, loading, fetchMealPlans, saveMealPlan, deleteMealPlan } = useMealPlans();
   const { generateMealPlan, loading: generating } = useGenerateMealPlan();
   const [loadingMessage, setLoadingMessage] = useState(0);
-  const { generateShoppingList, generating: generatingList } = useGenerateShoppingList();
+  const { generateShoppingList } = useGenerateShoppingList();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const { preferences } = useMealPlanPreferences();
 
   // Fetch profile for macro display
   useEffect(() => {
@@ -98,43 +89,43 @@ export default function MealPlan() {
     const result = await generateMealPlan({ duration_days: 7 });
     
     if (result) {
-      // Gå til swipe mode med genererede options
-      setRecipeOptions(result.recipeOptions);
+      // Gå til swipe mode med genererede retter (ny struktur)
+      setRecipes(result.recipes);
+      setRecipesNeeded(result.recipesNeeded);
       setMacroTargets(result.macroTargets);
       setDurationDays(result.durationDays);
       setSwipeMode(true);
     }
   };
 
-  const handleSwipeComplete = async (selectedMeals: SelectedMeals) => {
+  const handleSwipeComplete = async (selectedMeals: MealRecipe[]) => {
     // Konverter valgte retter til MealPlanDay format
     // GENBRUG retter med modulo så de roterer henover ugen
     const meals: MealPlanDay[] = [];
     const today = new Date();
+    const mealsPerDay = 3; // breakfast, lunch, dinner
     
     for (let i = 0; i < durationDays; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
       
-      // Brug modulo til at genbruge retter på tværs af ugen
-      const breakfastIndex = selectedMeals.breakfast.length > 0 ? i % selectedMeals.breakfast.length : -1;
-      const lunchIndex = selectedMeals.lunch.length > 0 ? i % selectedMeals.lunch.length : -1;
-      const dinnerIndex = selectedMeals.dinner.length > 0 ? i % selectedMeals.dinner.length : -1;
+      // Distribuer retter på tværs af måltider og dage
+      const mealIndex = i % selectedMeals.length;
       
+      // Simple distribution: rotate meals across the week
       const dayMeals: MealPlanDay = {
         date: date.toISOString().split('T')[0],
-        breakfast: breakfastIndex >= 0 ? convertToMealPlanMeal(selectedMeals.breakfast[breakfastIndex]) : null,
-        lunch: lunchIndex >= 0 ? convertToMealPlanMeal(selectedMeals.lunch[lunchIndex]) : null,
-        dinner: dinnerIndex >= 0 ? convertToMealPlanMeal(selectedMeals.dinner[dinnerIndex]) : null,
+        breakfast: i < selectedMeals.length ? convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]) : null,
+        lunch: i + 1 < selectedMeals.length * 2 ? convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]) : null,
+        dinner: convertToMealPlanMeal(selectedMeals[(i + 2) % selectedMeals.length]),
       };
       meals.push(dayMeals);
     }
 
     // Beregn total cost og savings
-    const allMeals = [...selectedMeals.breakfast, ...selectedMeals.lunch, ...selectedMeals.dinner];
-    const totalCost = allMeals.reduce((sum, meal) => sum + (meal.estimated_price || 0), 0);
-    const totalSavings = allMeals.reduce((sum, meal) => {
-      const savings = meal.offers?.reduce((s, o) => s + (o.savings || 0), 0) || 0;
+    const totalCost = selectedMeals.reduce((sum, meal) => sum + (meal.estimated_price || 0), 0);
+    const totalSavings = selectedMeals.reduce((sum, meal) => {
+      const savings = meal.uses_offers?.reduce((s, o) => s + (o.savings || 0), 0) || 0;
       return sum + savings;
     }, 0);
 
@@ -154,28 +145,32 @@ export default function MealPlan() {
       });
 
       // Auto-generer indkøbsliste baseret på valgte retter
-      await generateShoppingList(selectedMeals, savedPlan.id);
+      // Konverter til det format generateShoppingList forventer
+      const selectedMealsLegacy = {
+        breakfast: selectedMeals,
+        lunch: selectedMeals,
+        dinner: selectedMeals,
+      };
+      await generateShoppingList(selectedMealsLegacy, savedPlan.id);
     }
 
     // Afslut swipe mode
     setSwipeMode(false);
-    setRecipeOptions(null);
+    setRecipes([]);
     await fetchMealPlans();
   };
 
   const handleSwipeCancel = () => {
     setSwipeMode(false);
-    setRecipeOptions(null);
+    setRecipes([]);
   };
 
-  const handleGenerateMore = async (): Promise<RecipeOptions | null> => {
+  const handleGenerateMore = async (): Promise<MealRecipe[] | null> => {
     setGeneratingMore(true);
     try {
-      // Generate 10 more options
       const result = await generateMealPlan({ duration_days: 7 });
       if (result) {
-        // Return new recipe options to be appended
-        return result.recipeOptions;
+        return result.recipes;
       }
       return null;
     } catch (error) {
@@ -234,8 +229,8 @@ export default function MealPlan() {
   };
 
   // Hent måltider for valgt dag fra aktuel plan
-  const meals = currentPlan?.meals || [];
-  const selectedMealsForDay: MealPlanDay | null = meals[selectedDay] || null;
+  const mealsData = currentPlan?.meals || [];
+  const selectedMealsForDay: MealPlanDay | null = mealsData[selectedDay] || null;
 
   const totalCalories = selectedMealsForDay
     ? [selectedMealsForDay.breakfast, selectedMealsForDay.lunch, selectedMealsForDay.dinner]
@@ -263,12 +258,11 @@ export default function MealPlan() {
   }
 
   // Vis swipe interface hvis i swipe mode
-  if (swipeMode && recipeOptions && macroTargets) {
+  if (swipeMode && recipes.length > 0 && macroTargets) {
     return (
       <MealOptionSwiper
-        recipeOptions={recipeOptions}
-        durationDays={durationDays}
-        cookingStyle={preferences.cooking_style}
+        recipes={recipes}
+        recipesNeeded={recipesNeeded}
         macroTargets={macroTargets}
         onComplete={handleSwipeComplete}
         onCancel={handleSwipeCancel}
@@ -352,7 +346,7 @@ export default function MealPlan() {
             <div className="text-6xl mb-4">📋</div>
             <h2 className="text-xl font-bold mb-2">{t('mealPlan.noPlansYet')}</h2>
             <p className="text-muted-foreground mb-6">{t('mealPlan.generateFirst')}</p>
-            <Button variant="hero" onClick={handleOpenConfig} disabled={generating}>
+            <Button variant="default" onClick={handleOpenConfig} disabled={generating}>
               {generating ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               ) : (
@@ -414,8 +408,8 @@ export default function MealPlan() {
               </div>
 
               <div className="mt-8">
-                <Button variant="hero" size="xl" className="w-full" onClick={() => navigate('/shopping-list')}>
-                  <ShoppingCart className="w-5 h-5" />
+                <Button variant="default" size="lg" className="w-full" onClick={() => navigate('/shopping-list')}>
+                  <ShoppingCart className="w-5 h-5 mr-2" />
                   <span>{t('mealPlan.generateShoppingList')}</span>
                 </Button>
               </div>
