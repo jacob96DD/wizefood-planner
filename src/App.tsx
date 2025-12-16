@@ -3,19 +3,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import Landing from "./pages/Landing";
-import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import MealPlan from "./pages/MealPlan";
-import ShoppingList from "./pages/ShoppingList";
+import Shopping from "./pages/Shopping";
 import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import StorePreferences from "./pages/StorePreferences";
-import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,15 +89,17 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/home" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/meal-plan" element={<MealPlan />} />
-            <Route path="/shopping-list" element={<ShoppingList />} />
+            <Route path="/shopping" element={<Shopping />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/stores" element={<StorePreferences />} />
-            <Route path="/inventory" element={<Inventory />} />
+            {/* Redirects for old routes */}
+            <Route path="/home" element={<Navigate to="/meal-plan" replace />} />
+            <Route path="/shopping-list" element={<Navigate to="/shopping" replace />} />
+            <Route path="/inventory" element={<Navigate to="/shopping" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
