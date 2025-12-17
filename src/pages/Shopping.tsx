@@ -225,9 +225,23 @@ export default function Shopping() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            {(item.offerPrice || item.price) ? (
-                              <span className="font-medium text-primary">
-                                {item.offerPrice || item.price} {t('common.kr')}
+                            {item.offerPrice ? (
+                              <div className="flex items-center gap-1">
+                                <Badge variant="default" className="bg-green-500 text-white text-[10px] px-1 py-0">
+                                  Tilbud
+                                </Badge>
+                                <span className="font-bold text-green-600 dark:text-green-400">
+                                  {item.offerPrice} {t('common.kr')}
+                                </span>
+                                {item.price && (
+                                  <span className="text-xs text-muted-foreground line-through">
+                                    {item.price}
+                                  </span>
+                                )}
+                              </div>
+                            ) : item.price ? (
+                              <span className={`text-sm ${item.isEstimate ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>
+                                {item.isEstimate ? 'ca. ' : ''}{item.price} {t('common.kr')}
                               </span>
                             ) : null}
                             <button
