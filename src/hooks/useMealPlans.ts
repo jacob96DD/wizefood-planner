@@ -3,12 +3,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import type { Json } from '@/integrations/supabase/types';
 
+export interface MealPlanMealIngredient {
+  name: string;
+  amount: string;
+  unit: string;
+}
+
+export interface MealPlanMealOffer {
+  offer_text: string;
+  store: string;
+  savings: number;
+}
+
 export interface MealPlanMeal {
   recipeId: string;
   title: string;
   calories: number;
   imageUrl: string | null;
   prepTime: number | null;
+  // Extended fields
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  description?: string;
+  ingredients?: MealPlanMealIngredient[];
+  instructions?: string[];
+  uses_offers?: MealPlanMealOffer[];
 }
 
 export interface MealPlanDay {

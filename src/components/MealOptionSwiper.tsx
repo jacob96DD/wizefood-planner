@@ -257,11 +257,18 @@ export function MealOptionSwiper({
   };
 
   const handleComplete = () => {
+    // Merge generated images into selected meals before completing
+    const mealsWithImages = selectedMeals.map(meal => ({
+      ...meal,
+      image_url: images[meal.id] || meal.image_url || meal.imageUrl || null,
+      imageUrl: images[meal.id] || meal.imageUrl || meal.image_url || null,
+    }));
+    
     toast({
       title: t('mealSwiper.complete', 'Madplan klar!'),
       description: t('mealSwiper.completeDesc', 'Dine valgte retter er gemt'),
     });
-    onComplete(selectedMeals);
+    onComplete(mealsWithImages);
   };
 
   // Handle generate more options
@@ -466,12 +473,12 @@ export function MealOptionSwiper({
                 )}
               </div>
 
-              {/* Offers */}
+              {/* Offers - marked as estimates since they come from AI */}
               {(currentRecipe.uses_offers?.length || 0) > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {currentRecipe.uses_offers?.slice(0, 2).map((offer, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
-                      💰 {offer.store}: spar {offer.savings} kr
+                    <Badge key={idx} variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30">
+                      💰 {offer.store}: ~{offer.savings} kr (estimat)
                     </Badge>
                   ))}
                 </div>

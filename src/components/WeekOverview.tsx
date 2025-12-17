@@ -32,6 +32,10 @@ interface UniqueDish {
   usageDays: string[];
   count: number;
   mealType: 'breakfast' | 'lunch' | 'dinner';
+  // Extended fields from MealPlanMeal
+  description?: string;
+  ingredients?: { name: string; amount: string; unit: string }[];
+  instructions?: string[];
 }
 
 // Gennemsnitligt dansk husholdningsbudget
@@ -105,6 +109,13 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
             usageDays: [dayLabel],
             count: 1,
             mealType,
+            // Extended fields
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat,
+            description: meal.description,
+            ingredients: meal.ingredients,
+            instructions: meal.instructions,
           });
         }
       };
@@ -142,18 +153,19 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
   };
 
   const handleRecipeClick = (dish: UniqueDish) => {
-    // Create a RecipeDetail from the dish data
+    // Create a RecipeDetail from the stored dish data
     const recipeDetail: RecipeDetail = {
       id: dish.id,
       title: dish.title,
+      description: dish.description,
       calories: dish.calories,
       protein: dish.protein || 0,
       carbs: dish.carbs || 0,
       fat: dish.fat || 0,
       prep_time: dish.prepTime || 0,
       servings: dish.count,
-      ingredients: [],
-      instructions: [],
+      ingredients: dish.ingredients || [],
+      instructions: dish.instructions || [],
       image_url: dish.imageUrl,
     };
     setSelectedRecipe(recipeDetail);

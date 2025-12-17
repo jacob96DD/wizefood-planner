@@ -212,8 +212,16 @@ export default function MealPlan() {
     recipeId: recipe.id,
     title: recipe.title,
     calories: recipe.calories,
-    imageUrl: recipe.image_url || null,
+    imageUrl: recipe.image_url || recipe.imageUrl || null,
     prepTime: recipe.prep_time,
+    // Extended fields
+    protein: recipe.protein,
+    carbs: recipe.carbs,
+    fat: recipe.fat,
+    description: recipe.description,
+    ingredients: recipe.ingredients || [],
+    instructions: recipe.instructions || [],
+    uses_offers: recipe.uses_offers,
   });
 
   const weekDays = [
