@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Wand2, Pizza, Beer, Wine, Utensils } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Wand2, Pizza, Beer, Wine, Utensils, Pencil, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
@@ -32,7 +33,7 @@ interface RealLifeEstimate {
   protein: number;
   carbs: number;
   fat: number;
-  items?: RealLifeItem[];
+  items: RealLifeItem[];
 }
 
 interface EditRealLifeCaloriesDialogProps {
@@ -67,6 +68,8 @@ export function EditRealLifeCaloriesDialog({
   const [description, setDescription] = useState(currentDescription || '');
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState<RealLifeItem | null>(null);
   const [estimate, setEstimate] = useState<RealLifeEstimate | null>(
     currentCaloriesPerWeek
       ? {
@@ -75,6 +78,7 @@ export function EditRealLifeCaloriesDialog({
           protein: currentProtein || 0,
           carbs: currentCarbs || 0,
           fat: currentFat || 0,
+          items: [],
         }
       : null
   );
@@ -82,6 +86,8 @@ export function EditRealLifeCaloriesDialog({
   useEffect(() => {
     if (open) {
       setDescription(currentDescription || '');
+      setEditingIndex(null);
+      setEditValues(null);
       if (currentCaloriesPerWeek) {
         setEstimate({
           calories_per_week: currentCaloriesPerWeek,
@@ -89,12 +95,64 @@ export function EditRealLifeCaloriesDialog({
           protein: currentProtein || 0,
           carbs: currentCarbs || 0,
           fat: currentFat || 0,
+          items: [],
         });
       } else {
         setEstimate(null);
       }
     }
   }, [open, currentDescription, currentCaloriesPerWeek, currentProtein, currentCarbs, currentFat]);
+
+  const recalculateTotals = (items: RealLifeItem[]): RealLifeEstimate => {
+    const totals = items.reduce(
+      (acc, item) => ({
+        calories: acc.calories + item.calories,
+        protein: acc.protein + item.protein,
+        carbs: acc.carbs + item.carbs,
+        fat: acc.fat + item.fat,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+    return {
+      calories_per_week: totals.calories,
+      calories_per_day: Math.round(totals.calories / 7),
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+      items,
+    };
+  };
+
+  const handleEditItem = (index: number) => {
+    if (estimate?.items[index]) {
+      setEditingIndex(index);
+      setEditValues({ ...estimate.items[index] });
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editingIndex === null || !editValues || !estimate) return;
+    const newItems = [...estimate.items];
+    newItems[editingIndex] = editValues;
+    setEstimate(recalculateTotals(newItems));
+    setEditingIndex(null);
+    setEditValues(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditValues(null);
+  };
+
+  const handleDeleteItem = (index: number) => {
+    if (!estimate) return;
+    const newItems = estimate.items.filter((_, i) => i !== index);
+    if (newItems.length === 0) {
+      setEstimate(null);
+    } else {
+      setEstimate(recalculateTotals(newItems));
+    }
+  };
 
   const estimateFromDescription = async () => {
     if (!description.trim()) {
@@ -312,14 +370,83 @@ export function EditRealLifeCaloriesDialog({
                 {/* Itemized breakdown */}
                 {estimate.items && estimate.items.length > 0 && (
                   <div className="mt-4 pt-3 border-t border-primary/20 space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">Fordeling:</p>
+                    <p className="text-xs font-medium text-muted-foreground">Fordeling (klik for at redigere):</p>
                     {estimate.items.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center bg-background rounded-lg px-3 py-2">
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-sm">{item.name}</span>
-                          <span className="text-muted-foreground text-xs ml-2">({item.amount})</span>
-                        </div>
-                        <span className="font-bold text-primary text-sm ml-2">{item.calories} kcal</span>
+                      <div key={i} className="bg-background rounded-lg px-3 py-2">
+                        {editingIndex === i && editValues ? (
+                          // Edit mode
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm flex-1">{item.name}</span>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleSaveEdit}>
+                                <Check className="w-4 h-4 text-green-600" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleCancelEdit}>
+                                <X className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                              <div>
+                                <Label className="text-xs">Kcal</Label>
+                                <Input
+                                  type="number"
+                                  value={editValues.calories}
+                                  onChange={(e) => setEditValues({ ...editValues, calories: parseInt(e.target.value) || 0 })}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Protein</Label>
+                                <Input
+                                  type="number"
+                                  value={editValues.protein}
+                                  onChange={(e) => setEditValues({ ...editValues, protein: parseInt(e.target.value) || 0 })}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Kulh.</Label>
+                                <Input
+                                  type="number"
+                                  value={editValues.carbs}
+                                  onChange={(e) => setEditValues({ ...editValues, carbs: parseInt(e.target.value) || 0 })}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Fedt</Label>
+                                <Input
+                                  type="number"
+                                  value={editValues.fat}
+                                  onChange={(e) => setEditValues({ ...editValues, fat: parseInt(e.target.value) || 0 })}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          // View mode
+                          <div 
+                            className="cursor-pointer hover:bg-muted/50 rounded -m-2 p-2 transition-colors"
+                            onClick={() => handleEditItem(i)}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-sm">{item.name}</span>
+                                <span className="text-muted-foreground text-xs ml-2">({item.amount})</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-primary text-sm">{item.calories} kcal</span>
+                                <Pencil className="w-3 h-3 text-muted-foreground" />
+                              </div>
+                            </div>
+                            <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                              <span>{item.protein}g protein</span>
+                              <span>{item.carbs}g kulh.</span>
+                              <span>{item.fat}g fedt</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
