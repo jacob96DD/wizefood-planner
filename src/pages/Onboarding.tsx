@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, Loader2, Zap, Store, MapPin, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Zap, Store, MapPin, Search, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -162,7 +162,7 @@ const days = Array.from({ length: 31 }, (_, i) => i + 1);
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 91 }, (_, i) => currentYear - 10 - i);
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 8;
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -175,8 +175,10 @@ export default function Onboarding() {
   const [storeChains, setStoreChains] = useState<{id: string, name: string}[]>([]);
   const [selectedStoreChains, setSelectedStoreChains] = useState<Set<string>>(new Set());
   const [isSearchingStores, setIsSearchingStores] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [nearbySallingStores, setNearbySallingStores] = useState<SallingStore[]>([]);
   const [selectedSallingStoreIds, setSelectedSallingStoreIds] = useState<Set<string>>(new Set());
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Month names for dropdown
   const months = [
@@ -257,6 +259,69 @@ export default function Onboarding() {
       }
       return next;
     });
+  };
+
+  // Get user's current location and find nearby stores
+  const useMyLocation = async () => {
+    if (!navigator.geolocation) {
+      setLocationError('Din browser understøtter ikke lokation');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        updateData({ latitude, longitude });
+
+        // Search for stores with the coordinates
+        try {
+          const { data: responseData, error } = await supabase.functions.invoke('find-salling-stores', {
+            body: { latitude, longitude, radius: 10 },
+          });
+
+          if (error) throw error;
+
+          if (responseData.success && responseData.stores) {
+            const stores: SallingStore[] = responseData.stores.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              brand: s.brand,
+              address: s.address,
+              city: s.city,
+              distance: s.distance,
+            }));
+            setNearbySallingStores(stores);
+            setSelectedSallingStoreIds(new Set(stores.map(s => s.id)));
+            toast({
+              title: '📍 ' + t('onboarding.location.found', 'Lokation fundet!'),
+              description: `${stores.length} Salling butikker i nærheden`,
+            });
+          }
+        } catch (error: any) {
+          console.error('Error finding stores:', error);
+          setLocationError(error.message || 'Kunne ikke finde butikker');
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Du afviste lokationstilladelse. Indtast adresse manuelt.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Lokation ikke tilgængelig. Indtast adresse manuelt.');
+            break;
+          default:
+            setLocationError('Kunne ikke få din lokation. Indtast adresse manuelt.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   // Search for nearby Salling stores based on address
@@ -763,11 +828,7 @@ export default function Onboarding() {
       case 7:
         return true; // Dislikes are optional
       case 8:
-        return true; // Stores are optional
-      case 9:
-        return true; // Address is optional
-      case 10:
-        return true; // Salling stores are optional
+        return true; // Stores + location are optional
       default:
         return false;
     }
@@ -789,11 +850,7 @@ export default function Onboarding() {
       case 7:
         return data.dislikedFoods.length > 0 || (data.customDislikes && data.customDislikes.trim().length > 0);
       case 8:
-        return selectedStoreChains.size > 0;
-      case 9:
-        return data.addressZip && data.addressZip.length > 0;
-      case 10:
-        return selectedSallingStoreIds.size > 0;
+        return selectedStoreChains.size > 0 || selectedSallingStoreIds.size > 0;
       default:
         return true;
     }
@@ -1222,189 +1279,126 @@ export default function Onboarding() {
         );
 
       case 8:
-        // Selected stores (Step 8) - all selected by default, user deselects
+        // Combined: Store chains + Location + Salling stores for food waste
+        const brandColors: Record<string, string> = {
+          netto: 'bg-yellow-500',
+          foetex: 'bg-blue-600',
+          bilka: 'bg-blue-800',
+        };
+
         return (
           <div className="space-y-6 animate-fade-in">
-            <div className="text-center mb-8">
+            <div className="text-center mb-4">
               <span className="text-5xl mb-4 block">🛒</span>
-              <h2 className="text-2xl font-bold mb-2">{t('stores.title')}</h2>
-              <p className="text-muted-foreground">{t('stores.description')}</p>
+              <h2 className="text-2xl font-bold mb-2">Butikker & Madspild</h2>
+              <p className="text-muted-foreground text-sm">
+                Vi finder tilbud og madspild fra butikker nær dig
+              </p>
             </div>
 
+            {/* Geolocation - Primary Action */}
+            <Card className="p-4 border-2 border-primary/50 bg-primary/5">
+              <div className="text-center space-y-3">
+                <p className="text-sm font-medium">Find madspild-tilbud fra Netto, Føtex & Bilka</p>
+                <Button
+                  variant="hero"
+                  className="w-full"
+                  onClick={useMyLocation}
+                  disabled={isGettingLocation}
+                >
+                  {isGettingLocation ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Finder din lokation...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="w-5 h-5 mr-2" />
+                      Brug min lokation
+                    </>
+                  )}
+                </Button>
+                {locationError && (
+                  <p className="text-xs text-destructive">{locationError}</p>
+                )}
+              </div>
+            </Card>
+
+            {/* Salling Stores (shown when found) */}
+            {nearbySallingStores.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-green-600 flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  {nearbySallingStores.length} Salling butikker fundet
+                </p>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {nearbySallingStores.map((store) => {
+                    const isSelected = selectedSallingStoreIds.has(store.id);
+                    return (
+                      <Card
+                        key={store.id}
+                        className={cn(
+                          "p-3 flex items-center justify-between cursor-pointer select-none",
+                          isSelected ? "border-primary bg-primary/5" : "opacity-60"
+                        )}
+                        onClick={() => toggleSallingStore(store.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold", brandColors[store.brand] || 'bg-gray-500')}>
+                            {store.brand.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium">{store.name}</span>
+                            <span className="text-xs text-muted-foreground block">
+                              {store.distance.toFixed(1)} km væk
+                            </span>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={isSelected}
+                          onClick={(e) => e.stopPropagation()}
+                          onCheckedChange={() => toggleSallingStore(store.id)}
+                        />
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">Andre butikker</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Store Chains */}
             {storeChains.length === 0 ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+              <div className="text-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {storeChains.map((chain) => {
                   const isSelected = selectedStoreChains.has(chain.id);
                   return (
                     <Card
                       key={chain.id}
                       className={cn(
-                        "p-4 flex items-center justify-between cursor-pointer select-none active:scale-[0.98] transition-transform",
-                        isSelected ? "border-primary bg-primary/5" : "opacity-60"
+                        "p-3 flex items-center gap-2 cursor-pointer select-none",
+                        isSelected ? "border-primary bg-primary/5" : "opacity-50"
                       )}
-                      style={{ touchAction: 'manipulation' }}
                       onClick={() => toggleStoreChain(chain.id)}
                     >
-                      <div className="flex items-center gap-3">
-                        <Store className="w-5 h-5 text-muted-foreground" />
-                        <span className="font-medium">{chain.name}</span>
-                      </div>
-                      <Switch
-                        checked={isSelected}
-                        onClick={(e) => e.stopPropagation()}
-                        onCheckedChange={() => toggleStoreChain(chain.id)}
-                      />
+                      <Store className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">{chain.name}</span>
+                      {isSelected && <Check className="w-3 h-3 ml-auto text-primary" />}
                     </Card>
                   );
                 })}
               </div>
             )}
-          </div>
-        );
-
-      case 9:
-        // Address input (Step 9) - for finding nearby Salling stores
-        return (
-          <div className="space-y-6 animate-fade-in">
-            <div className="text-center mb-8">
-              <span className="text-5xl mb-4 block">📍</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.address.title', 'Din adresse')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.address.subtitle', 'Vi bruger din adresse til at finde butikker med madspild i nærheden')}</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">{t('onboarding.address.street', 'Vejnavn og nummer')}</label>
-                <Input
-                  placeholder={t('onboarding.address.streetPlaceholder', 'F.eks. Vestergade 12')}
-                  value={data.addressStreet}
-                  onChange={(e) => updateData({ addressStreet: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">{t('onboarding.address.zip', 'Postnummer')}</label>
-                  <Input
-                    placeholder="1234"
-                    value={data.addressZip}
-                    onChange={(e) => updateData({ addressZip: e.target.value })}
-                    type="text"
-                    maxLength={4}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">{t('onboarding.address.city', 'By')}</label>
-                  <Input
-                    placeholder={t('onboarding.address.cityPlaceholder', 'F.eks. København')}
-                    value={data.addressCity}
-                    onChange={(e) => updateData({ addressCity: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={searchSallingStores}
-                disabled={isSearchingStores || !data.addressZip}
-              >
-                {isSearchingStores ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {t('onboarding.address.searching', 'Søger butikker...')}
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4 mr-2" />
-                    {t('onboarding.address.findStores', 'Find butikker i nærheden')}
-                  </>
-                )}
-              </Button>
-
-              {nearbySallingStores.length > 0 && (
-                <div className="text-center text-sm text-green-600">
-                  ✓ {t('onboarding.address.storesReady', `${nearbySallingStores.length} butikker fundet`).replace('${count}', nearbySallingStores.length.toString())}
-                </div>
-              )}
-            </div>
-
-            <p className="text-sm text-muted-foreground text-center">
-              {t('onboarding.address.privacy', 'Vi gemmer kun din adresse for at finde butikker. Du kan skippe dette trin.')}
-            </p>
-          </div>
-        );
-
-      case 10:
-        // Salling stores selection (Step 10)
-        return (
-          <div className="space-y-6 animate-fade-in">
-            <div className="text-center mb-8">
-              <span className="text-5xl mb-4 block">♻️</span>
-              <h2 className="text-2xl font-bold mb-2">{t('onboarding.sallingStores.title', 'Madspild-butikker')}</h2>
-              <p className="text-muted-foreground">{t('onboarding.sallingStores.subtitle', 'Vælg hvilke butikker du vil se madspild fra')}</p>
-            </div>
-
-            {nearbySallingStores.length === 0 ? (
-              <div className="text-center py-8">
-                <MapPin className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground mb-4">
-                  {t('onboarding.sallingStores.noStores', 'Ingen butikker fundet. Gå tilbage og søg efter butikker.')}
-                </p>
-                <Button variant="outline" onClick={() => prevStep()}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  {t('onboarding.sallingStores.goBack', 'Søg efter butikker')}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {nearbySallingStores.map((store) => {
-                  const isSelected = selectedSallingStoreIds.has(store.id);
-                  const brandColors: Record<string, string> = {
-                    netto: 'bg-yellow-500',
-                    foetex: 'bg-blue-600',
-                    bilka: 'bg-blue-800',
-                  };
-                  return (
-                    <Card
-                      key={store.id}
-                      className={cn(
-                        "p-4 flex items-center justify-between cursor-pointer select-none active:scale-[0.98] transition-transform",
-                        isSelected ? "border-primary bg-primary/5" : "opacity-60"
-                      )}
-                      style={{ touchAction: 'manipulation' }}
-                      onClick={() => toggleSallingStore(store.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold", brandColors[store.brand] || 'bg-gray-500')}>
-                          {store.brand.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <span className="font-medium block">{store.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {store.address}, {store.city} • {store.distance.toFixed(1)} km
-                          </span>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={isSelected}
-                        onClick={(e) => e.stopPropagation()}
-                        onCheckedChange={() => toggleSallingStore(store.id)}
-                      />
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-
-            <p className="text-sm text-muted-foreground text-center">
-              {t('onboarding.sallingStores.note', 'Vi finder madspild-tilbud fra disse butikker og inkluderer dem i dine madplaner')}
-            </p>
           </div>
         );
 

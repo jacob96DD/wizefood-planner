@@ -11,50 +11,53 @@ serve(async (req) => {
   }
 
   try {
-    const { zip, city, street, radius = 5 } = await req.json();
+    const { zip, city, street, radius = 10, latitude, longitude } = await req.json(); // Default 10km radius
     const sallingApiKey = Deno.env.get('SALLING_API_KEY');
 
     if (!sallingApiKey) {
       throw new Error('SALLING_API_KEY not configured');
     }
 
-    if (!zip) {
-      throw new Error('Postnummer er påkrævet');
-    }
+    console.log('Finding stores for:', { zip, city, street, radius, latitude, longitude });
 
-    console.log('Finding stores for:', { zip, city, street, radius });
+    // 1. Brug direkte koordinater hvis de er givet (fra geolocation)
+    let lat: number | null = latitude || null;
+    let lng: number | null = longitude || null;
 
-    // 1. Geocode adressen med Nominatim (gratis)
-    let lat: number | null = null;
-    let lng: number | null = null;
-
-    // Prøv med fuld adresse først
-    if (street && city) {
-      const fullAddress = `${street}, ${zip} ${city}, Denmark`;
-      const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`;
-
-      const geoRes = await fetch(geocodeUrl, {
-        headers: { 'User-Agent': 'WizeFood/1.0 (meal planning app)' }
-      });
-      const geoData = await geoRes.json();
-
-      if (geoData.length > 0) {
-        lat = parseFloat(geoData[0].lat);
-        lng = parseFloat(geoData[0].lon);
-      }
-    }
-
-    // Fallback: brug kun postnummer
+    // 2. Ellers geocode adressen med Nominatim (gratis)
     if (!lat || !lng) {
-      const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${zip}&country=Denmark&limit=1`;
-      const fallbackRes = await fetch(fallbackUrl, {
-        headers: { 'User-Agent': 'WizeFood/1.0 (meal planning app)' }
-      });
-      const fallbackData = await fallbackRes.json();
+      if (!zip) {
+        throw new Error('Postnummer eller lokation er påkrævet');
+      }
 
-      if (fallbackData.length > 0) {
-        lat = parseFloat(fallbackData[0].lat);
-        lng = parseFloat(fallbackData[0].lon);
+      // Prøv med fuld adresse først
+      if (street && city) {
+        const fullAddress = `${street}, ${zip} ${city}, Denmark`;
+        const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`;
+
+        const geoRes = await fetch(geocodeUrl, {
+          headers: { 'User-Agent': 'WizeFood/1.0 (meal planning app)' }
+        });
+        const geoData = await geoRes.json();
+
+        if (geoData.length > 0) {
+          lat = parseFloat(geoData[0].lat);
+          lng = parseFloat(geoData[0].lon);
+        }
+      }
+
+      // Fallback: brug kun postnummer
+      if (!lat || !lng) {
+        const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${zip}&country=Denmark&limit=1`;
+        const fallbackRes = await fetch(fallbackUrl, {
+          headers: { 'User-Agent': 'WizeFood/1.0 (meal planning app)' }
+        });
+        const fallbackData = await fallbackRes.json();
+
+        if (fallbackData.length > 0) {
+          lat = parseFloat(fallbackData[0].lat);
+          lng = parseFloat(fallbackData[0].lon);
+        }
       }
     }
 
