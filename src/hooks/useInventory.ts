@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
 
+export type InventoryCategory = 'fridge' | 'freezer' | 'pantry' | 'basislager';
+
 export interface InventoryItem {
   id: string;
   ingredient_name: string;
   quantity: number | null;
   unit: string | null;
-  category: 'fridge' | 'freezer' | 'pantry';
+  category: InventoryCategory;
   expires_at: string | null;
   is_depleted: boolean;
   added_at: string;
@@ -20,6 +22,50 @@ export function useInventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [basislagerInitialized, setBasislagerInitialized] = useState(false);
+
+  // Auto-populate basislager for new users
+  const initializeBasislager = useCallback(async () => {
+    if (!user || basislagerInitialized) return;
+    
+    try {
+      // Check if user already has basislager items
+      const { count } = await supabase
+        .from('household_inventory')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('category', 'basislager');
+      
+      if (count && count > 0) {
+        setBasislagerInitialized(true);
+        return;
+      }
+      
+      // Fetch all pantry_staples
+      const { data: staples } = await supabase
+        .from('pantry_staples')
+        .select('name, icon, category');
+      
+      if (!staples || staples.length === 0) {
+        setBasislagerInitialized(true);
+        return;
+      }
+      
+      // Create all basislager items for user (default: in stock = not depleted)
+      await supabase.from('household_inventory').insert(
+        staples.map(staple => ({
+          user_id: user.id,
+          ingredient_name: staple.name,
+          category: 'basislager',
+          is_depleted: false, // Default: user HAS it
+        }))
+      );
+      
+      setBasislagerInitialized(true);
+    } catch (error) {
+      console.error('Error initializing basislager:', error);
+    }
+  }, [user, basislagerInitialized]);
 
   const fetchInventory = useCallback(async () => {
     if (!user) return;
@@ -30,6 +76,7 @@ export function useInventory() {
         .from('household_inventory')
         .select('*')
         .eq('user_id', user.id)
+        .neq('category', 'basislager') // Exclude basislager from regular inventory
         .eq('is_depleted', false)
         .order('category', { ascending: true })
         .order('ingredient_name', { ascending: true });
@@ -38,7 +85,7 @@ export function useInventory() {
       
       setItems((data || []).map(item => ({
         ...item,
-        category: (item.category as 'fridge' | 'freezer' | 'pantry') || 'pantry'
+        category: (item.category as InventoryCategory) || 'pantry'
       })));
     } catch (error) {
       console.error('Error fetching inventory:', error);
@@ -48,6 +95,10 @@ export function useInventory() {
   }, [user]);
 
   useEffect(() => {
+    initializeBasislager();
+  }, [initializeBasislager]);
+
+  useEffect(() => {
     fetchInventory();
   }, [fetchInventory]);
 
@@ -55,7 +106,7 @@ export function useInventory() {
     ingredient_name: string;
     quantity?: number;
     unit?: string;
-    category?: 'fridge' | 'freezer' | 'pantry';
+    category?: InventoryCategory;
     expires_at?: string;
   }) => {
     if (!user) return null;
@@ -143,7 +194,7 @@ export function useInventory() {
     ingredient_name: string;
     quantity?: number;
     unit?: string;
-    category?: 'fridge' | 'freezer' | 'pantry';
+    category?: InventoryCategory;
   }[]) => {
     if (!user || itemsToAdd.length === 0) return false;
     

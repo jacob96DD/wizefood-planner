@@ -4,12 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Package } from 'lucide-react';
-import { usePantryStaples } from '@/hooks/usePantryStaples';
+import { ChevronDown, ChevronUp, Package, Check, X } from 'lucide-react';
+import { useBasislager } from '@/hooks/useBasislager';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const PantryStaplesCard = () => {
   const { t } = useTranslation();
-  const { staples, loading, getStaplesByCategory, categoryLabels } = usePantryStaples();
+  const { 
+    items, 
+    loading, 
+    saving,
+    toggleStock, 
+    getItemsByCategory, 
+    categoryLabels,
+    missingCount,
+    totalCount 
+  } = useBasislager();
   const [isOpen, setIsOpen] = useState(false);
 
   if (loading) {
@@ -22,14 +32,18 @@ export const PantryStaplesCard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Indlæser...</p>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  const groupedStaples = getStaplesByCategory();
-  const categories = Object.keys(groupedStaples);
+  const groupedItems = getItemsByCategory();
+  const categories = Object.keys(groupedItems);
+  const hasItems = items.length > 0;
 
   return (
     <Card>
@@ -48,31 +62,64 @@ export const PantryStaplesCard = () => {
               )}
             </Button>
           </CollapsibleTrigger>
-          <p className="text-xs text-muted-foreground mt-1">
-            {staples.length} varer i dit basislager
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-muted-foreground">
+              {hasItems ? (
+                missingCount > 0 
+                  ? `${totalCount - missingCount} af ${totalCount} varer på lager · ${missingCount} mangler`
+                  : `${totalCount} varer på lager ✓`
+              ) : 'Indlæser basislager...'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Est. forbrug: ~75 kr/md
+            </p>
+          </div>
         </CardHeader>
 
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-4">
+            <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+              💡 Tryk på en vare for at markere om du har den eller mangler den. 
+              Manglende varer købes kun hvis der er tilbud.
+            </p>
+            
             {categories.map((category) => (
               <div key={category}>
                 <h4 className="text-sm font-medium mb-2 text-muted-foreground">
                   {categoryLabels[category] || category}
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {groupedStaples[category].map((staple) => (
+                  {groupedItems[category].map((item) => (
                     <Badge 
-                      key={staple.id} 
-                      variant="secondary"
-                      className="text-xs font-normal"
+                      key={item.id} 
+                      variant={item.is_depleted ? "destructive" : "secondary"}
+                      className={`text-xs font-normal cursor-pointer transition-colors ${
+                        item.is_depleted 
+                          ? 'hover:bg-destructive/80' 
+                          : 'hover:bg-secondary/80'
+                      } ${saving ? 'opacity-50' : ''}`}
+                      onClick={() => !saving && toggleStock(item.id)}
                     >
-                      {staple.icon} {staple.name}
+                      {item.is_depleted ? (
+                        <X className="w-3 h-3 mr-1" />
+                      ) : (
+                        <Check className="w-3 h-3 mr-1" />
+                      )}
+                      {item.icon} {item.ingredient_name}
                     </Badge>
                   ))}
                 </div>
               </div>
             ))}
+
+            {missingCount > 0 && (
+              <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-orange-800 dark:text-orange-200">
+                  🛒 <strong>{missingCount} vare{missingCount > 1 ? 'r' : ''} mangler</strong> - 
+                  tilføjes automatisk til indkøbslisten når der er tilbud.
+                </p>
+              </div>
+            )}
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
