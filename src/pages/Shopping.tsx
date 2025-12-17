@@ -324,7 +324,9 @@ export default function Shopping() {
                                 {offer.chain_name}
                               </Badge>
                               <div>
-                                <span className="font-medium">{offer.product_name}</span>
+                                <span className="font-medium">
+                                  {offer.product_name || offer.offer_text?.split(' - ')[0] || 'Produkt'}
+                                </span>
                                 {offer.brand && (
                                   <span className="text-sm text-muted-foreground ml-2">{offer.brand}</span>
                                 )}

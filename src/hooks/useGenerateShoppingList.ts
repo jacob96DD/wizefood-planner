@@ -160,24 +160,61 @@ export function useGenerateShoppingList() {
         return null;
       };
 
-      // Helper: Forbedret tilbuds-matching via product_name OG offer_text
+      // Helper: Scoring-baseret tilbuds-matching for præcis matching
       const findMatchingOffer = (ingredientName: string) => {
-        if (!offers) return null;
+        if (!offers || offers.length === 0) return null;
         
-        return offers.find(o => {
-          const productName = (o.product_name || '').toLowerCase();
-          const offerText = (o.offer_text || '').toLowerCase();
-          const searchText = `${productName} ${offerText}`;
+        const lowerIngredient = ingredientName.toLowerCase().trim();
+        const ingredientWords = lowerIngredient.split(/\s+/).filter(w => w.length > 2);
+        
+        let bestMatch: { offer: typeof offers[0]; score: number } | null = null;
+        
+        for (const offer of offers) {
+          const productName = (offer.product_name || '').toLowerCase();
+          const offerText = (offer.offer_text || '').toLowerCase();
+          const combinedText = `${productName} ${offerText}`.trim();
           
-          // Match hvis ingrediensnavn findes i product_name eller offer_text
-          if (searchText.includes(ingredientName)) return true;
+          if (!combinedText) continue;
           
-          // Match hvis første ord af tilbuddet matcher ingrediensen
-          const firstWord = (productName || offerText).split(' ')[0];
-          if (firstWord && ingredientName.includes(firstWord)) return true;
+          let score = 0;
           
-          return false;
-        });
+          // Eksakt match (højeste prioritet)
+          if (combinedText.includes(lowerIngredient)) {
+            score = 100;
+          }
+          // Ingrediens som første ord i tilbud
+          else if (combinedText.startsWith(lowerIngredient)) {
+            score = 90;
+          }
+          // Første ord matcher eksakt
+          else {
+            const firstIngredientWord = ingredientWords[0];
+            const offerWords = combinedText.split(/\s+/);
+            
+            if (firstIngredientWord && offerWords[0] === firstIngredientWord) {
+              score = 70;
+            }
+            // Delvis match på vigtige ord (min 2 matches nødvendig)
+            else {
+              const matchingWords = ingredientWords.filter(iw => 
+                offerWords.some(ow => ow === iw || (iw.length > 3 && ow.startsWith(iw)))
+              );
+              if (matchingWords.length >= 2) {
+                score = matchingWords.length * 25;
+              } else if (matchingWords.length === 1 && ingredientWords.length === 1) {
+                // Enkelt ord ingrediens der matcher
+                score = 60;
+              }
+            }
+          }
+          
+          // Kun accepter hvis score >= 60 og bedre end nuværende match
+          if (score >= 60 && (!bestMatch || score > bestMatch.score)) {
+            bestMatch = { offer, score };
+          }
+        }
+        
+        return bestMatch?.offer || null;
       };
 
       // 4. Build shopping list items

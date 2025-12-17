@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 export interface Offer {
   id: string;
   product_name: string | null;
+  offer_text: string | null;
   brand: string | null;
   category: string | null;
   unit: string | null;
@@ -68,6 +69,7 @@ export function useOffers(shoppingDate?: Date) {
         .select(`
           id,
           product_name,
+          offer_text,
           brand,
           category,
           unit,
