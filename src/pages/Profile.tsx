@@ -114,7 +114,7 @@ export default function Profile() {
     navigate('/');
   };
 
-  // Calculate daily calorie needs using Harris-Benedict formula with dynamic macro distribution
+  // Calculate daily calorie needs using Mifflin-St Jeor formula with dynamic macro distribution
   const calculateMacros = () => {
     if (!data.weightKg || !data.heightCm || !data.dateOfBirth) {
       return { calories: 2000, protein: 125, carbs: 225, fat: 67 };
@@ -122,10 +122,10 @@ export default function Profile() {
     
     const age = new Date().getFullYear() - new Date(data.dateOfBirth).getFullYear();
     
-    // Harris-Benedict BMR formula (correct parentheses)
+    // Mifflin-St Jeor BMR formula (mest præcis for moderne befolkninger)
     const bmr = data.gender === 'male'
-      ? 88.36 + (13.4 * data.weightKg) + (4.8 * data.heightCm) - (5.7 * age)
-      : 447.6 + (9.2 * data.weightKg) + (3.1 * data.heightCm) - (4.3 * age);
+      ? (10 * data.weightKg) + (6.25 * data.heightCm) - (5 * age) + 5
+      : (10 * data.weightKg) + (6.25 * data.heightCm) - (5 * age) - 161;
 
     const activityMultipliers: Record<string, number> = {
       sedentary: 1.2,

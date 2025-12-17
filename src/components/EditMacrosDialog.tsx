@@ -94,10 +94,10 @@ export function EditMacrosDialog({
     if (profileData?.weightKg && profileData?.heightCm && profileData?.age) {
       const { weightKg, heightCm, age, gender, activityLevel } = profileData;
       
-      // Harris-Benedict BMR formula
+      // Mifflin-St Jeor BMR formula (mest præcis for moderne befolkninger)
       const bmr = gender === 'male'
-        ? 88.36 + (13.4 * weightKg) + (4.8 * heightCm) - (5.7 * age)
-        : 447.6 + (9.2 * weightKg) + (3.1 * heightCm) - (4.3 * age);
+        ? (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5
+        : (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
 
       const activity = activityMultipliers[activityLevel || 'moderate'];
       const tdee = bmr * activity.multiplier;
@@ -160,7 +160,7 @@ export function EditMacrosDialog({
   
   const isValid = !hasProteinCalorieConflict && !hasCarbsCalorieConflict && !hasFatCalorieConflict && values.calories >= 800;
 
-  // Calculate BMR and TDEE for display
+  // Calculate BMR and TDEE for display using Mifflin-St Jeor
   const calculateDetails = () => {
     if (!profileData?.weightKg || !profileData?.heightCm || !profileData?.age) {
       return null;
@@ -168,10 +168,10 @@ export function EditMacrosDialog({
 
     const { weightKg, heightCm, age, gender, activityLevel } = profileData;
     
-    // Harris-Benedict BMR formula
+    // Mifflin-St Jeor BMR formula (mest præcis for moderne befolkninger)
     const bmr = gender === 'male'
-      ? Math.round(88.36 + (13.4 * weightKg) + (4.8 * heightCm) - (5.7 * age))
-      : Math.round(447.6 + (9.2 * weightKg) + (3.1 * heightCm) - (4.3 * age));
+      ? Math.round((10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5)
+      : Math.round((10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161);
 
     const activity = activityMultipliers[activityLevel || 'moderate'];
     const tdee = Math.round(bmr * activity.multiplier);
@@ -193,6 +193,10 @@ export function EditMacrosDialog({
       adjustment,
       activityName: activity.name,
       activityMultiplier: activity.multiplier,
+      weightKg,
+      heightCm,
+      age,
+      gender,
     };
   };
 
@@ -379,35 +383,45 @@ export function EditMacrosDialog({
           {details && profileData && (
             <div className="text-xs bg-muted p-3 rounded-lg space-y-2">
               <p className="font-medium text-foreground">Din personlige beregning:</p>
+              <p className="text-muted-foreground italic text-[10px]">
+                Model: Mifflin-St Jeor (mest præcis for moderne befolkninger)
+              </p>
               <div className="space-y-1 font-mono text-muted-foreground">
-                <p>
-                  BMR: <span className="text-foreground font-semibold">{details.bmr}</span> kcal
-                  <span className="text-muted-foreground/70 ml-1">
-                    ({profileData.weightKg}kg, {profileData.heightCm}cm, {profileData.age} år)
-                  </span>
+                <p className="text-[11px]">
+                  BMR: (10 × {details.weightKg}kg) + (6.25 × {details.heightCm}cm) - (5 × {details.age}) {details.gender === 'male' ? '+ 5' : '- 161'}
                 </p>
-                <p>
-                  × {details.activityName} ({details.activityMultiplier}) = <span className="text-foreground font-semibold">{details.tdee}</span> kcal
+                <p className="ml-4">
+                  = <span className="text-foreground font-semibold">{details.bmr}</span> kcal
+                </p>
+                <p className="text-[11px] mt-2">
+                  TDEE: {details.bmr} × {details.activityMultiplier} ({details.activityName})
+                </p>
+                <p className="ml-4">
+                  = <span className="text-foreground font-semibold">{details.tdee}</span> kcal
                 </p>
                 {dietaryGoal === 'lose' && (
-                  <p>
-                    − 500 kcal (vægttab) = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
+                  <p className="mt-2">
+                    {details.tdee} − 500 kcal (vægttab) = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
                   </p>
                 )}
                 {dietaryGoal === 'gain' && (
-                  <p>
-                    + 500 kcal (vægtøgning) = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
+                  <p className="mt-2">
+                    {details.tdee} + 500 kcal (vægtøgning) = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
                   </p>
                 )}
                 {(!dietaryGoal || dietaryGoal === 'maintain') && (
-                  <p>
+                  <p className="mt-2">
                     = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
                   </p>
                 )}
               </div>
               <div className="pt-2 border-t border-border/50">
                 <p className="font-medium text-foreground">Makro-fordeling ({goalNames[dietaryGoal || 'maintain']}):</p>
-                <p className="text-muted-foreground">Protein 30% · Kulhydrater 45% · Fedt 25%</p>
+                <p className="text-muted-foreground">
+                  {dietaryGoal === 'lose' ? 'Protein 30% · Kulhydrater 40% · Fedt 30%' :
+                   dietaryGoal === 'gain' ? 'Protein 30% · Kulhydrater 45% · Fedt 25%' :
+                   'Protein 25% · Kulhydrater 45% · Fedt 30%'}
+                </p>
               </div>
             </div>
           )}
