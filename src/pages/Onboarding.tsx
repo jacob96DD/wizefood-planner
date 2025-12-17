@@ -424,7 +424,7 @@ export default function Onboarding() {
     nextStep();
   };
 
-  // Skip onboarding - create minimal profile focused on saving money
+  // Skip remaining onboarding - save data entered so far with defaults for the rest
   const handleSkipOnboarding = async () => {
     if (!user) {
       toast({
@@ -439,17 +439,58 @@ export default function Onboarding() {
     setIsSaving(true);
 
     try {
-      // Create minimal profile with "save money" as primary goal
+      // Calculate age from date of birth if available
+      let age: number | null = null;
+      if (data.dateOfBirth) {
+        const birthDate = new Date(data.dateOfBirth);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+      }
+
+      // Use entered data with fallback defaults
+      const primaryGoal = data.dietaryGoal || 'save_money';
+
+      // Calculate macros if we have enough data, otherwise use defaults
+      let totalCalories = 2000;
+      let totalProtein = 75;
+      let totalCarbs = 250;
+      let totalFat = 65;
+
+      if (data.weightKg && data.heightCm && age) {
+        const macros = calculateMacros(
+          data.weightKg,
+          data.heightCm,
+          age,
+          data.gender || 'other',
+          data.activityLevel || 'moderate',
+          primaryGoal
+        );
+        totalCalories = macros.dailyCalories;
+        totalProtein = macros.dailyProtein;
+        totalCarbs = macros.dailyCarbs;
+        totalFat = macros.dailyFat;
+      }
+
+      // Save profile with entered data + defaults for missing fields
       const profileData = {
         id: user.id,
-        full_name: 'Bruger',
-        dietary_goal: 'save_money',
-        people_count: 1,
-        // Use average Danish adult values
-        daily_calories: 2000,
-        daily_protein_target: 75,
-        daily_carbs_target: 250,
-        daily_fat_target: 65,
+        full_name: data.fullName || 'Bruger',
+        gender: data.gender || null,
+        date_of_birth: data.dateOfBirth || null,
+        height_cm: data.heightCm || null,
+        weight_kg: data.weightKg || null,
+        age_years: age,
+        activity_level: data.activityLevel || null,
+        dietary_goal: primaryGoal,
+        people_count: data.peopleCount || 1,
+        daily_calories: totalCalories,
+        daily_protein_target: totalProtein,
+        daily_carbs_target: totalCarbs,
+        daily_fat_target: totalFat,
         updated_at: new Date().toISOString(),
       };
 
@@ -461,14 +502,62 @@ export default function Onboarding() {
 
       if (profileError) throw profileError;
 
+      // Save allergens if any were selected
+      if (data.selectedAllergens.length > 0) {
+        const { data: allergenData } = await supabase
+          .from('allergens')
+          .select('id, name');
+
+        if (allergenData) {
+          await supabase.from('user_allergens').delete().eq('user_id', user.id);
+
+          const allergenNameMap: Record<string, string> = {
+            gluten: 'gluten', dairy: 'mælk', eggs: 'æg', nuts: 'nødder',
+            fish: 'fisk', shellfish: 'skaldyr', soy: 'soja', celery: 'selleri',
+          };
+          const allergenMap: Record<string, string> = {};
+          allergenData.forEach(a => { allergenMap[a.name.toLowerCase()] = a.id; });
+
+          const userAllergens = data.selectedAllergens
+            .map(allergenId => {
+              const allergenName = allergenNameMap[allergenId];
+              const dbAllergenId = allergenName ? allergenMap[allergenName] : null;
+              return dbAllergenId ? { user_id: user.id, allergen_id: dbAllergenId } : null;
+            })
+            .filter(Boolean);
+
+          if (userAllergens.length > 0) {
+            await supabase.from('user_allergens').insert(userAllergens);
+          }
+        }
+      }
+
+      // Save dietary preference if set
+      if (data.dietaryPreference && data.dietaryPreference !== 'omnivore') {
+        await supabase.from('user_dietary_preferences').upsert({
+          user_id: user.id,
+          preference: data.dietaryPreference,
+        }, { onConflict: 'user_id' });
+      }
+
+      // Save food dislikes if any
+      if (data.dislikedFoods.length > 0) {
+        await supabase.from('user_food_dislikes').delete().eq('user_id', user.id);
+        const dislikesToInsert = data.dislikedFoods.map(food => ({
+          user_id: user.id,
+          food_name: food,
+        }));
+        await supabase.from('user_food_dislikes').insert(dislikesToInsert);
+      }
+
       // Update local state
       setProfile(updatedProfile);
       setIsOnboarded(true);
       reset();
 
       toast({
-        title: '💰 ' + t('onboarding.skipSuccess', 'Klar til at spare!'),
-        description: t('onboarding.skipSuccessDesc', 'Vi genererer madplaner baseret på tilbud.'),
+        title: '✅ ' + t('onboarding.skipSuccess', 'Profil gemt!'),
+        description: t('onboarding.skipSuccessDesc', 'Dine indtastede oplysninger er gemt.'),
       });
 
       navigate('/home');
