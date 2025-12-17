@@ -223,20 +223,22 @@ export function MealOptionSwiper({
 
     setTimeout(() => {
       const isPositive = rating === 'like' || rating === 'love';
-      const newTotalSelected = totalSelected + (isPositive ? 1 : 0);
       
       if (isPositive) {
-        setSelectedMeals(prev => [...prev, currentRecipe]);
+        // KRITISK FIX: Opret det nye array FØRST og brug det direkte
+        const newSelectedMeals = [...selectedMeals, currentRecipe];
+        setSelectedMeals(newSelectedMeals);
 
         toast({
           title: rating === 'love' ? '🔥 Livret!' : '👍 Tilføjet!',
           description: currentRecipe.title,
         });
 
-        // Check if we have enough meals - stop immediately!
-        if (newTotalSelected >= recipesNeeded) {
+        // Check if we have enough meals - brug det NYE array direkte!
+        if (newSelectedMeals.length >= recipesNeeded) {
           setSwipeDirection(null);
-          setTimeout(() => handleComplete(), 100);
+          // KRITISK FIX: Send det nye array DIREKTE til completion
+          setTimeout(() => handleCompleteWithMeals(newSelectedMeals), 100);
           return;
         }
       } else {
@@ -256,9 +258,9 @@ export function MealOptionSwiper({
     }, 200);
   };
 
-  const handleComplete = () => {
-    // Merge generated images into selected meals before completing
-    const mealsWithImages = selectedMeals.map(meal => ({
+  // NY FUNKTION: Tager meals som parameter for at undgå race condition
+  const handleCompleteWithMeals = (meals: MealRecipe[]) => {
+    const mealsWithImages = meals.map(meal => ({
       ...meal,
       image_url: images[meal.id] || meal.image_url || meal.imageUrl || null,
       imageUrl: images[meal.id] || meal.imageUrl || meal.image_url || null,
@@ -269,6 +271,11 @@ export function MealOptionSwiper({
       description: t('mealSwiper.completeDesc', 'Dine valgte retter er gemt'),
     });
     onComplete(mealsWithImages);
+  };
+
+  // Behold original handleComplete for "Opret madplan" knappen
+  const handleComplete = () => {
+    handleCompleteWithMeals(selectedMeals);
   };
 
   // Handle generate more options

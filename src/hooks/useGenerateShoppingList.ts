@@ -12,66 +12,210 @@ interface SelectedMeals {
   dinner: MealRecipe[];
 }
 
-// Estimerede standardpriser for almindelige ingredienser (DKK)
-const ESTIMATED_PRICES: Record<string, number> = {
+// Priser per kg/liter/stk - realistiske danske 2024-priser
+interface PriceInfo {
+  price: number;  // Pris per enhed
+  unit: 'kg' | 'l' | 'stk' | 'pk';
+}
+
+const PRICES_PER_UNIT: Record<string, PriceInfo> = {
+  // Kød (per kg) - 2024 danske priser
+  'oksekød': { price: 130, unit: 'kg' },
+  'hakket oksekød': { price: 100, unit: 'kg' },
+  'bøf': { price: 160, unit: 'kg' },
+  'roastbeef': { price: 180, unit: 'kg' },
+  'kylling': { price: 80, unit: 'kg' },
+  'kyllingebryst': { price: 90, unit: 'kg' },
+  'kyllingelår': { price: 60, unit: 'kg' },
+  'hel kylling': { price: 50, unit: 'kg' },
+  'svinekød': { price: 70, unit: 'kg' },
+  'hakket svinekød': { price: 60, unit: 'kg' },
+  'nakkefilet': { price: 80, unit: 'kg' },
+  'flæsk': { price: 50, unit: 'kg' },
+  'bacon': { price: 120, unit: 'kg' },
+  'skinke': { price: 100, unit: 'kg' },
+  
+  // Fisk (per kg)
+  'laks': { price: 180, unit: 'kg' },
+  'torsk': { price: 140, unit: 'kg' },
+  'rødspætte': { price: 120, unit: 'kg' },
+  'tun': { price: 80, unit: 'pk' },  // dåse
+  'rejer': { price: 200, unit: 'kg' },
+  
   // Mejeriprodukter
-  'mælk': 12, 'letmælk': 12, 'minimælk': 12, 'sødmælk': 14,
-  'smør': 25, 'margarine': 18,
-  'ost': 35, 'cheddar': 40, 'parmesan': 45, 'mozzarella': 30, 'feta': 28,
-  'fløde': 15, 'piskefløde': 18, 'cremefraiche': 16, 'creme fraiche': 16,
-  'yoghurt': 15, 'skyr': 18, 'græsk yoghurt': 20,
-  'æg': 30, 'æg 10 stk': 35, 'æg 6 stk': 22,
+  'mælk': { price: 12, unit: 'l' },
+  'letmælk': { price: 12, unit: 'l' },
+  'minimælk': { price: 12, unit: 'l' },
+  'sødmælk': { price: 14, unit: 'l' },
+  'fløde': { price: 28, unit: 'l' },
+  'piskefløde': { price: 28, unit: 'l' },
+  'cremefraiche': { price: 32, unit: 'l' },
+  'creme fraiche': { price: 32, unit: 'l' },
+  'smør': { price: 100, unit: 'kg' },
+  'margarine': { price: 50, unit: 'kg' },
+  'ost': { price: 100, unit: 'kg' },
+  'cheddar': { price: 120, unit: 'kg' },
+  'parmesan': { price: 200, unit: 'kg' },
+  'mozzarella': { price: 80, unit: 'kg' },
+  'feta': { price: 90, unit: 'kg' },
+  'yoghurt': { price: 20, unit: 'l' },
+  'skyr': { price: 25, unit: 'l' },
+  'græsk yoghurt': { price: 30, unit: 'l' },
+  'æg': { price: 3, unit: 'stk' },
   
-  // Kød og fisk
-  'kylling': 45, 'kyllingebryst': 55, 'kyllingelår': 40, 'hel kylling': 50,
-  'hakket oksekød': 50, 'oksekød': 65, 'bøf': 80, 'roastbeef': 90,
-  'hakket svinekød': 40, 'svinekød': 50, 'nakkefilet': 55, 'schnitzel': 45,
-  'flæsk': 35, 'bacon': 30, 'skinke': 35,
-  'laks': 70, 'torsk': 60, 'rødspætte': 55, 'tun': 25, 'rejer': 50,
-  'pølser': 25, 'medister': 30,
-  
-  // Grøntsager
-  'kartofler': 15, 'kartoffel': 15, 'nye kartofler': 18,
-  'løg': 8, 'rødløg': 10, 'forårsløg': 12, 'porrer': 15,
-  'hvidløg': 10, 'hvidløgsfed': 10,
-  'gulerødder': 12, 'gulerod': 12,
-  'tomat': 15, 'tomater': 15, 'cherrytomater': 18, 'hakkede tomater': 10,
-  'agurk': 10, 'salat': 15, 'iceberg': 15, 'rucola': 18,
-  'spinat': 18, 'broccoli': 15, 'blomkål': 18, 'grønkål': 15,
-  'peberfrugt': 12, 'chili': 8, 'jalapeño': 10,
-  'squash': 12, 'aubergine': 15, 'champignon': 18, 'svampe': 18,
-  'avocado': 15, 'majs': 12, 'ærter': 15, 'bønner': 12,
-  'kål': 12, 'hvidkål': 12, 'rødkål': 15, 'spidskål': 15,
-  'selleri': 15, 'ingefær': 12, 'citron': 8, 'lime': 8,
+  // Grøntsager (per kg)
+  'kartofler': { price: 15, unit: 'kg' },
+  'kartoffel': { price: 15, unit: 'kg' },
+  'løg': { price: 15, unit: 'kg' },
+  'rødløg': { price: 25, unit: 'kg' },
+  'forårsløg': { price: 10, unit: 'stk' },
+  'porrer': { price: 25, unit: 'kg' },
+  'hvidløg': { price: 5, unit: 'stk' },
+  'hvidløgsfed': { price: 1, unit: 'stk' },
+  'gulerødder': { price: 15, unit: 'kg' },
+  'gulerod': { price: 15, unit: 'kg' },
+  'tomat': { price: 30, unit: 'kg' },
+  'tomater': { price: 30, unit: 'kg' },
+  'cherrytomater': { price: 50, unit: 'kg' },
+  'hakkede tomater': { price: 10, unit: 'pk' },
+  'agurk': { price: 10, unit: 'stk' },
+  'salat': { price: 15, unit: 'stk' },
+  'iceberg': { price: 15, unit: 'stk' },
+  'rucola': { price: 25, unit: 'pk' },
+  'spinat': { price: 40, unit: 'kg' },
+  'broccoli': { price: 30, unit: 'kg' },
+  'blomkål': { price: 25, unit: 'stk' },
+  'grønkål': { price: 30, unit: 'kg' },
+  'peberfrugt': { price: 40, unit: 'kg' },
+  'chili': { price: 5, unit: 'stk' },
+  'squash': { price: 25, unit: 'kg' },
+  'aubergine': { price: 30, unit: 'kg' },
+  'champignon': { price: 60, unit: 'kg' },
+  'svampe': { price: 60, unit: 'kg' },
+  'avocado': { price: 15, unit: 'stk' },
+  'majs': { price: 10, unit: 'pk' },
+  'ærter': { price: 20, unit: 'pk' },
+  'bønner': { price: 15, unit: 'pk' },
+  'kål': { price: 15, unit: 'kg' },
+  'hvidkål': { price: 15, unit: 'kg' },
+  'rødkål': { price: 20, unit: 'kg' },
+  'spidskål': { price: 20, unit: 'stk' },
+  'selleri': { price: 15, unit: 'stk' },
+  'ingefær': { price: 80, unit: 'kg' },
+  'citron': { price: 5, unit: 'stk' },
+  'lime': { price: 5, unit: 'stk' },
   
   // Frugt
-  'æble': 15, 'æbler': 15, 'banan': 12, 'bananer': 12,
-  'appelsin': 18, 'appelsiner': 18, 'citrus': 15,
-  'jordbær': 25, 'hindbær': 30, 'blåbær': 28,
-  'vindrue': 25, 'vindruer': 25, 'melon': 20,
+  'æble': { price: 25, unit: 'kg' },
+  'æbler': { price: 25, unit: 'kg' },
+  'banan': { price: 20, unit: 'kg' },
+  'bananer': { price: 20, unit: 'kg' },
+  'appelsin': { price: 20, unit: 'kg' },
+  'appelsiner': { price: 20, unit: 'kg' },
   
   // Tørvarer
-  'pasta': 15, 'spaghetti': 15, 'penne': 15, 'fusilli': 15, 'makaroni': 15,
-  'ris': 20, 'jasminris': 22, 'basmatiris': 25, 'brune ris': 22,
-  'mel': 12, 'hvedemel': 12,
-  'sukker': 15, 'rørsukker': 18, 'flormelis': 12,
-  'salt': 8, 'peber': 15, 'krydderier': 18,
-  'olie': 30, 'olivenolie': 45, 'rapsolie': 25,
-  'eddike': 15, 'balsamico': 25,
-  'sojasauce': 18, 'fiskesauce': 20,
-  'tomatpuré': 12, 'tomatsauce': 15,
-  'bouillon': 15, 'hønsebouillon': 15, 'oksebouillon': 15,
-  'kokosmælk': 18, 'kokoscreme': 20,
+  'pasta': { price: 20, unit: 'kg' },
+  'spaghetti': { price: 20, unit: 'kg' },
+  'penne': { price: 20, unit: 'kg' },
+  'fusilli': { price: 20, unit: 'kg' },
+  'makaroni': { price: 20, unit: 'kg' },
+  'ris': { price: 25, unit: 'kg' },
+  'jasminris': { price: 30, unit: 'kg' },
+  'basmatiris': { price: 35, unit: 'kg' },
+  'mel': { price: 15, unit: 'kg' },
+  'hvedemel': { price: 15, unit: 'kg' },
+  'sukker': { price: 15, unit: 'kg' },
+  'salt': { price: 10, unit: 'kg' },
+  'peber': { price: 200, unit: 'kg' },
+  'olie': { price: 30, unit: 'l' },
+  'olivenolie': { price: 60, unit: 'l' },
+  'rapsolie': { price: 25, unit: 'l' },
+  'eddike': { price: 20, unit: 'l' },
+  'balsamico': { price: 50, unit: 'l' },
+  'sojasauce': { price: 40, unit: 'l' },
+  'tomatpuré': { price: 15, unit: 'pk' },
+  'tomatsauce': { price: 15, unit: 'pk' },
+  'bouillon': { price: 20, unit: 'pk' },
+  'hønsebouillon': { price: 20, unit: 'pk' },
+  'oksebouillon': { price: 20, unit: 'pk' },
+  'kokosmælk': { price: 15, unit: 'pk' },
   
-  // Brød og bagværk
-  'brød': 20, 'rugbrød': 22, 'franskbrød': 15, 'toastbrød': 18,
-  'boller': 15, 'pitabrød': 18, 'tortilla': 20, 'wraps': 20,
-  'havregryn': 18, 'müsli': 30, 'cornflakes': 25,
+  // Brød
+  'brød': { price: 20, unit: 'stk' },
+  'rugbrød': { price: 25, unit: 'stk' },
+  'franskbrød': { price: 15, unit: 'stk' },
+  'toastbrød': { price: 18, unit: 'stk' },
+  'tortilla': { price: 25, unit: 'pk' },
+  'wraps': { price: 25, unit: 'pk' },
+  'pitabrød': { price: 20, unit: 'pk' },
+  'havregryn': { price: 20, unit: 'kg' },
   
-  // Drikkevarer og andet
-  'kaffe': 40, 'te': 25,
-  'honning': 35, 'marmelade': 20, 'nutella': 35,
-  'mayonnaise': 20, 'ketchup': 18, 'sennep': 15, 'dressing': 20,
+  // Krydderier og sauce
+  'pølser': { price: 60, unit: 'kg' },
+  'medister': { price: 50, unit: 'kg' },
+  'mayonnaise': { price: 40, unit: 'l' },
+  'ketchup': { price: 30, unit: 'l' },
+  'sennep': { price: 25, unit: 'l' },
+  'honning': { price: 80, unit: 'kg' },
+};
+
+// Konverter mængde til base-enhed (kg, l, stk)
+const convertToBaseUnit = (amount: number, unit: string, targetUnit: string): number => {
+  const lowerUnit = unit.toLowerCase().trim();
+  
+  // Vægt-konvertering til kg
+  if (targetUnit === 'kg') {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return amount / 1000;
+    if (lowerUnit === 'kg' || lowerUnit === 'kilo') return amount;
+    // Antag gram hvis bare tal
+    if (amount > 10) return amount / 1000;
+    return amount;
+  }
+  
+  // Volumen-konvertering til liter
+  if (targetUnit === 'l') {
+    if (lowerUnit === 'ml' || lowerUnit === 'milliliter') return amount / 1000;
+    if (lowerUnit === 'dl' || lowerUnit === 'deciliter') return amount / 10;
+    if (lowerUnit === 'l' || lowerUnit === 'liter') return amount;
+    // Antag ml hvis stort tal
+    if (amount > 10) return amount / 1000;
+    return amount;
+  }
+  
+  // Stk/pk - direkte
+  return amount;
+};
+
+// Find pris-info for en ingrediens
+const findPriceInfo = (name: string): PriceInfo | null => {
+  const lowerName = name.toLowerCase().trim();
+  
+  // Direkt match
+  if (PRICES_PER_UNIT[lowerName]) {
+    return PRICES_PER_UNIT[lowerName];
+  }
+  
+  // Delvis match
+  for (const [key, info] of Object.entries(PRICES_PER_UNIT)) {
+    if (lowerName.includes(key) || key.includes(lowerName)) {
+      return info;
+    }
+  }
+  
+  return null;
+};
+
+// Beregn pris baseret på mængde og enhed
+const calculateIngredientPrice = (name: string, amount: number, unit: string): number => {
+  const priceInfo = findPriceInfo(name);
+  
+  if (!priceInfo) {
+    // Fallback: antag 15 kr per ingrediens
+    return 15;
+  }
+  
+  const amountInBase = convertToBaseUnit(amount, unit, priceInfo.unit);
+  return Math.round(priceInfo.price * amountInBase);
 };
 
 export function useGenerateShoppingList() {
@@ -140,25 +284,6 @@ export function useGenerateShoppingList() {
         .from('offers')
         .select('id, product_name, offer_text, offer_price_dkk, original_price_dkk, chain_id, store_chains(name)')
         .eq('is_active', true);
-
-      // Helper: Find estimeret pris baseret på ingrediensnavn
-      const findEstimatedPrice = (name: string): number | null => {
-        const lowerName = name.toLowerCase();
-        
-        // Direkt match
-        if (ESTIMATED_PRICES[lowerName]) {
-          return ESTIMATED_PRICES[lowerName];
-        }
-        
-        // Delvis match (ingrediens indeholder nøgleord)
-        for (const [key, price] of Object.entries(ESTIMATED_PRICES)) {
-          if (lowerName.includes(key) || key.includes(lowerName)) {
-            return price;
-          }
-        }
-        
-        return null;
-      };
 
       // Helper: Scoring-baseret tilbuds-matching for præcis matching
       const findMatchingOffer = (ingredientName: string) => {
@@ -256,12 +381,10 @@ export function useGenerateShoppingList() {
           const storeChain = matchingOffer.store_chains as { name: string } | null;
           item.store = storeChain?.name || undefined;
         } else {
-          // Ingen tilbud - brug estimeret pris
-          const estimatedPrice = findEstimatedPrice(ingredientName);
-          if (estimatedPrice) {
-            item.price = estimatedPrice;
-            item.isEstimate = true;
-          }
+          // Ingen tilbud - brug estimeret pris baseret på mængde
+          const estimatedPrice = calculateIngredientPrice(ingredientName, neededAmount, value.unit);
+          item.price = estimatedPrice;
+          item.isEstimate = true;
         }
 
         shoppingItems.push(item);

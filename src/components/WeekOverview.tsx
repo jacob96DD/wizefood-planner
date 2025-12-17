@@ -292,7 +292,7 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
                         {dish.calories} kcal · {dish.prepTime}+ min
                       </span>
                       <Badge variant="outline" className="text-xs">
-                        {dish.usageDays.join(', ')}
+                        {[...new Set(dish.usageDays)].join(', ')}
                       </Badge>
                     </div>
                   </div>
