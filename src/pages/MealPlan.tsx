@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, ShoppingCart, Loader2, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,9 @@ import { MealOptionSwiper, type MacroTargets, type MealRecipe } from '@/componen
 import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
 import { WeekOverview } from '@/components/WeekOverview';
 import { MealTrackingCard } from '@/components/MealTrackingCard';
+import { AddSnackDialog } from '@/components/AddSnackDialog';
 import { useMealPlanPreferences } from '@/hooks/useMealPlanPreferences';
+import { useDailyMealLog } from '@/hooks/useDailyMealLog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +54,7 @@ export default function MealPlan() {
   const [loadingMessage, setLoadingMessage] = useState(0);
   const { generateShoppingList } = useGenerateShoppingList();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [snackDialogOpen, setSnackDialogOpen] = useState(false);
   const { preferences } = useMealPlanPreferences();
 
   // Fetch profile for macro display
@@ -143,6 +146,13 @@ export default function MealPlan() {
     });
 
     if (savedPlan) {
+      // Slet gamle indkøbslister for denne bruger først
+      await supabase
+        .from('shopping_lists')
+        .delete()
+        .eq('user_id', user?.id)
+        .neq('meal_plan_id', savedPlan.id);
+      
       toast({
         title: t('mealPlan.saved', 'Madplan gemt!'),
         description: t('mealPlan.savedDescription', 'Din madplan er nu klar.'),
@@ -419,7 +429,7 @@ export default function MealPlan() {
                   { mealType: 'breakfast' as const, label: t('mealPlan.meals.breakfast'), meal: selectedMealsForDay?.breakfast, icon: '🌅', skip: preferences.skip_breakfast },
                   { mealType: 'lunch' as const, label: t('mealPlan.meals.lunch'), meal: selectedMealsForDay?.lunch, icon: '☀️', skip: preferences.skip_lunch },
                   { mealType: 'dinner' as const, label: t('mealPlan.meals.dinner'), meal: selectedMealsForDay?.dinner, icon: '🌙', skip: preferences.skip_dinner },
-                ].filter(({ skip }) => !skip).map(({ mealType, label, meal, icon }) => (
+                ].filter(({ skip }) => !skip).map(({ mealType, label, meal, icon }, index, arr) => (
                   <MealTrackingCard
                     key={mealType}
                     date={selectedMealsForDay?.date || new Date().toISOString().split('T')[0]}
@@ -427,9 +437,24 @@ export default function MealPlan() {
                     meal={meal}
                     icon={icon}
                     label={label}
+                    showSnackButton={index === arr.length - 1}
                   />
                 ))}
               </div>
+
+              {/* Tilføj snack knap */}
+              <Card className="mt-4 border-dashed">
+                <CardContent className="p-4">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => setSnackDialogOpen(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tilføj snack eller ekstra mad
+                  </Button>
+                </CardContent>
+              </Card>
 
               <div className="mt-8">
                 <Button variant="default" size="lg" className="w-full" onClick={() => navigate('/shopping')}>
@@ -466,6 +491,12 @@ export default function MealPlan() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddSnackDialog 
+        open={snackDialogOpen} 
+        onOpenChange={setSnackDialogOpen} 
+        date={selectedMealsForDay?.date || new Date().toISOString().split('T')[0]} 
+      />
 
       <BottomNavigation />
     </div>

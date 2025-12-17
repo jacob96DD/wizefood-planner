@@ -141,6 +141,19 @@ export function useMealPlans() {
     if (!user) return false;
 
     try {
+      // 1. Slet tilhørende indkøbslister FØRST (foreign key constraint)
+      await supabase
+        .from('shopping_lists')
+        .delete()
+        .eq('meal_plan_id', planId);
+
+      // 2. Slet daily_meal_logs for denne plan
+      await supabase
+        .from('daily_meal_log')
+        .delete()
+        .eq('meal_plan_id', planId);
+
+      // 3. Derefter slet madplanen
       const { error } = await supabase
         .from('meal_plans')
         .delete()
