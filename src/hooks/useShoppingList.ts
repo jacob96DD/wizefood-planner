@@ -13,6 +13,7 @@ export interface ShoppingListItem {
   offerPrice?: number;
   store?: string;
   offerId?: string;
+  isEstimate?: boolean; // true = estimeret pris, false/undefined = tilbudspris
 }
 
 export interface ShoppingList {
