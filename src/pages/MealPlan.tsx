@@ -110,68 +110,87 @@ export default function MealPlan() {
   };
 
   const handleSwipeComplete = async (selectedMeals: MealRecipe[]) => {
-    // Konverter valgte retter til MealPlanDay format
-    // GENBRUG retter med modulo så de roterer henover ugen
-    const meals: MealPlanDay[] = [];
-    const today = new Date();
-    
-    for (let i = 0; i < durationDays; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
+    try {
+      // Konverter valgte retter til MealPlanDay format
+      // GENBRUG retter med modulo så de roterer henover ugen
+      const meals: MealPlanDay[] = [];
+      const today = new Date();
       
-      // Respekter skip-præferencer
-      const dayMeals: MealPlanDay = {
-        date: date.toISOString().split('T')[0],
-        breakfast: preferences.skip_breakfast ? null : convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]),
-        lunch: preferences.skip_lunch ? null : convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]),
-        dinner: preferences.skip_dinner ? null : convertToMealPlanMeal(selectedMeals[(i + 2) % selectedMeals.length]),
-      };
-      meals.push(dayMeals);
-    }
+      for (let i = 0; i < durationDays; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        
+        // Respekter skip-præferencer
+        const dayMeals: MealPlanDay = {
+          date: date.toISOString().split('T')[0],
+          breakfast: preferences.skip_breakfast ? null : convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]),
+          lunch: preferences.skip_lunch ? null : convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]),
+          dinner: preferences.skip_dinner ? null : convertToMealPlanMeal(selectedMeals[(i + 2) % selectedMeals.length]),
+        };
+        meals.push(dayMeals);
+      }
 
-    // Beregn total cost og savings
-    const totalCost = selectedMeals.reduce((sum, meal) => sum + (meal.estimated_price || 0), 0);
-    const totalSavings = selectedMeals.reduce((sum, meal) => {
-      const savings = meal.uses_offers?.reduce((s, o) => s + (o.savings || 0), 0) || 0;
-      return sum + savings;
-    }, 0);
+      // Beregn total cost og savings
+      const totalCost = selectedMeals.reduce((sum, meal) => sum + (meal.estimated_price || 0), 0);
+      const totalSavings = selectedMeals.reduce((sum, meal) => {
+        const savings = meal.uses_offers?.reduce((s, o) => s + (o.savings || 0), 0) || 0;
+        return sum + savings;
+      }, 0);
 
-    // Gem madplan
-    const savedPlan = await saveMealPlan({
-      title: `Madplan - ${new Date().toLocaleDateString('da-DK')}`,
-      duration_days: durationDays,
-      meals,
-      total_cost: totalCost,
-      total_savings: totalSavings,
-    });
-
-    if (savedPlan) {
-      // Slet gamle indkøbslister for denne bruger først
-      await supabase
-        .from('shopping_lists')
-        .delete()
-        .eq('user_id', user?.id)
-        .neq('meal_plan_id', savedPlan.id);
-      
-      toast({
-        title: t('mealPlan.saved', 'Madplan gemt!'),
-        description: t('mealPlan.savedDescription', 'Din madplan er nu klar.'),
+      // Gem madplan
+      const savedPlan = await saveMealPlan({
+        title: `Madplan - ${new Date().toLocaleDateString('da-DK')}`,
+        duration_days: durationDays,
+        meals,
+        total_cost: totalCost,
+        total_savings: totalSavings,
       });
 
-      // Auto-generer indkøbsliste baseret på valgte retter
-      // Konverter til det format generateShoppingList forventer
-      const selectedMealsLegacy = {
-        breakfast: selectedMeals,
-        lunch: selectedMeals,
-        dinner: selectedMeals,
-      };
-      await generateShoppingList(selectedMealsLegacy, savedPlan.id);
-    }
+      if (savedPlan) {
+        // Slet gamle indkøbslister for denne bruger først
+        try {
+          await supabase
+            .from('shopping_lists')
+            .delete()
+            .eq('user_id', user?.id)
+            .neq('meal_plan_id', savedPlan.id);
+        } catch (e) {
+          console.warn('Could not delete old shopping lists:', e);
+        }
+        
+        toast({
+          title: t('mealPlan.saved', 'Madplan gemt!'),
+          description: t('mealPlan.savedDescription', 'Din madplan er nu klar.'),
+        });
 
-    // Afslut swipe mode
-    setSwipeMode(false);
-    setRecipes([]);
-    await fetchMealPlans();
+        // Auto-generer indkøbsliste baseret på valgte retter
+        const selectedMealsLegacy = {
+          breakfast: selectedMeals,
+          lunch: selectedMeals,
+          dinner: selectedMeals,
+        };
+        await generateShoppingList(selectedMealsLegacy, savedPlan.id);
+      } else {
+        toast({
+          title: 'Fejl ved gemning',
+          description: 'Kunne ikke gemme madplanen. Prøv igen.',
+          variant: 'destructive',
+        });
+      }
+
+      await fetchMealPlans();
+    } catch (error) {
+      console.error('handleSwipeComplete error:', error);
+      toast({
+        title: 'Fejl',
+        description: 'Noget gik galt ved gemning af madplan. Prøv igen.',
+        variant: 'destructive',
+      });
+    } finally {
+      // KRITISK: Altid afslut swipe mode, selv ved fejl!
+      setSwipeMode(false);
+      setRecipes([]);
+    }
   };
 
   const handleSwipeCancel = () => {
