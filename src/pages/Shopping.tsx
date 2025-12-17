@@ -17,6 +17,8 @@ import { da } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { AddInventoryItemDialog } from '@/components/AddInventoryItemDialog';
 import { FridgeScanner } from '@/components/FridgeScanner';
+import { PantryStaplesCard } from '@/components/PantryStaplesCard';
+import { PantryStapleOffersAlert } from '@/components/PantryStapleOffersAlert';
 
 export default function Shopping() {
   const { t } = useTranslation();
@@ -99,6 +101,8 @@ export default function Shopping() {
 
           {/* Shopping List Tab */}
           <TabsContent value="list" className="space-y-4">
+            {/* Basislager tilbuds-påmindelse */}
+            <PantryStapleOffersAlert />
             {/* Shopping date picker */}
             <Popover>
               <PopoverTrigger asChild>
@@ -345,6 +349,9 @@ export default function Shopping() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Basislager card */}
+            <PantryStaplesCard />
 
             {/* Scan button */}
             <FridgeScanner onComplete={refetchInventory} />
