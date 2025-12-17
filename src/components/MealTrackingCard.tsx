@@ -1,14 +1,10 @@
-import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X, Camera, Loader2 } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useDailyMealLog, type FoodPhoto } from '@/hooks/useDailyMealLog';
+import { useDailyMealLog } from '@/hooks/useDailyMealLog';
 import type { MealPlanMeal } from '@/hooks/useMealPlans';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuthStore } from '@/stores/authStore';
-import { useToast } from '@/hooks/use-toast';
 
 interface MealTrackingCardProps {
   date: string;
@@ -20,59 +16,10 @@ interface MealTrackingCardProps {
 
 export function MealTrackingCard({ date, mealType, meal, icon, label }: MealTrackingCardProps) {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
-  const { toast } = useToast();
-  const { log, saving, toggleMealCompleted, toggleMealSkipped, addFoodPhoto } = useDailyMealLog(date);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const { log, saving, toggleMealCompleted, toggleMealSkipped } = useDailyMealLog(date);
 
   const isCompleted = log?.[`${mealType}_completed`] ?? false;
   const isSkipped = log?.[`${mealType}_skipped`] ?? false;
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    setUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${date}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('meal-images')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('meal-images')
-        .getPublicUrl(fileName);
-
-      const photo: FoodPhoto = {
-        url: urlData.publicUrl,
-        timestamp: new Date().toISOString(),
-        description: mealType,
-      };
-
-      await addFoodPhoto(photo);
-      toast({
-        title: t('mealPlan.mealTracking.addPhoto', 'Billede tilføjet'),
-        description: meal?.title || label,
-      });
-    } catch (err) {
-      console.error('Error uploading photo:', err);
-      toast({
-        title: 'Fejl',
-        description: 'Kunne ikke uploade billede',
-        variant: 'destructive',
-      });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   if (!meal) {
     return (
@@ -152,23 +99,6 @@ export function MealTrackingCard({ date, mealType, meal, icon, label }: MealTrac
                 {t('mealPlan.mealTracking.skip', 'Spring over')}
               </Button>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs ml-auto"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
             </div>
           </div>
         </div>
