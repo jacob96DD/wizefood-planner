@@ -263,6 +263,77 @@ function strictValidateAndCorrectRecipe(recipe: any): ValidationResult {
   };
 }
 
+// ============ INGREDIENS-MÆNGDE VALIDERING + AUTO-KORREKTION ============
+interface IngredientValidation {
+  valid: boolean;
+  errors: string[];
+  correctedIngredients: any[];
+}
+
+function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation {
+  const errors: string[] = [];
+  const servings = recipe.servings || 1;
+  
+  // Minimum mængder per person (i gram)
+  const minAmounts: Record<string, number> = {
+    'protein': 80,   // Kød, fisk
+    'carbs': 50,     // Pasta, ris, kartofler
+    'cheese': 20,    // Ost
+  };
+  
+  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk'];
+  const carbKeywords = ['pasta', 'spaghetti', 'ris', 'kartof', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous'];
+  const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta'];
+  
+  const correctedIngredients = recipe.ingredients.map((ing: any) => {
+    const name = (ing.name || '').toLowerCase();
+    const amount = parseFloat(ing.amount) || 0;
+    const unit = (ing.unit || '').toLowerCase();
+    
+    // Kun tjek gram-baserede ingredienser
+    if (unit !== 'g' && unit !== 'gram' && unit !== 'kg') {
+      return ing;
+    }
+    
+    let amountInGrams = amount;
+    if (unit === 'kg') amountInGrams = amount * 1000;
+    
+    const perPerson = amountInGrams / servings;
+    
+    // Tjek protein-kilder
+    const isProtein = proteinKeywords.some(k => name.includes(k));
+    if (isProtein && perPerson < minAmounts.protein) {
+      const correctedAmount = minAmounts.protein * 1.5 * servings; // 120g per person
+      errors.push(`${ing.name}: ${amountInGrams}g er kun ${Math.round(perPerson)}g/person (korrigeret til ${correctedAmount}g)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    }
+    
+    // Tjek kulhydrater
+    const isCarb = carbKeywords.some(k => name.includes(k));
+    if (isCarb && perPerson < minAmounts.carbs) {
+      const correctedAmount = 80 * servings; // 80g per person
+      errors.push(`${ing.name}: ${amountInGrams}g er kun ${Math.round(perPerson)}g/person (korrigeret til ${correctedAmount}g)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    }
+    
+    // Tjek ost
+    const isCheese = cheeseKeywords.some(k => name.includes(k));
+    if (isCheese && perPerson < minAmounts.cheese) {
+      const correctedAmount = 30 * servings; // 30g per person
+      errors.push(`${ing.name}: ${amountInGrams}g er kun ${Math.round(perPerson)}g/person (korrigeret til ${correctedAmount}g)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    }
+    
+    return ing;
+  });
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    correctedIngredients,
+  };
+}
+
 interface MealPlanRequest {
   duration_days: number;
   start_date: string;
@@ -324,6 +395,19 @@ function getSeasonalIngredients(season: string): string[] {
     vinter: ['rodfrugter', 'grønkål', 'porrer', 'selleri', 'gulerødder', 'kartofler', 'løg'],
   };
   return seasonal[season] || seasonal.vinter;
+}
+
+// ============ VARIATION: RANDOM FLAVORS & PROTEINS ============
+function getRandomVariation(): { flavor: string; protein: string; cookingMethod: string } {
+  const flavors = ['italiensk', 'asiatisk', 'mexicansk', 'dansk', 'mellemøstlig', 'fransk', 'indisk', 'græsk'];
+  const proteins = ['kylling', 'svinekød', 'oksekød', 'fisk/laks', 'vegetar med bælgfrugter', 'æg'];
+  const methods = ['ovnbagt', 'stegt på pande', 'gryderet', 'wok', 'grillet', 'langtidsstegt'];
+  
+  return {
+    flavor: flavors[Math.floor(Math.random() * flavors.length)],
+    protein: proteins[Math.floor(Math.random() * proteins.length)],
+    cookingMethod: methods[Math.floor(Math.random() * methods.length)],
+  };
 }
 
 serve(async (req) => {
@@ -753,13 +837,22 @@ ${formattedOffers || 'Ingen tilbud'}
   ]
 }`;
 
+    // Tilføj variation
+    const variation = getRandomVariation();
+    
     const userPrompt = `Lav ${recipesToGenerate} unikke retter til en ${duration_days}-dages madplan.
+
+🎲 VARIATIONS-KRAV (gør retterne UNIKKE):
+- Mindst én ret med ${variation.flavor} inspiration
+- Mindst én ret med ${variation.protein} som hovedprotein
+- Mindst én ret der er ${variation.cookingMethod}
+- UNDGÅ disse nylige retter: ${recentMealTitles.slice(0, 10).join(', ') || 'Ingen'}
 
 Husk:
 - ${recipesNeeded} retter skal vælges af brugeren
 - Giv ${recipesToGenerate - recipesNeeded} ekstra alternativer
 - Varier proteiner og tilberedningsmetoder
-- Beregn besparelser fra tilbud
+- INGREDIENSER I GRAM SKAL VÆRE REALISTISKE (${80 * peopleCount}-${180 * peopleCount}g protein per ret!)
 
 Lav retterne nu!`;
 
@@ -828,23 +921,43 @@ Lav retterne nu!`;
 
     // ============ STRENG VALIDERING + AUTO-KORREKTION ============
     const rawRecipes = mealPlanData.recipes || [];
+    let ingredientCorrectionCount = 0;
+    let macroCorrectionCount = 0;
+    
     const validatedRecipes = rawRecipes.map((recipe: any) => {
-      const validation = strictValidateAndCorrectRecipe(recipe);
+      // 1. Først: Korriger ingrediens-mængder hvis de er for små
+      const ingredientValidation = validateAndCorrectIngredientAmounts(recipe);
       
-      if (!validation.valid) {
-        console.warn(`⚠️ Recipe "${recipe.title}" validation issues:`, validation.errors.join(', '));
+      if (!ingredientValidation.valid) {
+        console.warn(`🥩 Recipe "${recipe.title}" ingredient issues:`, ingredientValidation.errors.join(', '));
+        ingredientCorrectionCount++;
       }
       
-      if (validation.corrected) {
-        console.log(`✅ Recipe "${recipe.title}" auto-corrected`);
+      // Brug korrigerede ingredienser
+      const recipeWithCorrectedIngredients = {
+        ...recipe,
+        ingredients: ingredientValidation.correctedIngredients,
+      };
+      
+      // 2. Derefter: Valider og korriger makroer baseret på (nu korrigerede) ingredienser
+      const macroValidation = strictValidateAndCorrectRecipe(recipeWithCorrectedIngredients);
+      
+      if (!macroValidation.valid) {
+        console.warn(`⚠️ Recipe "${recipe.title}" macro issues:`, macroValidation.errors.join(', '));
       }
       
-      return validation.correctedRecipe;
+      if (macroValidation.corrected) {
+        console.log(`✅ Recipe "${recipe.title}" macros auto-corrected`);
+        macroCorrectionCount++;
+      }
+      
+      return macroValidation.correctedRecipe;
     });
     
     // Log summary
-    const correctedCount = validatedRecipes.filter((r: any) => r._corrected).length;
-    console.log(`📊 Validation summary: ${correctedCount}/${validatedRecipes.length} recipes auto-corrected`);
+    console.log(`📊 Validation summary:`);
+    console.log(`   - Ingredient corrections: ${ingredientCorrectionCount}/${validatedRecipes.length}`);
+    console.log(`   - Macro corrections: ${macroCorrectionCount}/${validatedRecipes.length}`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -859,7 +972,8 @@ Lav retterne nu!`;
       total_estimated_savings: mealPlanData.total_estimated_savings || 0,
       _validation_stats: {
         total: validatedRecipes.length,
-        corrected: correctedCount,
+        ingredient_corrections: ingredientCorrectionCount,
+        macro_corrections: macroCorrectionCount,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
