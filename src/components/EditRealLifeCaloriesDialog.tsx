@@ -12,10 +12,19 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Wand2, Pizza, Beer, Wine } from 'lucide-react';
+import { Loader2, Wand2, Pizza, Beer, Wine, Utensils } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
+
+interface RealLifeItem {
+  name: string;
+  amount: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 interface RealLifeEstimate {
   calories_per_week: number;
@@ -23,6 +32,7 @@ interface RealLifeEstimate {
   protein: number;
   carbs: number;
   fat: number;
+  items?: RealLifeItem[];
 }
 
 interface EditRealLifeCaloriesDialogProps {
@@ -106,6 +116,7 @@ export function EditRealLifeCaloriesDialog({
         protein: data.protein,
         carbs: data.carbs,
         fat: data.fat,
+        items: data.items || [],
       });
 
       toast.success('Estimeret! 🎉');
@@ -227,12 +238,18 @@ export function EditRealLifeCaloriesDialog({
             >
               <Pizza className="w-3 h-3" /> Pizza lørdag
             </button>
+            <button
+              onClick={() => setDescription(prev => prev + (prev ? ', ' : '') + 'frokostordning på arbejde 5 dage/uge')}
+              className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-muted/80 flex items-center gap-1"
+            >
+              <Utensils className="w-3 h-3" /> Frokostordning
+            </button>
           </div>
 
           <div className="space-y-2">
             <Label>Beskrivelse (ugentlig eller daglig)</Label>
             <Textarea
-              placeholder="f.eks. Jeg drikker 8 øl og 4 glas vin om ugen, spiser pizza om lørdagen, og laver altid morgenmad selv med nutella og brød..."
+              placeholder="f.eks. frokostordning på arbejde 5 dage/uge, pizza om lørdagen, 5 glas vin i weekenden..."
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
@@ -243,6 +260,8 @@ export function EditRealLifeCaloriesDialog({
             />
             <p className="text-xs text-muted-foreground">
               Skriv hvad du typisk spiser/drikker hver uge som ikke skal være del af madplanen.
+              <br />
+              F.eks. frokostordning, pizza om lørdagen, 5 glas vin i weekenden, etc.
             </p>
           </div>
 
@@ -289,6 +308,23 @@ export function EditRealLifeCaloriesDialog({
                     <p className="text-xs text-muted-foreground">fedt/uge</p>
                   </div>
                 </div>
+
+                {/* Itemized breakdown */}
+                {estimate.items && estimate.items.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-primary/20 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Fordeling:</p>
+                    {estimate.items.map((item, i) => (
+                      <div key={i} className="flex justify-between items-center bg-background rounded-lg px-3 py-2">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm">{item.name}</span>
+                          <span className="text-muted-foreground text-xs ml-2">({item.amount})</span>
+                        </div>
+                        <span className="font-bold text-primary text-sm ml-2">{item.calories} kcal</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground mt-3 text-center">
                   Dette fratrækkes automatisk når du genererer madplaner.
                 </p>

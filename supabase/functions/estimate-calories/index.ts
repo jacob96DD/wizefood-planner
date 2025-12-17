@@ -29,53 +29,50 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `Du er en PRÆCIS ernæringsekspert der estimerer kalorier og makroer fra fødevarer.
+const systemPrompt = `Du er en PRÆCIS ernæringsekspert der estimerer kalorier og makroer fra fødevarer.
 
 VIGTIG: Du skal svare KUN med valid JSON i følgende format:
 {
-  "calories": <tal>,
-  "protein": <tal i gram>,
-  "carbs": <tal i gram>,
-  "fat": <tal i gram>,
-  "per_week": <true hvis ugentligt, false hvis dagligt>,
-  "calculation": "<kort forklaring af beregningen>"
+  "items": [
+    { "name": "<madvare navn>", "amount": "<mængde f.eks. '10 stk' eller '5 dage'>", "calories": <tal>, "protein": <tal>, "carbs": <tal>, "fat": <tal> }
+  ],
+  "total_calories": <sum af alle items>,
+  "total_protein": <sum>,
+  "total_carbs": <sum>,
+  "total_fat": <sum>,
+  "per_week": <true hvis ugentligt, false hvis dagligt>
 }
 
 === FEW-SHOT EKSEMPLER ===
 
 Input: "10 øl om ugen"
-Output: {"calories": 1300, "protein": 10, "carbs": 100, "fat": 0, "per_week": true, "calculation": "10 øl × 130 kcal = 1300 kcal"}
+Output: {"items": [{"name": "Øl", "amount": "10 stk/uge", "calories": 1300, "protein": 10, "carbs": 100, "fat": 0}], "total_calories": 1300, "total_protein": 10, "total_carbs": 100, "total_fat": 0, "per_week": true}
 
-Input: "1 Big Mac menu hver lørdag"
-Output: {"calories": 1100, "protein": 35, "carbs": 110, "fat": 55, "per_week": true, "calculation": "Big Mac (550) + pommes frites (340) + cola (210) = 1100 kcal"}
+Input: "15 øl i ugen og en Big Mac menu hver lørdag"
+Output: {"items": [{"name": "Øl", "amount": "15 stk/uge", "calories": 1950, "protein": 15, "carbs": 150, "fat": 0}, {"name": "Big Mac menu", "amount": "1 stk/uge", "calories": 1100, "protein": 35, "carbs": 110, "fat": 55}], "total_calories": 3050, "total_protein": 50, "total_carbs": 260, "total_fat": 55, "per_week": true}
 
-Input: "15 øl i ugen og en Big Mac menu med 20 chili cheese tops hver lørdag"
-Output: {"calories": 4150, "protein": 95, "carbs": 350, "fat": 180, "per_week": true, "calculation": "15 øl × 130 = 1950 kcal + Big Mac menu 1100 kcal + 20 chili cheese × 55 = 1100 kcal = 4150 kcal total"}
+Input: "frokostordning på arbejde 5 dage om ugen"
+Output: {"items": [{"name": "Frokostordning", "amount": "5 dage/uge", "calories": 3000, "protein": 100, "carbs": 300, "fat": 100}], "total_calories": 3000, "total_protein": 100, "total_carbs": 300, "total_fat": 100, "per_week": true}
 
-Input: "nutella mad hver dag"
-Output: {"calories": 310, "protein": 7, "carbs": 45, "fat": 11, "per_week": false, "calculation": "2 skiver brød (150 kcal) + 30g nutella (160 kcal) = 310 kcal dagligt"}
-
-Input: "5 glas rødvin om ugen"
-Output: {"calories": 625, "protein": 0, "carbs": 15, "fat": 0, "per_week": true, "calculation": "5 glas × 125 kcal = 625 kcal"}
+Input: "pizza om lørdagen og 5 glas vin i weekenden"
+Output: {"items": [{"name": "Pizza", "amount": "1 stk/uge", "calories": 1200, "protein": 45, "carbs": 120, "fat": 50}, {"name": "Vin", "amount": "5 glas/uge", "calories": 625, "protein": 0, "carbs": 15, "fat": 0}], "total_calories": 1825, "total_protein": 45, "total_carbs": 135, "total_fat": 50, "per_week": true}
 
 Input: "2 kopper kaffe med mælk dagligt"
-Output: {"calories": 50, "protein": 2, "carbs": 4, "fat": 2, "per_week": false, "calculation": "2 kopper × 25 kcal (med mælk) = 50 kcal dagligt"}
+Output: {"items": [{"name": "Kaffe med mælk", "amount": "2 kopper/dag", "calories": 50, "protein": 2, "carbs": 4, "fat": 2}], "total_calories": 50, "total_protein": 2, "total_carbs": 4, "total_fat": 2, "per_week": false}
 
 === REGLER ===
-1. Beregn ALTID item for item når der er flere ting - læg dem sammen til sidst
+1. Opret ET item per madvare/drikkevare - ALDRIG kombiner forskellige ting i ét item
 2. Brug danske portionsstørrelser
 3. Reference kalorier:
    - Øl 33cl = 130 kcal
    - Vin 15cl = 125 kcal
-   - Big Mac = 550 kcal
-   - Big Mac menu = 1100 kcal (burger + pommes + cola)
+   - Big Mac = 550 kcal, Big Mac menu = 1100 kcal
+   - Pizza (hel) = 1200 kcal
+   - Frokostordning (typisk dansk) = 600 kcal per dag
    - Chili Cheese Top = 55 kcal
-   - Toast med nutella = 310 kcal
-4. Hvis mængden er angivet (f.eks. "10 øl"), beregn PRÆCIST: mængde × kalorier per stk
-5. Hvis det er noget der normalt indtages ugentligt, sæt per_week: true
-6. Hvis det er noget dagligt, sæt per_week: false
-7. VÆR PRÆCIS - afrund ikke for meget op!
-8. Vis altid beregningen i "calculation" feltet`;
+4. Hvis mængden er angivet, beregn PRÆCIST
+5. per_week: true hvis ugentligt, false hvis dagligt
+6. VÆR PRÆCIS - afrund ikke for meget!`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -132,27 +129,34 @@ Output: {"calories": 50, "protein": 2, "carbs": 4, "fat": 2, "per_week": false, 
     const parsed = JSON.parse(jsonStr);
     
     console.log('Parsed response:', JSON.stringify(parsed, null, 2));
-    console.log('AI calculation:', parsed.calculation || 'No calculation provided');
     
     // Calculate weekly calories if per_week is false (daily values)
     const weeklyMultiplier = parsed.per_week ? 1 : 7;
     
+    // Transform items with weekly multiplier
+    const items = (parsed.items || []).map((item: any) => ({
+      name: item.name,
+      amount: item.amount,
+      calories: Math.round((item.calories || 0) * weeklyMultiplier),
+      protein: Math.round((item.protein || 0) * weeklyMultiplier),
+      carbs: Math.round((item.carbs || 0) * weeklyMultiplier),
+      fat: Math.round((item.fat || 0) * weeklyMultiplier),
+    }));
+    
     const result = {
-      calories_per_week: Math.round(parsed.calories * weeklyMultiplier),
-      protein: Math.round((parsed.protein || 0) * weeklyMultiplier),
-      carbs: Math.round((parsed.carbs || 0) * weeklyMultiplier),
-      fat: Math.round((parsed.fat || 0) * weeklyMultiplier),
-      // Also return daily values for display
-      calories_per_day: Math.round(parsed.calories * weeklyMultiplier / 7),
+      calories_per_week: Math.round((parsed.total_calories || parsed.calories || 0) * weeklyMultiplier),
+      protein: Math.round((parsed.total_protein || parsed.protein || 0) * weeklyMultiplier),
+      carbs: Math.round((parsed.total_carbs || parsed.carbs || 0) * weeklyMultiplier),
+      fat: Math.round((parsed.total_fat || parsed.fat || 0) * weeklyMultiplier),
+      calories_per_day: Math.round((parsed.total_calories || parsed.calories || 0) * weeklyMultiplier / 7),
       is_weekly_input: parsed.per_week,
-      calculation: parsed.calculation || null,
+      items,
     };
 
     console.log('=== FINAL RESULT ===');
     console.log('Input:', description);
     console.log('Weekly calories:', result.calories_per_week);
-    console.log('Daily calories:', result.calories_per_day);
-    console.log('Calculation:', result.calculation);
+    console.log('Items:', result.items);
 
     return new Response(
       JSON.stringify(result),
