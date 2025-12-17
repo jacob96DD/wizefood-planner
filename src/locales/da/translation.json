@@ -26,6 +26,14 @@
         "title": "AI-genererede madplaner",
         "description": "Få personlige madplaner tilpasset dine præferencer, allergier og budget."
       },
+      "saveMoney": {
+        "title": "Spar penge",
+        "description": "Optimer dit madbudget med smarte tilbudsforslag og budgetvenlige opskrifter."
+      },
+      "saveTime": {
+        "title": "Spar tid",
+        "description": "Automatisk indkøbsliste og nem madplanlægning. Brug mindre tid i køkkenet."
+      },
       "reduceFoodWaste": {
         "title": "Red madspild",
         "description": "Udnyt tilbud på mad der nærmer sig udløb. Spar penge og hjælp miljøet."

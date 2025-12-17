@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChefHat, Sparkles, Leaf, MapPin, ArrowRight } from 'lucide-react';
+import { ChefHat, Sparkles, TrendingDown, Clock, Leaf, MapPin, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
@@ -19,6 +19,20 @@ export default function Landing() {
       description: t('landing.features.aiPlans.description'),
     },
     {
+      icon: TrendingDown,
+      iconBg: 'bg-accent/10',
+      iconColor: 'text-accent',
+      title: t('landing.features.saveMoney.title'),
+      description: t('landing.features.saveMoney.description'),
+    },
+    {
+      icon: Clock,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+      title: t('landing.features.saveTime.title'),
+      description: t('landing.features.saveTime.description'),
+    },
+    {
       icon: Leaf,
       iconBg: 'bg-green-500/10',
       iconColor: 'text-green-600',
@@ -27,8 +41,8 @@ export default function Landing() {
     },
     {
       icon: MapPin,
-      iconBg: 'bg-accent/10',
-      iconColor: 'text-accent',
+      iconBg: 'bg-orange-500/10',
+      iconColor: 'text-orange-600',
       title: t('landing.features.localStores.title'),
       description: t('landing.features.localStores.description'),
     },
@@ -89,8 +103,8 @@ export default function Landing() {
 
       {/* Features Section */}
       <section className="px-4 pb-20">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <Card 
                 key={feature.title}
