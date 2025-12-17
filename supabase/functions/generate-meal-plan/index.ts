@@ -419,32 +419,74 @@ ${hatedDishNames.length > 0 ? `🤮 HADER (ALDRIG lignende!): ${hatedDishNames.s
       : `MEAL PREP: ${recipesNeeded} retter der skal genbruges hele ugen (laves i store portioner)`;
 
     // 🍽️ VALDEMARSRO-STIL: Danske hverdagsretter med konkrete mængder
+    const peopleCount = profile?.people_count || 1;
+    
     const valdemarsroStyle = `
 🍽️ OPSKRIFT-STIL (Valdemarsro-inspireret dansk hverdagsmad):
 - Enkle ingredienslister (max 10-12 ingredienser)
 - KONKRETE mængder på ALT - aldrig "salt og peber efter smag"
 - Trin-for-trin instruktioner med tilberednings-tips
-- Realistiske danske portioner:
-  • Kød: 120-180g per person (ikke 300g!)
-  • Grøntsager: 150-200g per person
-  • Pasta/ris: 75-100g tør vægt per person
 
-❌ ALDRIG skriv:
-- "Tilsæt salt og peber efter smag"
-- "Pynt med friske urter"
-- Vage mængder som "lidt", "efter behov", "ca."
+⚠️ KRITISK: INGREDIENS-MÆNGDER SKAL VÆRE SAMLET FOR ALLE PORTIONER!
+- Hvis servings=${peopleCount} og du vil give 100g pasta per person → skriv "amount": "${100 * peopleCount}" (TOTAL)
+- ALDRIG per-portion mængder - ALTID samlet indkøb!
 
-✅ I STEDET skriv:
-- "1 tsk salt" / "½ tsk sort peber"
-- "2 spsk frisk persille, finthakket"
-- "150g kyllingebryst per person"
-- "75g spaghetti (tør vægt) per person"
-- Konkrete gram, dl, spsk, tsk, stk
+📊 MAKRO-REFERENCE (per 100g rå vægt - BRUG TIL BEREGNING):
+┌─────────────────────┬───────┬─────────┬───────┬───────┐
+│ Ingrediens          │ kcal  │ protein │ carbs │ fedt  │
+├─────────────────────┼───────┼─────────┼───────┼───────┤
+│ Pasta (tør)         │ 360   │ 13g     │ 75g   │ 1.5g  │
+│ Ris (tør)           │ 350   │ 7g      │ 78g   │ 0.5g  │
+│ Kartofler           │ 77    │ 2g      │ 17g   │ 0.1g  │
+│ Kyllingebryst       │ 165   │ 31g     │ 0g    │ 3.6g  │
+│ Kyllingelår         │ 210   │ 26g     │ 0g    │ 12g   │
+│ Hakket oksekød 8-12%│ 220   │ 26g     │ 0g    │ 14g   │
+│ Hakket svinekød     │ 260   │ 24g     │ 0g    │ 18g   │
+│ Flæskesteg          │ 250   │ 20g     │ 0g    │ 19g   │
+│ Bacon               │ 540   │ 37g     │ 1g    │ 42g   │
+│ Laks                │ 200   │ 20g     │ 0g    │ 13g   │
+│ Torsk               │ 82    │ 18g     │ 0g    │ 0.7g  │
+│ Rejer               │ 100   │ 24g     │ 0g    │ 0.5g  │
+│ Æg (1 stk ~60g)     │ 90    │ 6g      │ 0.5g  │ 7g    │
+│ Æggeblomme (1 stk)  │ 55    │ 2.7g    │ 0.6g  │ 4.5g  │
+│ Parmesan            │ 430   │ 38g     │ 4g    │ 29g   │
+│ Fløde 38%           │ 340   │ 2g      │ 3g    │ 36g   │
+│ Smør                │ 740   │ 0.5g    │ 0g    │ 82g   │
+│ Olie                │ 900   │ 0g      │ 0g    │ 100g  │
+│ Løg                 │ 40    │ 1g      │ 9g    │ 0.1g  │
+│ Gulerødder          │ 41    │ 1g      │ 10g   │ 0.2g  │
+│ Broccoli            │ 34    │ 2.8g    │ 7g    │ 0.4g  │
+│ Tomat               │ 18    │ 0.9g    │ 3.9g  │ 0.2g  │
+│ Flødeost            │ 340   │ 6g      │ 4g    │ 33g   │
+│ Mozzarella          │ 280   │ 22g     │ 2g    │ 22g   │
+└─────────────────────┴───────┴─────────┴───────┴───────┘
 
-📝 INSTRUKTIONER:
-- Undgå generiske trin som "Tilsæt krydderier"
-- Skriv specifikt: "Tilsæt 1 tsk paprika og ½ tsk spidskommen"
-- Inkluder tilberednings-tips: "Sautér løgene i 5-7 min til de er gyldne"
+🧮 SÅDAN BEREGNER DU MAKROER:
+1. Beregn HVER ingrediens' bidrag: (mængde_i_gram / 100) × makro_per_100g
+2. Summer ALLE ingredienser = TOTAL for retten
+3. Divider med antal portioner = PER PORTION makroer
+4. TJEK: calories ≈ (protein × 4) + (carbs × 4) + (fat × 9) [max 50 kcal afvigelse]
+
+📐 REALISTISKE PORTIONER (per person):
+• Kød/fisk: 120-180g (rå vægt)
+• Pasta/ris (tør): 75-100g
+• Kartofler: 200-300g
+• Grøntsager: 150-200g
+• Ost: 30-50g
+
+❌ ALDRIG:
+- "Salt og peber efter smag" → skriv "1 tsk salt, ½ tsk peber"
+- Per-portion ingredienser → skriv SAMLET mængde
+- Gættede makroer → BEREGN fra ingredienser
+
+✅ EKSEMPEL (Carbonara til ${peopleCount} personer):
+Ingredienser (SAMLET indkøb):
+- Spaghetti: ${100 * peopleCount}g (${100 * peopleCount}×360/100 = ${Math.round(100 * peopleCount * 3.6)} kcal, ${Math.round(100 * peopleCount * 0.13)}g P)
+- Bacon: ${50 * peopleCount}g (${50 * peopleCount}×540/100 = ${Math.round(50 * peopleCount * 5.4)} kcal, ${Math.round(50 * peopleCount * 0.37)}g P)
+- Æg: ${peopleCount} stk (${peopleCount}×90 = ${90 * peopleCount} kcal, ${6 * peopleCount}g P)
+- Parmesan: ${30 * peopleCount}g (${30 * peopleCount}×430/100 = ${Math.round(30 * peopleCount * 4.3)} kcal, ${Math.round(30 * peopleCount * 0.38)}g P)
+TOTAL: ~${Math.round((100 * peopleCount * 3.6) + (50 * peopleCount * 5.4) + (90 * peopleCount) + (30 * peopleCount * 4.3))} kcal, ~${Math.round((100 * peopleCount * 0.13) + (50 * peopleCount * 0.37) + (6 * peopleCount) + (30 * peopleCount * 0.38))}g protein
+Per portion: ~${Math.round(((100 * peopleCount * 3.6) + (50 * peopleCount * 5.4) + (90 * peopleCount) + (30 * peopleCount * 4.3)) / peopleCount)} kcal, ~${Math.round(((100 * peopleCount * 0.13) + (50 * peopleCount * 0.37) + (6 * peopleCount) + (30 * peopleCount * 0.38)) / peopleCount)}g protein
 `;
 
     const systemPrompt = `Du er en erfaren dansk madplanlægger inspireret af Valdemarsro.dk.
@@ -493,14 +535,17 @@ OUTPUT FORMAT (KUN JSON, ingen markdown):
       "id": "unique-id-1",
       "title": "string",
       "description": "kort beskrivelse (max 50 ord)",
-      "calories": number,
-      "protein": number,
-      "carbs": number,
-      "fat": number,
+      "calories": number (PER PORTION - beregnet fra ingredienser),
+      "protein": number (PER PORTION - beregnet fra ingredienser),
+      "carbs": number (PER PORTION - beregnet fra ingredienser),
+      "fat": number (PER PORTION - beregnet fra ingredienser),
       "prep_time": number,
       "cook_time": number,
-      "servings": ${profile?.people_count || 1},
-      "ingredients": [{"name": "string", "amount": "string med konkret tal", "unit": "string"}],
+      "servings": ${peopleCount},
+      "ingredients": [
+        {"name": "spaghetti", "amount": "${100 * peopleCount}", "unit": "g"},  // SAMLET til ${peopleCount} personer
+        {"name": "bacon", "amount": "${50 * peopleCount}", "unit": "g"}        // SAMLET til ${peopleCount} personer
+      ],
       "instructions": ["trin 1 med konkrete mængder og tider", "trin 2"],
       "tags": ["hurtig", "meal-prep", "høj-protein"],
       "key_ingredients": ["hovedingrediens1", "hovedingrediens2"],
@@ -510,7 +555,11 @@ OUTPUT FORMAT (KUN JSON, ingen markdown):
     }
   ],
   "total_estimated_savings": number
-}`;
+}
+
+⚠️ VALIDERING - DINE MAKROER BLIVER TJEKKET:
+- calories MÅ IKKE afvige mere end 50 kcal fra (protein×4 + carbs×4 + fat×9)
+- Ingredienser skal matche makroer (ikke opdigtede tal)`;
 
     const userPrompt = `Lav ${recipesToGenerate} unikke retter til en ${duration_days}-dages madplan.
 
@@ -585,8 +634,44 @@ Lav retterne nu!`;
       throw new Error('Failed to parse meal plan from AI');
     }
 
-    // NY STRUKTUR: Returner én samlet liste af retter
-    const recipes = mealPlanData.recipes || [];
+    // Valider og log makro-konsistens
+    const validateRecipe = (recipe: any): { valid: boolean; warnings: string[] } => {
+      const warnings: string[] = [];
+      
+      // 1. Tjek makro-sum
+      const calculatedKcal = (recipe.protein * 4) + (recipe.carbs * 4) + (recipe.fat * 9);
+      const kcalDiff = Math.abs(calculatedKcal - recipe.calories);
+      if (kcalDiff > 50) {
+        warnings.push(`Makro-sum: ${calculatedKcal} ≠ ${recipe.calories} kcal (diff: ${kcalDiff})`);
+      }
+      
+      // 2. Tjek ingrediens-realisme (grov check)
+      const totalGrams = (recipe.ingredients || []).reduce((sum: number, ing: any) => {
+        const amount = parseFloat(ing.amount) || 0;
+        if (ing.unit === 'g' || ing.unit === 'gram') return sum + amount;
+        if (ing.unit === 'kg') return sum + (amount * 1000);
+        if (ing.unit === 'ml' || ing.unit === 'dl') return sum + (ing.unit === 'dl' ? amount * 100 : amount);
+        if (ing.unit === 'stk' && ing.name.toLowerCase().includes('æg')) return sum + (amount * 60);
+        return sum;
+      }, 0);
+      
+      // Forventet: ~200-400g ingredienser per 500 kcal per portion
+      const expectedMinGrams = (recipe.calories * recipe.servings) / 3;
+      if (totalGrams < expectedMinGrams) {
+        warnings.push(`Få ingredienser: ${Math.round(totalGrams)}g til ${recipe.calories * recipe.servings} kcal`);
+      }
+      
+      return { valid: warnings.length === 0, warnings };
+    };
+
+    // Valider alle opskrifter og log warnings
+    const recipes = (mealPlanData.recipes || []).map((recipe: any) => {
+      const validation = validateRecipe(recipe);
+      if (!validation.valid) {
+        console.warn(`Recipe "${recipe.title}" validation:`, validation.warnings.join(', '));
+      }
+      return { ...recipe, _validation: validation };
+    });
     
     console.log(`Generated ${recipes.length} recipes for swipe selection`);
 

@@ -140,10 +140,13 @@ export function RecipeDetailDialog({ recipe, open, onOpenChange }: RecipeDetailD
               </div>
             </div>
 
-            {/* Ingredients */}
+            {/* Ingredients - SAMLET indkøb */}
             <div>
               <h4 className="font-semibold mb-2 flex items-center gap-2">
-                📋 {t('recipe.ingredients', 'Ingredienser')}
+                🛒 {t('recipe.ingredients', 'Indkøbsliste')}
+                <span className="text-xs font-normal text-muted-foreground">
+                  (samlet til {recipe.servings} {recipe.servings === 1 ? 'portion' : 'portioner'})
+                </span>
               </h4>
               <ul className="space-y-1.5 text-sm">
                 {recipe.ingredients.map((ing, i) => (
@@ -155,6 +158,9 @@ export function RecipeDetailDialog({ recipe, open, onOpenChange }: RecipeDetailD
                   </li>
                 ))}
               </ul>
+              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                💡 Dette er den samlede mængde til alle {recipe.servings} portioner
+              </p>
             </div>
 
             {/* Instructions */}
