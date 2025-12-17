@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useDailyMealLog } from '@/hooks/useDailyMealLog';
+import { AddSnackDialog } from '@/components/AddSnackDialog';
 import type { MealPlanMeal } from '@/hooks/useMealPlans';
 
 interface MealTrackingCardProps {
@@ -12,11 +14,13 @@ interface MealTrackingCardProps {
   meal: MealPlanMeal | null;
   icon: string;
   label: string;
+  showSnackButton?: boolean;
 }
 
-export function MealTrackingCard({ date, mealType, meal, icon, label }: MealTrackingCardProps) {
+export function MealTrackingCard({ date, mealType, meal, icon, label, showSnackButton = false }: MealTrackingCardProps) {
   const { t } = useTranslation();
   const { log, saving, toggleMealCompleted, toggleMealSkipped } = useDailyMealLog(date);
+  const [snackDialogOpen, setSnackDialogOpen] = useState(false);
 
   const isCompleted = log?.[`${mealType}_completed`] ?? false;
   const isSkipped = log?.[`${mealType}_skipped`] ?? false;
@@ -99,10 +103,27 @@ export function MealTrackingCard({ date, mealType, meal, icon, label }: MealTrac
                 {t('mealPlan.mealTracking.skip', 'Spring over')}
               </Button>
 
+              {showSnackButton && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setSnackDialogOpen(true)}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Snack
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </CardContent>
+      
+      <AddSnackDialog 
+        open={snackDialogOpen} 
+        onOpenChange={setSnackDialogOpen} 
+        date={date} 
+      />
     </Card>
   );
 }

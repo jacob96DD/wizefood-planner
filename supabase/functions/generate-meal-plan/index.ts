@@ -410,9 +410,17 @@ ${cookingStyleDescription}
 ${inventorySection}
 ${focusSection}
 
-🟠 VIGTIGE PRIORITETER:
-1. PRIORITER disse tilbud:
+🟠 VIGTIGE PRIORITETER - TILBUDS-OPTIMERING:
+1. PRIORITER disse tilbud - KØB MERE AF TILBUDSVARER:
 ${formattedOffers || 'Ingen tilbud'}
+
+⚡ MAKRO-OPTIMERING VIA TILBUD:
+- Hvis KØD er på tilbud: ØGET kødmængde i retten (f.eks. 200g → 300g)
+- Tilpas andre ingredienser NED så totale kalorier stadig passer
+- F.eks: Mere kylling = mindre ris/pasta
+- Prioritér protein fra tilbudsvarer for at ramme protein-target billigst
+- Beregn ny pris baseret på øget mængde af tilbudsvarer
+
 2. Inkluder disse ingredienser (bruger elsker): ${allLikes.slice(0, 15).join(', ') || 'Ingen præferencer'}
 3. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
 
