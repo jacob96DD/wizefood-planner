@@ -9,10 +9,19 @@ interface HouseholdMember {
   weightKg: number | null;
 }
 
+interface SallingStore {
+  id: string;
+  name: string;
+  brand: string;
+  address: string;
+  city: string;
+  distance: number;
+}
+
 interface OnboardingData {
   // Step 1: Meal plan size
   peopleCount: number;
-  
+
   // Step 2: Personal info
   fullName: string;
   gender: string;
@@ -20,33 +29,41 @@ interface OnboardingData {
   birthMonth: number | null;
   birthYear: number | null;
   dateOfBirth: string; // Computed from day/month/year
-  
+
   // Step 3: Physical measurements
   heightCm: number | null;
   weightKg: number | null;
-  
+
   // Step 4: Activity level
   activityLevel: string;
-  
+
   // Step 5: Goals (array for multi-select)
   dietaryGoals: string[];
   dietaryGoal: string; // Primary body goal for macro calculation
-  
+
   // Step 6: Household members (other than primary user)
   householdMembers: HouseholdMember[];
-  
+
   // Step 6: Allergens & dietary preference
   selectedAllergens: string[];
   customAllergens: string;
   dietaryPreference: 'omnivore' | 'vegetarian' | 'pescetarian' | 'vegan' | 'flexitarian';
-  
+
   // Step 8: Food dislikes
   dislikedFoods: string[];
   customDislikes: string;
-  
-  // Step 9: Preferred stores
+
+  // Step 9: Preferred stores (supermarket chains)
   selectedStoreChains: string[];
-  
+
+  // Step 10: Address + Salling stores for food waste
+  addressStreet: string;
+  addressZip: string;
+  addressCity: string;
+  latitude: number | null;
+  longitude: number | null;
+  selectedSallingStores: SallingStore[];
+
   // Custom macro targets (optional - if null, use calculated values)
   dailyCalories: number | null;
   dailyProtein: number | null;
@@ -86,6 +103,12 @@ const initialData: OnboardingData = {
   dislikedFoods: [],
   customDislikes: '',
   selectedStoreChains: [],
+  addressStreet: '',
+  addressZip: '',
+  addressCity: '',
+  latitude: null,
+  longitude: null,
+  selectedSallingStores: [],
   dailyCalories: null,
   dailyProtein: null,
   dailyCarbs: null,
@@ -98,7 +121,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   currentStep: 1,
   data: initialData,
   setStep: (step) => set({ currentStep: step }),
-  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 8) })),
+  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 10) })),
   prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 1) })),
   updateData: (updates) => set((state) => ({ data: { ...state.data, ...updates } })),
   updateHouseholdMember: (id, updates) => set((state) => ({
@@ -154,4 +177,4 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   reset: () => set({ currentStep: 1, data: initialData }),
 }));
 
-export type { HouseholdMember, OnboardingData };
+export type { HouseholdMember, OnboardingData, SallingStore };

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, Loader2, Zap, Store } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Zap, Store, MapPin, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
-import { useOnboardingStore, HouseholdMember } from '@/stores/onboardingStore';
+import { useOnboardingStore, HouseholdMember, SallingStore } from '@/stores/onboardingStore';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -162,7 +162,7 @@ const days = Array.from({ length: 31 }, (_, i) => i + 1);
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 91 }, (_, i) => currentYear - 10 - i);
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 10;
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -174,6 +174,9 @@ export default function Onboarding() {
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [storeChains, setStoreChains] = useState<{id: string, name: string}[]>([]);
   const [selectedStoreChains, setSelectedStoreChains] = useState<Set<string>>(new Set());
+  const [isSearchingStores, setIsSearchingStores] = useState(false);
+  const [nearbySallingStores, setNearbySallingStores] = useState<SallingStore[]>([]);
+  const [selectedSallingStoreIds, setSelectedSallingStoreIds] = useState<Set<string>>(new Set());
 
   // Month names for dropdown
   const months = [
@@ -242,6 +245,83 @@ export default function Onboarding() {
       }
       return next;
     });
+  };
+
+  const toggleSallingStore = (storeId: string) => {
+    setSelectedSallingStoreIds(prev => {
+      const next = new Set(prev);
+      if (next.has(storeId)) {
+        next.delete(storeId);
+      } else {
+        next.add(storeId);
+      }
+      return next;
+    });
+  };
+
+  // Search for nearby Salling stores based on address
+  const searchSallingStores = async () => {
+    if (!data.addressZip) {
+      toast({
+        title: t('common.error'),
+        description: t('onboarding.address.zipRequired', 'Indtast venligst postnummer'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSearchingStores(true);
+    try {
+      const { data: responseData, error } = await supabase.functions.invoke('find-salling-stores', {
+        body: {
+          zip: data.addressZip,
+          city: data.addressCity,
+          street: data.addressStreet,
+          radius: 10,
+        },
+      });
+
+      if (error) throw error;
+
+      if (responseData.success && responseData.stores) {
+        const stores: SallingStore[] = responseData.stores.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          brand: s.brand,
+          address: s.address,
+          city: s.city,
+          distance: s.distance,
+        }));
+        setNearbySallingStores(stores);
+        // Auto-select all stores
+        setSelectedSallingStoreIds(new Set(stores.map(s => s.id)));
+        // Save coordinates to store
+        if (responseData.latitude && responseData.longitude) {
+          updateData({
+            latitude: responseData.latitude,
+            longitude: responseData.longitude
+          });
+        }
+        toast({
+          title: '🛒 ' + t('onboarding.address.storesFound', 'Butikker fundet!'),
+          description: t('onboarding.address.storesFoundDesc', `Vi fandt ${stores.length} butikker i nærheden`).replace('${count}', stores.length.toString()),
+        });
+      } else {
+        toast({
+          title: t('onboarding.address.noStores', 'Ingen butikker'),
+          description: t('onboarding.address.noStoresDesc', 'Vi kunne ikke finde butikker i nærheden. Prøv en anden adresse.'),
+        });
+      }
+    } catch (error: any) {
+      console.error('Error searching stores:', error);
+      toast({
+        title: t('common.error'),
+        description: error.message || t('onboarding.address.searchError', 'Kunne ikke søge efter butikker'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSearchingStores(false);
+    }
   };
 
   // Handle goal selection with mutual exclusivity for body goals
@@ -582,6 +662,55 @@ export default function Onboarding() {
         }
       }
 
+      // Save address to profile if provided
+      if (data.addressZip) {
+        const { error: addressError } = await supabase
+          .from('profiles')
+          .update({
+            address_street: data.addressStreet || null,
+            address_zip: data.addressZip,
+            address_city: data.addressCity || null,
+            latitude: data.latitude,
+            longitude: data.longitude,
+          })
+          .eq('id', user.id);
+
+        if (addressError) {
+          console.error('Error saving address:', addressError);
+        }
+      }
+
+      // Save Salling stores if selected
+      if (selectedSallingStoreIds.size > 0) {
+        // First delete existing Salling stores
+        await supabase
+          .from('user_salling_stores')
+          .delete()
+          .eq('user_id', user.id);
+
+        // Insert selected Salling stores
+        const sallingStoresToInsert = nearbySallingStores
+          .filter(store => selectedSallingStoreIds.has(store.id))
+          .map(store => ({
+            user_id: user.id,
+            salling_store_id: store.id,
+            store_name: store.name,
+            brand: store.brand,
+            address: store.address,
+            city: store.city,
+            distance_km: store.distance,
+            enabled: true,
+          }));
+
+        const { error: sallingError } = await supabase
+          .from('user_salling_stores')
+          .insert(sallingStoresToInsert);
+
+        if (sallingError) {
+          console.error('Error saving Salling stores:', sallingError);
+        }
+      }
+
       // Update local state
       setProfile(updatedProfile);
       setIsOnboarded(true);
@@ -635,6 +764,10 @@ export default function Onboarding() {
         return true; // Dislikes are optional
       case 8:
         return true; // Stores are optional
+      case 9:
+        return true; // Address is optional
+      case 10:
+        return true; // Salling stores are optional
       default:
         return false;
     }
@@ -657,6 +790,10 @@ export default function Onboarding() {
         return data.dislikedFoods.length > 0 || (data.customDislikes && data.customDislikes.trim().length > 0);
       case 8:
         return selectedStoreChains.size > 0;
+      case 9:
+        return data.addressZip && data.addressZip.length > 0;
+      case 10:
+        return selectedSallingStoreIds.size > 0;
       default:
         return true;
     }
@@ -1127,6 +1264,147 @@ export default function Onboarding() {
                 })}
               </div>
             )}
+          </div>
+        );
+
+      case 9:
+        // Address input (Step 9) - for finding nearby Salling stores
+        return (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center mb-8">
+              <span className="text-5xl mb-4 block">📍</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.address.title', 'Din adresse')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.address.subtitle', 'Vi bruger din adresse til at finde butikker med madspild i nærheden')}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">{t('onboarding.address.street', 'Vejnavn og nummer')}</label>
+                <Input
+                  placeholder={t('onboarding.address.streetPlaceholder', 'F.eks. Vestergade 12')}
+                  value={data.addressStreet}
+                  onChange={(e) => updateData({ addressStreet: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">{t('onboarding.address.zip', 'Postnummer')}</label>
+                  <Input
+                    placeholder="1234"
+                    value={data.addressZip}
+                    onChange={(e) => updateData({ addressZip: e.target.value })}
+                    type="text"
+                    maxLength={4}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">{t('onboarding.address.city', 'By')}</label>
+                  <Input
+                    placeholder={t('onboarding.address.cityPlaceholder', 'F.eks. København')}
+                    value={data.addressCity}
+                    onChange={(e) => updateData({ addressCity: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={searchSallingStores}
+                disabled={isSearchingStores || !data.addressZip}
+              >
+                {isSearchingStores ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('onboarding.address.searching', 'Søger butikker...')}
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    {t('onboarding.address.findStores', 'Find butikker i nærheden')}
+                  </>
+                )}
+              </Button>
+
+              {nearbySallingStores.length > 0 && (
+                <div className="text-center text-sm text-green-600">
+                  ✓ {t('onboarding.address.storesReady', `${nearbySallingStores.length} butikker fundet`).replace('${count}', nearbySallingStores.length.toString())}
+                </div>
+              )}
+            </div>
+
+            <p className="text-sm text-muted-foreground text-center">
+              {t('onboarding.address.privacy', 'Vi gemmer kun din adresse for at finde butikker. Du kan skippe dette trin.')}
+            </p>
+          </div>
+        );
+
+      case 10:
+        // Salling stores selection (Step 10)
+        return (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-center mb-8">
+              <span className="text-5xl mb-4 block">♻️</span>
+              <h2 className="text-2xl font-bold mb-2">{t('onboarding.sallingStores.title', 'Madspild-butikker')}</h2>
+              <p className="text-muted-foreground">{t('onboarding.sallingStores.subtitle', 'Vælg hvilke butikker du vil se madspild fra')}</p>
+            </div>
+
+            {nearbySallingStores.length === 0 ? (
+              <div className="text-center py-8">
+                <MapPin className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground mb-4">
+                  {t('onboarding.sallingStores.noStores', 'Ingen butikker fundet. Gå tilbage og søg efter butikker.')}
+                </p>
+                <Button variant="outline" onClick={() => prevStep()}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {t('onboarding.sallingStores.goBack', 'Søg efter butikker')}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {nearbySallingStores.map((store) => {
+                  const isSelected = selectedSallingStoreIds.has(store.id);
+                  const brandColors: Record<string, string> = {
+                    netto: 'bg-yellow-500',
+                    foetex: 'bg-blue-600',
+                    bilka: 'bg-blue-800',
+                  };
+                  return (
+                    <Card
+                      key={store.id}
+                      className={cn(
+                        "p-4 flex items-center justify-between cursor-pointer select-none active:scale-[0.98] transition-transform",
+                        isSelected ? "border-primary bg-primary/5" : "opacity-60"
+                      )}
+                      style={{ touchAction: 'manipulation' }}
+                      onClick={() => toggleSallingStore(store.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold", brandColors[store.brand] || 'bg-gray-500')}>
+                          {store.brand.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="font-medium block">{store.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {store.address}, {store.city} • {store.distance.toFixed(1)} km
+                          </span>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={isSelected}
+                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={() => toggleSallingStore(store.id)}
+                      />
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            <p className="text-sm text-muted-foreground text-center">
+              {t('onboarding.sallingStores.note', 'Vi finder madspild-tilbud fra disse butikker og inkluderer dem i dine madplaner')}
+            </p>
           </div>
         );
 

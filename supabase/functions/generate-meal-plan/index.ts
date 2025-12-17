@@ -273,60 +273,71 @@ interface IngredientValidation {
 function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation {
   const errors: string[] = [];
   const servings = recipe.servings || 1;
-  
-  // Minimum mængder per person (i gram)
-  const minAmounts: Record<string, number> = {
-    'protein': 80,   // Kød, fisk
-    'carbs': 50,     // Pasta, ris, kartofler
-    'cheese': 20,    // Ost
+
+  // REALISTISKE minimum mængder per person (i gram) - STRENGERE KRAV
+  const minAmountsPerPerson: Record<string, number> = {
+    'protein': 120,    // Kød, fisk - MINDST 120g per person rå vægt
+    'carbs': 80,       // Pasta, ris tør vægt - MINDST 80g per person
+    'potatoes': 200,   // Kartofler - MINDST 200g per person
+    'cheese': 25,      // Ost i ret
+    'vegetables': 100, // Grøntsager
   };
-  
-  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk'];
-  const carbKeywords = ['pasta', 'spaghetti', 'ris', 'kartof', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous'];
-  const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta'];
-  
-  const correctedIngredients = recipe.ingredients.map((ing: any) => {
+
+  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk', 'filet', 'bryst', 'lår', 'kotelet', 'schnitzel', 'frikadelle', 'kalkun', 'and', 'tun', 'sej', 'rødspætte'];
+  const carbKeywords = ['pasta', 'spaghetti', 'ris', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous', 'tagliatelle', 'fettuccine', 'makaroni', 'lasagneplader'];
+  const potatoKeywords = ['kartof', 'kartofler', 'kartoffelmos'];
+  const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta', 'cheddar', 'gouda', 'emmentaler'];
+
+  const correctedIngredients = (recipe.ingredients || []).map((ing: any) => {
     const name = (ing.name || '').toLowerCase();
-    const amount = parseFloat(ing.amount) || 0;
+    let amount = parseFloat(ing.amount) || 0;
     const unit = (ing.unit || '').toLowerCase();
-    
+
     // Kun tjek gram-baserede ingredienser
     if (unit !== 'g' && unit !== 'gram' && unit !== 'kg') {
       return ing;
     }
-    
+
     let amountInGrams = amount;
     if (unit === 'kg') amountInGrams = amount * 1000;
-    
+
     const perPerson = amountInGrams / servings;
-    
-    // Tjek protein-kilder
+
+    // Tjek protein-kilder (STRENGESTE KRAV)
     const isProtein = proteinKeywords.some(k => name.includes(k));
-    if (isProtein && perPerson < minAmounts.protein) {
-      const correctedAmount = minAmounts.protein * 1.5 * servings; // 120g per person
-      errors.push(`${ing.name}: ${amountInGrams}g er kun ${Math.round(perPerson)}g/person (korrigeret til ${correctedAmount}g)`);
+    if (isProtein && perPerson < minAmountsPerPerson.protein) {
+      const correctedAmount = minAmountsPerPerson.protein * servings;
+      errors.push(`🥩 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g (${minAmountsPerPerson.protein}g/person)`);
       return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
     }
-    
-    // Tjek kulhydrater
+
+    // Tjek kartofler
+    const isPotato = potatoKeywords.some(k => name.includes(k));
+    if (isPotato && perPerson < minAmountsPerPerson.potatoes) {
+      const correctedAmount = minAmountsPerPerson.potatoes * servings;
+      errors.push(`🥔 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    }
+
+    // Tjek kulhydrater (pasta, ris)
     const isCarb = carbKeywords.some(k => name.includes(k));
-    if (isCarb && perPerson < minAmounts.carbs) {
-      const correctedAmount = 80 * servings; // 80g per person
-      errors.push(`${ing.name}: ${amountInGrams}g er kun ${Math.round(perPerson)}g/person (korrigeret til ${correctedAmount}g)`);
+    if (isCarb && perPerson < minAmountsPerPerson.carbs) {
+      const correctedAmount = minAmountsPerPerson.carbs * servings;
+      errors.push(`🍝 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
       return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
     }
-    
+
     // Tjek ost
     const isCheese = cheeseKeywords.some(k => name.includes(k));
-    if (isCheese && perPerson < minAmounts.cheese) {
-      const correctedAmount = 30 * servings; // 30g per person
-      errors.push(`${ing.name}: ${amountInGrams}g er kun ${Math.round(perPerson)}g/person (korrigeret til ${correctedAmount}g)`);
+    if (isCheese && perPerson < minAmountsPerPerson.cheese) {
+      const correctedAmount = 35 * servings; // 35g per person
+      errors.push(`🧀 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
       return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
     }
-    
+
     return ing;
   });
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -398,15 +409,51 @@ function getSeasonalIngredients(season: string): string[] {
 }
 
 // ============ VARIATION: RANDOM FLAVORS & PROTEINS ============
-function getRandomVariation(): { flavor: string; protein: string; cookingMethod: string } {
-  const flavors = ['italiensk', 'asiatisk', 'mexicansk', 'dansk', 'mellemøstlig', 'fransk', 'indisk', 'græsk'];
-  const proteins = ['kylling', 'svinekød', 'oksekød', 'fisk/laks', 'vegetar med bælgfrugter', 'æg'];
-  const methods = ['ovnbagt', 'stegt på pande', 'gryderet', 'wok', 'grillet', 'langtidsstegt'];
-  
+interface RecipeVariation {
+  flavor: string;
+  protein: string;
+  cookingMethod: string;
+  mealType: string;
+  cuisine: string;
+}
+
+function getRandomVariation(): RecipeVariation {
+  const flavors = [
+    'cremet og rig', 'let og frisk', 'krydret og aromatisk',
+    'rustik og hjemmelavet', 'elegant og moderne', 'comfort food',
+    'sprød og saftig', 'varmende og fyldig'
+  ];
+
+  const proteins = [
+    'kyllingebryst', 'kyllingelår', 'hakket oksekød', 'svinekotelet',
+    'laksfilet', 'torsk', 'rejer', 'æg', 'kikærter/linser',
+    'flæskesteg', 'medisterpølse', 'kalkunbryst'
+  ];
+
+  const methods = [
+    'ovnbagt', 'stegt på pande', 'langtidsstegt i gryde',
+    'wok-stegt', 'grillet', 'dampet', 'braiseret', 'gratineret',
+    'slow cooker', 'one-pot'
+  ];
+
+  const mealTypes = [
+    'one-pot ret', 'bowl med base', 'wrap/tortilla',
+    'suppe med brød', 'klassisk gryderet', 'wok med nudler/ris',
+    'ovnret med tilbehør', 'pasta med sauce', 'salat med protein'
+  ];
+
+  const cuisines = [
+    'dansk/nordisk', 'italiensk', 'asiatisk/thai', 'mexicansk/tex-mex',
+    'mellemøstlig/libanesisk', 'græsk/middelhav', 'indisk', 'fransk bistro',
+    'amerikansk comfort', 'japansk/koreansk'
+  ];
+
   return {
     flavor: flavors[Math.floor(Math.random() * flavors.length)],
     protein: proteins[Math.floor(Math.random() * proteins.length)],
     cookingMethod: methods[Math.floor(Math.random() * methods.length)],
+    mealType: mealTypes[Math.floor(Math.random() * mealTypes.length)],
+    cuisine: cuisines[Math.floor(Math.random() * cuisines.length)],
   };
 }
 
@@ -453,6 +500,8 @@ serve(async (req) => {
       recentMealsResult,
       discoverSwipesResult,
       mealPlanSwipesResult,
+      sallingStoresResult,
+      foodWasteResult,
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('meal_plan_preferences').select('*').eq('user_id', user.id).maybeSingle(),
@@ -466,6 +515,10 @@ serve(async (req) => {
       supabase.from('swipes').select('discover_recipe_id, direction, rating, discover_recipes(title, key_ingredients)').eq('user_id', user.id).not('discover_recipe_id', 'is', null),
       // Hent meal plan swipes (AI-genererede retter)
       supabase.from('swipes').select('rating, meal_plan_recipe_title, meal_plan_key_ingredients').eq('user_id', user.id).not('meal_plan_recipe_title', 'is', null),
+      // Hent brugerens Salling butikker
+      supabase.from('user_salling_stores').select('salling_store_id, store_name, brand').eq('user_id', user.id).eq('enabled', true),
+      // Hent food waste produkter (cachet)
+      supabase.from('food_waste_products').select('*').gt('valid_until', new Date().toISOString()).order('discount_percent', { ascending: false }).limit(30),
     ]);
 
     const profile = profileResult.data;
@@ -707,6 +760,36 @@ ${proteinOffers.slice(0, 8).map((o: any) => {
     const dietaryGoal = profile?.dietary_goal || 'maintain';
     const prioritizeBudget = dietaryGoal === 'maintain' || (weeklyBudget && weeklyBudget < 600);
 
+    // ============ FOOD WASTE PRODUKTER (Salling Group) ============
+    const userSallingStores = sallingStoresResult.data || [];
+    const foodWasteProducts = foodWasteResult.data || [];
+
+    // Filtrer food waste til brugerens butikker hvis de har valgt nogle
+    const relevantFoodWaste = userSallingStores.length > 0
+      ? foodWasteProducts.filter((p: any) =>
+          userSallingStores.some((s: any) => s.salling_store_id === p.salling_store_id)
+        )
+      : foodWasteProducts;
+
+    const foodWasteSection = relevantFoodWaste.length > 0 ? `
+🌱 MADSPILD-TILBUD (Salling Group - HØJESTE PRIORITET FOR BESPARELSER!):
+${relevantFoodWaste.slice(0, 12).map((p: any) => {
+  const savings = (p.original_price - p.new_price).toFixed(0);
+  const expiryDate = new Date(p.valid_until).toLocaleDateString('da-DK');
+  return `- ${p.product_name} @ ${p.store_name || p.brand}
+    FØR: ${p.original_price} kr → NU: ${p.new_price} kr (SPAR ${savings} kr / -${Math.round(p.discount_percent)}%)
+    Udløber: ${expiryDate} | Lager: ${p.stock || '?'} stk`;
+}).join('\n')}
+
+⚡ MADSPILD-REGLER (UFRAVIGELIGE):
+1. BRUG MINDST 2-3 af disse madspild-varer i opskrifterne!
+2. Disse har HØJERE prioritet end normale tilbud (større besparelse + reducerer spild)
+3. Tjek udløbsdato - brug dem der udløber først
+4. Beregn besparelsen i "uses_offers" feltet
+` : '';
+
+    console.log('Food waste products available:', relevantFoodWaste.length, 'from', userSallingStores.length, 'stores');
+
     // ============ BUILD PRIORITIZED AI PROMPT ============
     const fixedMealsDescription = (prefs.fixed_meals || []).length > 0
       ? (prefs.fixed_meals || []).map((m: FixedMeal) => 
@@ -797,6 +880,7 @@ ${simplifiedPrompt}
 📋 MADLAVNINGSSTIL:
 ${cookingStyleDescription}
 
+${foodWasteSection}
 ${proteinOffersSection}
 ${inventorySection}
 ${focusSection}
@@ -839,20 +923,33 @@ ${formattedOffers || 'Ingen tilbud'}
 
     // Tilføj variation
     const variation = getRandomVariation();
-    
-    const userPrompt = `Lav ${recipesToGenerate} unikke retter til en ${duration_days}-dages madplan.
 
-🎲 VARIATIONS-KRAV (gør retterne UNIKKE):
-- Mindst én ret med ${variation.flavor} inspiration
-- Mindst én ret med ${variation.protein} som hovedprotein
-- Mindst én ret der er ${variation.cookingMethod}
-- UNDGÅ disse nylige retter: ${recentMealTitles.slice(0, 10).join(', ') || 'Ingen'}
+    const userPrompt = `Lav ${recipesToGenerate} UNIKKE og VARIEREDE retter til en ${duration_days}-dages madplan.
+
+🎲 DENNE UGES TEMA (følg dette for variation!):
+- Smag/stil: ${variation.flavor}
+- Hovedprotein: ${variation.protein}
+- Tilberedning: ${variation.cookingMethod}
+- Ret-type: ${variation.mealType}
+- Køkken: ${variation.cuisine}
+
+📋 VARIATIONS-KRAV:
+1. Mindst 2 retter skal følge DENNE UGES TEMA
+2. Max 2 retter med SAMME hovedprotein
+3. Mix af hurtige (15-20 min) og langsomme (45-60 min) retter
+4. Mindst 1 vegetar-venlig ret eller ret med bælgfrugter
+5. UNDGÅ disse nylige retter: ${recentMealTitles.slice(0, 10).join(', ') || 'Ingen'}
+
+🥩 INGREDIENS-MÆNGDER ER KRITISKE (for ${peopleCount} personer):
+- Protein (kød/fisk): ${120 * peopleCount}g - ${180 * peopleCount}g TOTAL
+- Pasta/ris (tør): ${80 * peopleCount}g - ${100 * peopleCount}g TOTAL
+- Kartofler: ${200 * peopleCount}g - ${300 * peopleCount}g TOTAL
 
 Husk:
-- ${recipesNeeded} retter skal vælges af brugeren
+- ${recipesNeeded} retter vælges af brugeren
 - Giv ${recipesToGenerate - recipesNeeded} ekstra alternativer
 - Varier proteiner og tilberedningsmetoder
-- INGREDIENSER I GRAM SKAL VÆRE REALISTISKE (${80 * peopleCount}-${180 * peopleCount}g protein per ret!)
+- ALDRIG lyv om makroer - beregn dem fra ingredienserne!
 
 Lav retterne nu!`;
 
