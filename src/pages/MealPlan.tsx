@@ -14,6 +14,7 @@ import { MealOptionSwiper, type MacroTargets, type MealRecipe } from '@/componen
 import { useGenerateShoppingList } from '@/hooks/useGenerateShoppingList';
 import { WeekOverview } from '@/components/WeekOverview';
 import { MealTrackingCard } from '@/components/MealTrackingCard';
+import { useMealPlanPreferences } from '@/hooks/useMealPlanPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +52,7 @@ export default function MealPlan() {
   const [loadingMessage, setLoadingMessage] = useState(0);
   const { generateShoppingList } = useGenerateShoppingList();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { preferences } = useMealPlanPreferences();
 
   // Fetch profile for macro display
   useEffect(() => {
@@ -114,12 +116,12 @@ export default function MealPlan() {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
       
-      // Alle dage får alle måltider med rotation gennem valgte retter
+      // Respekter skip-præferencer
       const dayMeals: MealPlanDay = {
         date: date.toISOString().split('T')[0],
-        breakfast: convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]),
-        lunch: convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]),
-        dinner: convertToMealPlanMeal(selectedMeals[(i + 2) % selectedMeals.length]),
+        breakfast: preferences.skip_breakfast ? null : convertToMealPlanMeal(selectedMeals[i % selectedMeals.length]),
+        lunch: preferences.skip_lunch ? null : convertToMealPlanMeal(selectedMeals[(i + 1) % selectedMeals.length]),
+        dinner: preferences.skip_dinner ? null : convertToMealPlanMeal(selectedMeals[(i + 2) % selectedMeals.length]),
       };
       meals.push(dayMeals);
     }
@@ -406,10 +408,10 @@ export default function MealPlan() {
 
               <div className="space-y-4">
                 {[
-                  { mealType: 'breakfast' as const, label: t('mealPlan.meals.breakfast'), meal: selectedMealsForDay?.breakfast, icon: '🌅' },
-                  { mealType: 'lunch' as const, label: t('mealPlan.meals.lunch'), meal: selectedMealsForDay?.lunch, icon: '☀️' },
-                  { mealType: 'dinner' as const, label: t('mealPlan.meals.dinner'), meal: selectedMealsForDay?.dinner, icon: '🌙' },
-                ].map(({ mealType, label, meal, icon }) => (
+                  { mealType: 'breakfast' as const, label: t('mealPlan.meals.breakfast'), meal: selectedMealsForDay?.breakfast, icon: '🌅', skip: preferences.skip_breakfast },
+                  { mealType: 'lunch' as const, label: t('mealPlan.meals.lunch'), meal: selectedMealsForDay?.lunch, icon: '☀️', skip: preferences.skip_lunch },
+                  { mealType: 'dinner' as const, label: t('mealPlan.meals.dinner'), meal: selectedMealsForDay?.dinner, icon: '🌙', skip: preferences.skip_dinner },
+                ].filter(({ skip }) => !skip).map(({ mealType, label, meal, icon }) => (
                   <MealTrackingCard
                     key={mealType}
                     date={selectedMealsForDay?.date || new Date().toISOString().split('T')[0]}
