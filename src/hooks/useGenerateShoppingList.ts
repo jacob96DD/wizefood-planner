@@ -159,7 +159,7 @@ const PRICES_PER_UNIT: Record<string, PriceInfo> = {
   'honning': { price: 80, unit: 'kg' },
 };
 
-// Konverter mængde til base-enhed (kg, l, stk)
+// Konverter mængde til base-enhed (kg, l, stk, pk)
 const convertToBaseUnit = (amount: number, unit: string, targetUnit: string): number => {
   const lowerUnit = unit.toLowerCase().trim();
   
@@ -182,7 +182,29 @@ const convertToBaseUnit = (amount: number, unit: string, targetUnit: string): nu
     return amount;
   }
   
-  // Stk/pk - direkte
+  // Stk/pk - konverter fra ml/dl/l/g/kg til antal pakker
+  if (targetUnit === 'pk' || targetUnit === 'stk') {
+    // Volumen til pakker (typisk pakke = 400ml)
+    if (lowerUnit === 'ml' || lowerUnit === 'milliliter') {
+      return Math.ceil(amount / 400);
+    }
+    if (lowerUnit === 'dl' || lowerUnit === 'deciliter') {
+      return Math.ceil(amount / 4); // 4 dl = 400ml
+    }
+    if (lowerUnit === 'l' || lowerUnit === 'liter') {
+      return Math.ceil(amount * 2.5); // 1L = 2.5 pakker á 400ml
+    }
+    // Vægt til pakker (typisk pakke = 400g)
+    if (lowerUnit === 'g' || lowerUnit === 'gram') {
+      return Math.ceil(amount / 400);
+    }
+    if (lowerUnit === 'kg' || lowerUnit === 'kilo') {
+      return Math.ceil(amount * 2.5); // 1kg = 2.5 pakker á 400g
+    }
+    // Direkte stk/pk
+    return Math.max(1, Math.ceil(amount));
+  }
+  
   return amount;
 };
 
