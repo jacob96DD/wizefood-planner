@@ -224,9 +224,19 @@ export default function Shopping() {
                               {item.amount} {item.unit}
                             </p>
                           </div>
-                          <span className="font-medium">
-                            {item.offerPrice || item.price} {t('common.kr')}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {(item.offerPrice || item.price) ? (
+                              <span className="font-medium text-primary">
+                                {item.offerPrice || item.price} {t('common.kr')}
+                              </span>
+                            ) : null}
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
