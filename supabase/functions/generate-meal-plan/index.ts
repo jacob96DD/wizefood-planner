@@ -274,26 +274,53 @@ function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation 
   const errors: string[] = [];
   const servings = recipe.servings || 1;
 
-  // REALISTISKE minimum mængder per person (i gram) - STRENGERE KRAV
+  // REALISTISKE minimum mængder per person - MEGET STRENGERE KRAV
   const minAmountsPerPerson: Record<string, number> = {
     'protein': 120,    // Kød, fisk - MINDST 120g per person rå vægt
     'carbs': 80,       // Pasta, ris tør vægt - MINDST 80g per person
     'potatoes': 200,   // Kartofler - MINDST 200g per person
-    'cheese': 25,      // Ost i ret
+    'cheese': 30,      // Ost i ret - 30g per person
     'vegetables': 100, // Grøntsager
   };
 
-  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk', 'filet', 'bryst', 'lår', 'kotelet', 'schnitzel', 'frikadelle', 'kalkun', 'and', 'tun', 'sej', 'rødspætte'];
-  const carbKeywords = ['pasta', 'spaghetti', 'ris', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous', 'tagliatelle', 'fettuccine', 'makaroni', 'lasagneplader'];
-  const potatoKeywords = ['kartof', 'kartofler', 'kartoffelmos'];
-  const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta', 'cheddar', 'gouda', 'emmentaler'];
+  // Minimum stk per person for forskellige produkter
+  const minStkPerPerson: Record<string, number> = {
+    'wrap': 1.5,       // 1.5 wrap per person minimum
+    'tortilla': 1.5,
+    'brød': 2,         // 2 skiver brød per person
+    'bolle': 1.5,
+    'pitabrød': 1,
+    'fladbrød': 1,
+    'burger': 1,       // 1 burger bun per person
+    'pølse': 1.5,      // 1.5 pølse per person
+    'æg': 2,           // 2 æg per person
+  };
+
+  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk', 'filet', 'bryst', 'lår', 'kotelet', 'schnitzel', 'frikadelle', 'kalkun', 'and', 'tun', 'sej', 'rødspætte', 'hakkekød', 'mørbrad', 'entrecote', 'culotte'];
+  const carbKeywords = ['pasta', 'spaghetti', 'ris', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous', 'tagliatelle', 'fettuccine', 'makaroni', 'lasagneplader', 'farfalle', 'rigatoni'];
+  const potatoKeywords = ['kartof', 'kartofler', 'kartoffelmos', 'pommes', 'fritter'];
+  const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta', 'cheddar', 'gouda', 'emmentaler', 'brie', 'camembert'];
 
   const correctedIngredients = (recipe.ingredients || []).map((ing: any) => {
     const name = (ing.name || '').toLowerCase();
     let amount = parseFloat(ing.amount) || 0;
     const unit = (ing.unit || '').toLowerCase();
 
-    // Kun tjek gram-baserede ingredienser
+    // ============ HÅNDTER STK-BASEREDE INGREDIENSER ============
+    if (unit === 'stk' || unit === 'stk.' || unit === '') {
+      for (const [keyword, minPerPerson] of Object.entries(minStkPerPerson)) {
+        if (name.includes(keyword)) {
+          const minTotal = Math.ceil(minPerPerson * servings);
+          if (amount < minTotal) {
+            errors.push(`🌯 ${ing.name}: ${amount} stk → ${minTotal} stk (${minPerPerson}/person × ${servings})`);
+            return { ...ing, amount: String(minTotal), unit: 'stk', _corrected: true };
+          }
+        }
+      }
+      return ing;
+    }
+
+    // ============ HÅNDTER GRAM-BASEREDE INGREDIENSER ============
     if (unit !== 'g' && unit !== 'gram' && unit !== 'kg') {
       return ing;
     }
@@ -330,7 +357,7 @@ function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation 
     // Tjek ost
     const isCheese = cheeseKeywords.some(k => name.includes(k));
     if (isCheese && perPerson < minAmountsPerPerson.cheese) {
-      const correctedAmount = 35 * servings; // 35g per person
+      const correctedAmount = minAmountsPerPerson.cheese * servings;
       errors.push(`🧀 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
       return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
     }
