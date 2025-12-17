@@ -727,54 +727,9 @@ export default function Onboarding() {
         }
       }
 
-      // Save address to profile if provided
-      if (data.addressZip) {
-        const { error: addressError } = await supabase
-          .from('profiles')
-          .update({
-            address_street: data.addressStreet || null,
-            address_zip: data.addressZip,
-            address_city: data.addressCity || null,
-            latitude: data.latitude,
-            longitude: data.longitude,
-          })
-          .eq('id', user.id);
-
-        if (addressError) {
-          console.error('Error saving address:', addressError);
-        }
-      }
-
-      // Save Salling stores if selected
-      if (selectedSallingStoreIds.size > 0) {
-        // First delete existing Salling stores
-        await supabase
-          .from('user_salling_stores')
-          .delete()
-          .eq('user_id', user.id);
-
-        // Insert selected Salling stores
-        const sallingStoresToInsert = nearbySallingStores
-          .filter(store => selectedSallingStoreIds.has(store.id))
-          .map(store => ({
-            user_id: user.id,
-            salling_store_id: store.id,
-            store_name: store.name,
-            brand: store.brand,
-            address: store.address,
-            city: store.city,
-            distance_km: store.distance,
-            enabled: true,
-          }));
-
-        const { error: sallingError } = await supabase
-          .from('user_salling_stores')
-          .insert(sallingStoresToInsert);
-
-        if (sallingError) {
-          console.error('Error saving Salling stores:', sallingError);
-        }
-      }
+      // TODO: Address and Salling store preferences will be saved when database tables are created
+      // For now, we skip saving address_street, address_zip, address_city, latitude, longitude
+      // and user_salling_stores as they don't exist in the database yet
 
       // Update local state
       setProfile(updatedProfile);

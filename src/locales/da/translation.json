@@ -26,13 +26,13 @@
         "title": "AI-genererede madplaner",
         "description": "Få personlige madplaner tilpasset dine præferencer, allergier og budget."
       },
-      "saveMoney": {
-        "title": "Spar penge",
-        "description": "Optimer dit madbudget med smarte tilbudsforslag og budgetvenlige opskrifter."
+      "reduceFoodWaste": {
+        "title": "Red madspild",
+        "description": "Udnyt tilbud på mad der nærmer sig udløb. Spar penge og hjælp miljøet."
       },
-      "saveTime": {
-        "title": "Spar tid",
-        "description": "Automatisk indkøbsliste og nem madplanlægning. Brug mindre tid i køkkenet."
+      "localStores": {
+        "title": "Dine lokale butikker",
+        "description": "Tilbud fra Netto, Føtex, Bilka og andre Salling-butikker i dit område."
       }
     }
   },

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChefHat, Sparkles, TrendingDown, Clock, ArrowRight } from 'lucide-react';
+import { ChefHat, Sparkles, Leaf, MapPin, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
@@ -19,18 +19,18 @@ export default function Landing() {
       description: t('landing.features.aiPlans.description'),
     },
     {
-      icon: TrendingDown,
-      iconBg: 'bg-accent/10',
-      iconColor: 'text-accent',
-      title: t('landing.features.saveMoney.title'),
-      description: t('landing.features.saveMoney.description'),
+      icon: Leaf,
+      iconBg: 'bg-green-500/10',
+      iconColor: 'text-green-600',
+      title: t('landing.features.reduceFoodWaste.title'),
+      description: t('landing.features.reduceFoodWaste.description'),
     },
     {
-      icon: Clock,
-      iconBg: 'bg-primary/10',
-      iconColor: 'text-primary',
-      title: t('landing.features.saveTime.title'),
-      description: t('landing.features.saveTime.description'),
+      icon: MapPin,
+      iconBg: 'bg-accent/10',
+      iconColor: 'text-accent',
+      title: t('landing.features.localStores.title'),
+      description: t('landing.features.localStores.description'),
     },
   ];
 
