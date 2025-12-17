@@ -362,17 +362,28 @@ export function MealOptionSwiper({
     );
   }
 
+  // Auto-continue when all meals are selected
+  useEffect(() => {
+    if (allComplete && selectedMeals.length >= recipesNeeded) {
+      const timer = setTimeout(() => {
+        handleCompleteWithMeals(selectedMeals);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [allComplete, selectedMeals, recipesNeeded]);
+
   if (allComplete) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-4">
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-xl font-bold mb-2">{t('mealSwiper.allDone', 'Alle retter valgt!')}</h2>
-        <p className="text-muted-foreground mb-6">
+        <p className="text-muted-foreground mb-4">
           {totalSelected} retter valgt
         </p>
-        <Button variant="default" onClick={handleComplete}>
-          {t('mealSwiper.createPlan', 'Opret madplan')}
-        </Button>
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground mt-2">
+          {t('mealSwiper.creatingPlan', 'Opretter din madplan...')}
+        </p>
       </div>
     );
   }

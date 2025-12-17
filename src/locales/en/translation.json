@@ -26,13 +26,13 @@
         "title": "AI-generated meal plans",
         "description": "Get personalized meal plans tailored to your preferences, allergies, and budget."
       },
-      "saveMoney": {
-        "title": "Save money",
-        "description": "Optimize your food budget with smart deal suggestions and budget-friendly recipes."
+      "reduceFoodWaste": {
+        "title": "Reduce food waste",
+        "description": "Take advantage of deals on food nearing expiry. Save money and help the environment."
       },
-      "saveTime": {
-        "title": "Save time",
-        "description": "Automatic shopping lists and easy meal planning. Spend less time in the kitchen."
+      "localStores": {
+        "title": "Your local stores",
+        "description": "Offers from Netto, Føtex, Bilka and other Salling stores in your area."
       }
     }
   },
