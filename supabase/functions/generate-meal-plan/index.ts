@@ -283,6 +283,30 @@ serve(async (req) => {
 
     const { data: offers } = await offersQuery;
 
+    // 🔴 KATEGORISER PROTEIN-TILBUD FØRST (for tilbuds-baseret opskriftsgenerering)
+    const proteinKeywords = ['kylling', 'okse', 'svine', 'laks', 'torsk', 'hakket', 'bøf', 'filet', 'kød', 'rejer', 'flæsk', 'bacon', 'medister'];
+    const proteinOffers = (offers || []).filter((o: any) => {
+      const text = ((o.offer_text || '') + ' ' + (o.product_name || '')).toLowerCase();
+      return proteinKeywords.some(kw => text.includes(kw));
+    });
+
+    const proteinOffersSection = proteinOffers.length > 0 ? `
+🔴 PROTEIN PÅ TILBUD DENNE UGE (BYGG OPSKRIFTER RUNDT OM DISSE!):
+${proteinOffers.slice(0, 8).map((o: any) => {
+  const savings = o.original_price_dkk && o.offer_price_dkk 
+    ? `(spar ${(o.original_price_dkk - o.offer_price_dkk).toFixed(0)} kr)` 
+    : '';
+  const storeName = o.store_chains?.name || 'Ukendt butik';
+  return `- ${o.offer_text || o.product_name}: ${o.offer_price_dkk} kr ${savings} @ ${storeName}`;
+}).join('\n')}
+
+⚡ DIN OPGAVE:
+1. Vælg 2-3 af disse protein-tilbud som BASE for opskrifterne
+2. Design opskrifter der BRUGER tilbuds-protein som hovedingrediens
+3. Justér portion-størrelse for at ramme protein-target (${availableProtein}g/dag)
+4. Beregn besparelser baseret på tilbudspris vs. normalpris
+` : '';
+
     const formattedOffers = (offers || []).slice(0, 20).map((offer: any) => {
       const savings = offer.original_price_dkk && offer.offer_price_dkk 
         ? `(spar ${(offer.original_price_dkk - offer.offer_price_dkk).toFixed(0)} kr)` 
@@ -394,9 +418,40 @@ ${hatedDishNames.length > 0 ? `🤮 HADER (ALDRIG lignende!): ${hatedDishNames.s
       ? `DAGLIG MADLAVNING: ${recipesNeeded} forskellige retter (én ny ret hver dag)`
       : `MEAL PREP: ${recipesNeeded} retter der skal genbruges hele ugen (laves i store portioner)`;
 
-    const systemPrompt = `Du er en erfaren dansk madplanlægger. Du laver sunde, budgetvenlige madplaner.
+    // 🍽️ VALDEMARSRO-STIL: Danske hverdagsretter med konkrete mængder
+    const valdemarsroStyle = `
+🍽️ OPSKRIFT-STIL (Valdemarsro-inspireret dansk hverdagsmad):
+- Enkle ingredienslister (max 10-12 ingredienser)
+- KONKRETE mængder på ALT - aldrig "salt og peber efter smag"
+- Trin-for-trin instruktioner med tilberednings-tips
+- Realistiske danske portioner:
+  • Kød: 120-180g per person (ikke 300g!)
+  • Grøntsager: 150-200g per person
+  • Pasta/ris: 75-100g tør vægt per person
+
+❌ ALDRIG skriv:
+- "Tilsæt salt og peber efter smag"
+- "Pynt med friske urter"
+- Vage mængder som "lidt", "efter behov", "ca."
+
+✅ I STEDET skriv:
+- "1 tsk salt" / "½ tsk sort peber"
+- "2 spsk frisk persille, finthakket"
+- "150g kyllingebryst per person"
+- "75g spaghetti (tør vægt) per person"
+- Konkrete gram, dl, spsk, tsk, stk
+
+📝 INSTRUKTIONER:
+- Undgå generiske trin som "Tilsæt krydderier"
+- Skriv specifikt: "Tilsæt 1 tsk paprika og ½ tsk spidskommen"
+- Inkluder tilberednings-tips: "Sautér løgene i 5-7 min til de er gyldne"
+`;
+
+    const systemPrompt = `Du er en erfaren dansk madplanlægger inspireret af Valdemarsro.dk.
 ${customRequestSection}
 ${discoverPreferencesSection}
+
+${valdemarsroStyle}
 
 🔴 KRITISKE REGLER (UFRAVIGELIGE):
 1. ALDRIG brug disse ingredienser (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen'}
@@ -407,26 +462,24 @@ ${discoverPreferencesSection}
 📋 MADLAVNINGSSTIL:
 ${cookingStyleDescription}
 
+${proteinOffersSection}
 ${inventorySection}
 ${focusSection}
 
-🟠 VIGTIGE PRIORITETER - TILBUDS-OPTIMERING:
-1. PRIORITER disse tilbud - KØB MERE AF TILBUDSVARER:
+🟠 ANDRE TILBUD (brug hvis de passer):
 ${formattedOffers || 'Ingen tilbud'}
 
 ⚡ MAKRO-OPTIMERING VIA TILBUD:
-- Hvis KØD er på tilbud: ØGET kødmængde i retten (f.eks. 200g → 300g)
+- Hvis KØD er på tilbud: ØGET kødmængde i retten (f.eks. 120g → 180g)
 - Tilpas andre ingredienser NED så totale kalorier stadig passer
 - F.eks: Mere kylling = mindre ris/pasta
 - Prioritér protein fra tilbudsvarer for at ramme protein-target billigst
-- Beregn ny pris baseret på øget mængde af tilbudsvarer
 
-2. Inkluder disse ingredienser (bruger elsker): ${allLikes.slice(0, 15).join(', ') || 'Ingen præferencer'}
-3. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
-
-🟡 NICE-TO-HAVE:
-1. Max ${weekdayMaxTime}-${weekendMaxTime} min tilberedning
-2. Undgå disse retter fra nyligt: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 8).join(', ') : 'Ingen'}
+🟡 ANDRE PRIORITETER:
+1. Inkluder disse ingredienser (bruger elsker): ${allLikes.slice(0, 15).join(', ') || 'Ingen præferencer'}
+2. Brug sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
+3. Max ${weekdayMaxTime}-${weekendMaxTime} min tilberedning
+4. Undgå disse retter fra nyligt: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 8).join(', ') : 'Ingen'}
 
 📊 GENERERING:
 Generér PRÆCIS ${recipesToGenerate} UNIKKE retter i ÉN samlet liste.
@@ -447,8 +500,8 @@ OUTPUT FORMAT (KUN JSON, ingen markdown):
       "prep_time": number,
       "cook_time": number,
       "servings": ${profile?.people_count || 1},
-      "ingredients": [{"name": "string", "amount": "string", "unit": "string"}],
-      "instructions": ["trin 1", "trin 2"],
+      "ingredients": [{"name": "string", "amount": "string med konkret tal", "unit": "string"}],
+      "instructions": ["trin 1 med konkrete mængder og tider", "trin 2"],
       "tags": ["hurtig", "meal-prep", "høj-protein"],
       "key_ingredients": ["hovedingrediens1", "hovedingrediens2"],
       "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],

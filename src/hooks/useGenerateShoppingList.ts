@@ -208,18 +208,33 @@ const convertToBaseUnit = (amount: number, unit: string, targetUnit: string): nu
   return amount;
 };
 
-// Find pris-info for en ingrediens
+// Find pris-info for en ingrediens - med word boundary matching for at undgå false positives
 const findPriceInfo = (name: string): PriceInfo | null => {
   const lowerName = name.toLowerCase().trim();
   
-  // Direkt match
+  // 1. Direkt match (højeste prioritet)
   if (PRICES_PER_UNIT[lowerName]) {
     return PRICES_PER_UNIT[lowerName];
   }
   
-  // Delvis match
+  // 2. Delvis match - KRÆV minimum 4 tegn for at undgå false positives som "mel" → "Castello"
   for (const [key, info] of Object.entries(PRICES_PER_UNIT)) {
-    if (lowerName.includes(key) || key.includes(lowerName)) {
+    // Spring over korte ord der giver false positives
+    if (key.length < 4) continue;
+    
+    // Brug word boundary matching - kræv at key er et helt ord
+    const regex = new RegExp(`\\b${key}\\b`, 'i');
+    if (regex.test(lowerName)) {
+      return info;
+    }
+  }
+  
+  // 3. Forsøg omvendt match kun for længere keys
+  for (const [key, info] of Object.entries(PRICES_PER_UNIT)) {
+    if (key.length < 5) continue;
+    
+    const regex = new RegExp(`\\b${lowerName}\\b`, 'i');
+    if (regex.test(key)) {
       return info;
     }
   }
@@ -289,16 +304,23 @@ export function useGenerateShoppingList() {
       // 2. Fetch user's inventory to exclude items they already have
       const { data: inventory } = await supabase
         .from('household_inventory')
-        .select('ingredient_name, quantity, unit')
-        .eq('user_id', user.id)
-        .eq('is_depleted', false);
+        .select('ingredient_name, quantity, unit, category, is_depleted')
+        .eq('user_id', user.id);
 
       const inventoryMap = new Map<string, { quantity: number; unit: string }>();
+      const basislagerMap = new Map<string, boolean>(); // name -> is_depleted (true = mangler)
+      
       inventory?.forEach(item => {
-        inventoryMap.set(item.ingredient_name.toLowerCase(), {
-          quantity: item.quantity || 0,
-          unit: item.unit || '',
-        });
+        if (item.category === 'basislager') {
+          // Track basislager items separately
+          basislagerMap.set(item.ingredient_name.toLowerCase(), item.is_depleted || false);
+        } else if (!item.is_depleted) {
+          // Regular inventory items
+          inventoryMap.set(item.ingredient_name.toLowerCase(), {
+            quantity: item.quantity || 0,
+            unit: item.unit || '',
+          });
+        }
       });
 
       // 3. Fetch current offers to match with ingredients (inkluder offer_text og butiksnavn)
@@ -364,11 +386,63 @@ export function useGenerateShoppingList() {
         return bestMatch?.offer || null;
       };
 
-      // 4. Build shopping list items
+      // 4. Build shopping list items with smart basislager handling
       const shoppingItems: ShoppingListItem[] = [];
 
+      // Common basislager keywords to detect
+      const basislagerKeywords = [
+        'salt', 'peber', 'olie', 'olivenolie', 'rapsolie', 'smør', 'margarine',
+        'mel', 'hvedemel', 'sukker', 'eddike', 'sojasauce', 'bouillon',
+        'hønsebouillon', 'oksebouillon', 'karry', 'paprika', 'oregano',
+        'timian', 'basilikum', 'persille', 'kanel', 'muskatnød', 'ingefær',
+        'hvidløgspulver', 'løgpulver', 'spidskommen', 'gurkemeje', 'chiliflager'
+      ];
+      
+      const isBasislagerIngredient = (name: string): boolean => {
+        const lower = name.toLowerCase();
+        return basislagerMap.has(lower) || 
+          basislagerKeywords.some(kw => lower.includes(kw) || kw.includes(lower));
+      };
+
       ingredientMap.forEach((value, ingredientName) => {
-        // Check if user already has enough
+        const isBasislager = isBasislagerIngredient(ingredientName);
+        
+        // Check if this is a basislager item
+        if (isBasislager) {
+          const userMissingIt = basislagerMap.get(ingredientName) === true;
+          
+          if (!userMissingIt) {
+            // User HAS this basislager item → SKIP completely
+            return;
+          }
+          
+          // User is MISSING it → only add if there's an offer
+          const matchingOffer = findMatchingOffer(ingredientName);
+          
+          if (!matchingOffer) {
+            // No offer → wait until next week
+            console.log(`Skipping basislager "${ingredientName}" - no offer available`);
+            return;
+          }
+          
+          // HAS offer → add to list with offer price!
+          const item: ShoppingListItem = {
+            id: crypto.randomUUID(),
+            name: ingredientName.charAt(0).toUpperCase() + ingredientName.slice(1),
+            amount: value.amount.toString(),
+            unit: value.unit,
+            checked: false,
+            isEstimate: false,
+            offerPrice: matchingOffer.offer_price_dkk || undefined,
+            price: matchingOffer.original_price_dkk || undefined,
+            offerId: matchingOffer.id,
+            store: (matchingOffer.store_chains as { name: string } | null)?.name || undefined,
+          };
+          shoppingItems.push(item);
+          return;
+        }
+        
+        // Regular inventory check
         const inInventory = inventoryMap.get(ingredientName);
         if (inInventory && inInventory.quantity >= value.amount) {
           // Skip - user has enough
