@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, Flame, Trash2 } from 'lucide-react';
 import { RecipeDetailDialog, type RecipeDetail } from './RecipeDetailDialog';
 import type { MealPlan, MealPlanDay, MealPlanMeal } from '@/hooks/useMealPlans';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
 
 interface MealWithPrice extends MealPlanMeal {
   estimated_price?: number;
@@ -43,44 +45,52 @@ const AVERAGE_WEEKLY_COST = 385; // ~1670 kr/måned ÷ 4.3 uger
 
 export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOverviewProps) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [shoppingListTotal, setShoppingListTotal] = useState<number | null>(null);
+
+  // Fetch shopping list total price for this meal plan
+  useEffect(() => {
+    if (!user || !plan.id) return;
+    
+    supabase
+      .from('shopping_lists')
+      .select('total_price')
+      .eq('user_id', user.id)
+      .eq('meal_plan_id', plan.id)
+      .eq('completed', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.total_price) {
+          setShoppingListTotal(data.total_price);
+        }
+      });
+  }, [user, plan.id]);
 
   const weekDayLabels = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
 
   // Beregn samlet indkøbspris for hele ugen
   const calculateWeeklyTotals = () => {
-    const uniqueMeals = new Map<string, { title: string; price: number; servings: number }>();
     let totalPortions = 0;
     
     plan.meals.forEach(day => {
       [day.breakfast, day.lunch, day.dinner].forEach(meal => {
         if (meal?.recipeId) {
           totalPortions++;
-          const mealWithPrice = meal as MealWithPrice;
-          if (!uniqueMeals.has(meal.recipeId)) {
-            uniqueMeals.set(meal.recipeId, {
-              title: meal.title,
-              price: mealWithPrice.estimated_price || 0,
-              servings: 1,
-            });
-          }
         }
       });
     });
     
-    // Samlet pris = sum af unikke retter (batch cooking = køb kun én gang)
-    const totalCost = Array.from(uniqueMeals.values())
-      .reduce((sum, m) => sum + m.price, 0);
-    
-    // Brug plan.total_cost hvis vi ikke har estimerede priser
-    const effectiveCost = totalCost > 0 ? totalCost : (plan.total_cost || 0);
+    // Brug shopping list total price hvis tilgængelig
+    const effectiveCost = shoppingListTotal || plan.total_cost || 0;
     const totalSavings = plan.total_savings || 0;
-    const uniqueCount = uniqueMeals.size;
-    const costPerPortion = totalPortions > 0 ? effectiveCost / totalPortions : 0;
+    const costPerPortion = totalPortions > 0 && effectiveCost > 0 ? effectiveCost / totalPortions : 0;
     const savingsVsAverage = AVERAGE_WEEKLY_COST - effectiveCost;
     
-    return { totalCost: effectiveCost, totalSavings, uniqueCount, costPerPortion, totalPortions, savingsVsAverage };
+    return { totalCost: effectiveCost, totalSavings, costPerPortion, totalPortions, savingsVsAverage };
   };
 
   const weeklyTotals = calculateWeeklyTotals();

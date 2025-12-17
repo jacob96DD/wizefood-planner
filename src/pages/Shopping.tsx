@@ -155,40 +155,6 @@ export default function Shopping() {
                   </CardContent>
                 </Card>
 
-                {/* Offers section */}
-                {offerItems.length > 0 && (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
-                        <Store className="w-5 h-5 text-primary" />
-                        <CardTitle className="text-base">{t('shopping.offersThisWeek')}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {offerItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl"
-                          >
-                            <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="text-xs">
-                                {item.store}
-                              </Badge>
-                              <span className="font-medium">{item.name}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-bold text-primary">{item.offerPrice} {t('common.kr')}</span>
-                              <span className="text-sm text-muted-foreground line-through ml-2">
-                                {item.price} {t('common.kr')}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* Unchecked items */}
                 {uncheckedItems.length > 0 && (
@@ -228,7 +194,7 @@ export default function Shopping() {
                             {item.offerPrice ? (
                               <div className="flex items-center gap-1">
                                 <Badge variant="default" className="bg-green-500 text-white text-[10px] px-1 py-0">
-                                  Tilbud
+                                  {item.store || 'Tilbud'}
                                 </Badge>
                                 <span className="font-bold text-green-600 dark:text-green-400">
                                   {item.offerPrice} {t('common.kr')}
