@@ -135,10 +135,10 @@ export function useGenerateShoppingList() {
         });
       });
 
-      // 3. Fetch current offers to match with ingredients (inkluder offer_text)
+      // 3. Fetch current offers to match with ingredients (inkluder offer_text og butiksnavn)
       const { data: offers } = await supabase
         .from('offers')
-        .select('id, product_name, offer_text, offer_price_dkk, original_price_dkk, chain_id')
+        .select('id, product_name, offer_text, offer_price_dkk, original_price_dkk, chain_id, store_chains(name)')
         .eq('is_active', true);
 
       // Helper: Find estimeret pris baseret på ingrediensnavn
@@ -252,6 +252,9 @@ export function useGenerateShoppingList() {
           item.price = matchingOffer.original_price_dkk || undefined;
           item.offerId = matchingOffer.id;
           item.isEstimate = false;
+          // Gem butiksnavn fra JOIN
+          const storeChain = matchingOffer.store_chains as { name: string } | null;
+          item.store = storeChain?.name || undefined;
         } else {
           // Ingen tilbud - brug estimeret pris
           const estimatedPrice = findEstimatedPrice(ingredientName);
