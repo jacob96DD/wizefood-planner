@@ -22,50 +22,8 @@ export function useInventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [basislagerInitialized, setBasislagerInitialized] = useState(false);
 
-  // Auto-populate basislager for new users
-  const initializeBasislager = useCallback(async () => {
-    if (!user || basislagerInitialized) return;
-    
-    try {
-      // Check if user already has basislager items
-      const { count } = await supabase
-        .from('household_inventory')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('category', 'basislager');
-      
-      if (count && count > 0) {
-        setBasislagerInitialized(true);
-        return;
-      }
-      
-      // Fetch all pantry_staples
-      const { data: staples } = await supabase
-        .from('pantry_staples')
-        .select('name, icon, category');
-      
-      if (!staples || staples.length === 0) {
-        setBasislagerInitialized(true);
-        return;
-      }
-      
-      // Create all basislager items for user (default: in stock = not depleted)
-      await supabase.from('household_inventory').insert(
-        staples.map(staple => ({
-          user_id: user.id,
-          ingredient_name: staple.name,
-          category: 'basislager',
-          is_depleted: false, // Default: user HAS it
-        }))
-      );
-      
-      setBasislagerInitialized(true);
-    } catch (error) {
-      console.error('Error initializing basislager:', error);
-    }
-  }, [user, basislagerInitialized]);
+  // Note: Basislager initialization is now handled by useBasislager hook only
 
   const fetchInventory = useCallback(async () => {
     if (!user) return;
@@ -93,10 +51,6 @@ export function useInventory() {
       setLoading(false);
     }
   }, [user]);
-
-  useEffect(() => {
-    initializeBasislager();
-  }, [initializeBasislager]);
 
   useEffect(() => {
     fetchInventory();

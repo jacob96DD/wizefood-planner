@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Package, Check, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Package, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { useBasislager } from '@/hooks/useBasislager';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -14,11 +14,13 @@ export const PantryStaplesCard = () => {
     items, 
     loading, 
     saving,
+    error,
     toggleStock, 
     getItemsByCategory, 
     categoryLabels,
     missingCount,
-    totalCount 
+    totalCount,
+    refetch 
   } = useBasislager();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,6 +37,32 @@ export const PantryStaplesCard = () => {
           <div className="space-y-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-24" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state with retry button
+  if (error || (!loading && items.length === 0)) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            📋 Basislager
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <AlertCircle className="w-8 h-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {error || 'Kunne ikke hente basislager'}
+            </p>
+            <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Prøv igen
+            </Button>
           </div>
         </CardContent>
       </Card>
