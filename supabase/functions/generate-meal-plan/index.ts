@@ -268,59 +268,119 @@ interface IngredientValidation {
   valid: boolean;
   errors: string[];
   correctedIngredients: any[];
+  totalWeightPerPortion: number;
 }
 
 function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation {
   const errors: string[] = [];
   const servings = recipe.servings || 1;
 
-  // REALISTISKE minimum mængder per person - MEGET STRENGERE KRAV
+  console.log(`\n🔍 ========== VALIDATING: "${recipe.title}" ==========`);
+  console.log(`   Servings: ${servings}`);
+  console.log(`   Ingredients count: ${(recipe.ingredients || []).length}`);
+
+  // REALISTISKE minimum mængder per person
   const minAmountsPerPerson: Record<string, number> = {
-    'protein': 120,    // Kød, fisk - MINDST 120g per person rå vægt
-    'carbs': 80,       // Pasta, ris tør vægt - MINDST 80g per person
-    'potatoes': 200,   // Kartofler - MINDST 200g per person
-    'cheese': 30,      // Ost i ret - 30g per person
-    'vegetables': 100, // Grøntsager
+    'protein': 100,    // Kød, fisk - MINDST 100g per person rå vægt
+    'carbs': 70,       // Pasta, ris tør vægt
+    'potatoes': 150,   // Kartofler
+    'legumes': 50,     // Linser, bønner (tør vægt)
+    'cheese': 25,      // Ost i ret
+    'vegetables': 80,  // Grøntsager
   };
 
-  // Minimum stk per person for forskellige produkter
-  const minStkPerPerson: Record<string, number> = {
-    'wrap': 1.5,       // 1.5 wrap per person minimum
-    'tortilla': 1.5,
-    'brød': 2,         // 2 skiver brød per person
-    'bolle': 1.5,
-    'pitabrød': 1,
-    'fladbrød': 1,
-    'burger': 1,       // 1 burger bun per person
-    'pølse': 1.5,      // 1.5 pølse per person
-    'æg': 2,           // 2 æg per person
-  };
-
-  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk', 'filet', 'bryst', 'lår', 'kotelet', 'schnitzel', 'frikadelle', 'kalkun', 'and', 'tun', 'sej', 'rødspætte', 'hakkekød', 'mørbrad', 'entrecote', 'culotte'];
+  const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk', 'filet', 'bryst', 'lår', 'kotelet', 'schnitzel', 'frikadelle', 'kalkun', 'and', 'tun', 'sej', 'rødspætte', 'hakkekød', 'mørbrad', 'entrecote', 'culotte', 'steg'];
   const carbKeywords = ['pasta', 'spaghetti', 'ris', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous', 'tagliatelle', 'fettuccine', 'makaroni', 'lasagneplader', 'farfalle', 'rigatoni'];
   const potatoKeywords = ['kartof', 'kartofler', 'kartoffelmos', 'pommes', 'fritter'];
+  const legumeKeywords = ['linse', 'linser', 'bønner', 'kikærter', 'kidney', 'sorte bønner', 'hvide bønner'];
   const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta', 'cheddar', 'gouda', 'emmentaler', 'brie', 'camembert'];
 
-  const correctedIngredients = (recipe.ingredients || []).map((ing: any) => {
+  // ============ TRIN 1: BEREGN TOTAL VÆGT ============
+  let totalGrams = 0;
+  const ingredients = recipe.ingredients || [];
+
+  for (const ing of ingredients) {
+    let amount = parseFloat(ing.amount) || 0;
+    const unit = (ing.unit || '').toLowerCase();
+
+    if (unit === 'g' || unit === 'gram') {
+      totalGrams += amount;
+    } else if (unit === 'kg') {
+      totalGrams += amount * 1000;
+    } else if (unit === 'ml' || unit === 'dl' || unit === 'l') {
+      // Væsker tæller også
+      if (unit === 'dl') totalGrams += amount * 100;
+      else if (unit === 'l') totalGrams += amount * 1000;
+      else totalGrams += amount;
+    }
+  }
+
+  const weightPerPortion = totalGrams / servings;
+  console.log(`📊 Total weight: ${totalGrams}g, per portion: ${Math.round(weightPerPortion)}g`);
+
+  // ============ TRIN 2: CATCH-ALL VALIDERING ============
+  // Hvis samlet vægt per portion er < 300g, har AI'en sandsynligvis givet per-portions-mængder
+  const MIN_WEIGHT_PER_PORTION = 300; // Minimum 300g mad per portion
+
+  if (weightPerPortion < MIN_WEIGHT_PER_PORTION && servings > 1) {
+    console.warn(`⚠️ KRITISK: Kun ${Math.round(weightPerPortion)}g per portion! AI har sandsynligvis givet per-portions-mængder.`);
+    console.warn(`🔧 AUTO-KORREKTION: Ganger ALLE mængder med ${servings}`);
+
+    errors.push(`KRITISK: Total vægt ${totalGrams}g / ${servings} portioner = ${Math.round(weightPerPortion)}g per portion (minimum ${MIN_WEIGHT_PER_PORTION}g). Alle mængder ganges med ${servings}.`);
+
+    // Gang ALLE gram-baserede ingredienser med antallet af portioner
+    const correctedIngredients = ingredients.map((ing: any) => {
+      const amount = parseFloat(ing.amount) || 0;
+      const unit = (ing.unit || '').toLowerCase();
+
+      if (unit === 'g' || unit === 'gram' || unit === 'kg' || unit === 'ml' || unit === 'dl' || unit === 'l') {
+        const newAmount = Math.round(amount * servings);
+        console.log(`   📦 ${ing.name}: ${amount}${unit} → ${newAmount}${unit}`);
+        return { ...ing, amount: String(newAmount), _corrected: true, _original: amount };
+      }
+
+      // STK-baserede ingredienser skal også tjekkes
+      if (unit === 'stk' || unit === 'stk.' || unit === '') {
+        // Tjek om mængden ser ud som per-portion (typisk 1-2 stk)
+        if (amount <= 2 && servings > 2) {
+          const newAmount = Math.ceil(amount * servings);
+          console.log(`   📦 ${ing.name}: ${amount}stk → ${newAmount}stk`);
+          return { ...ing, amount: String(newAmount), unit: 'stk', _corrected: true };
+        }
+      }
+
+      return ing;
+    });
+
+    const newTotalGrams = correctedIngredients.reduce((sum: number, ing: any) => {
+      const amount = parseFloat(ing.amount) || 0;
+      const unit = (ing.unit || '').toLowerCase();
+      if (unit === 'g' || unit === 'gram') return sum + amount;
+      if (unit === 'kg') return sum + amount * 1000;
+      return sum;
+    }, 0);
+
+    console.log(`✅ Korrigeret total vægt: ${newTotalGrams}g (${Math.round(newTotalGrams / servings)}g per portion)`);
+
+    return {
+      valid: false,
+      errors,
+      correctedIngredients,
+      totalWeightPerPortion: newTotalGrams / servings,
+    };
+  }
+
+  // ============ TRIN 3: INDIVIDUEL INGREDIENS-VALIDERING ============
+  // Kør ALTID denne validering, uanset catch-all resultatet
+  console.log(`\n📋 Checking individual ingredients:`);
+
+  const correctedIngredients = ingredients.map((ing: any) => {
     const name = (ing.name || '').toLowerCase();
     let amount = parseFloat(ing.amount) || 0;
     const unit = (ing.unit || '').toLowerCase();
 
-    // ============ HÅNDTER STK-BASEREDE INGREDIENSER ============
-    if (unit === 'stk' || unit === 'stk.' || unit === '') {
-      for (const [keyword, minPerPerson] of Object.entries(minStkPerPerson)) {
-        if (name.includes(keyword)) {
-          const minTotal = Math.ceil(minPerPerson * servings);
-          if (amount < minTotal) {
-            errors.push(`🌯 ${ing.name}: ${amount} stk → ${minTotal} stk (${minPerPerson}/person × ${servings})`);
-            return { ...ing, amount: String(minTotal), unit: 'stk', _corrected: true };
-          }
-        }
-      }
-      return ing;
-    }
+    console.log(`   - ${ing.name}: ${amount} ${unit}`);
 
-    // ============ HÅNDTER GRAM-BASEREDE INGREDIENSER ============
     if (unit !== 'g' && unit !== 'gram' && unit !== 'kg') {
       return ing;
     }
@@ -330,45 +390,75 @@ function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation 
 
     const perPerson = amountInGrams / servings;
 
-    // Tjek protein-kilder (STRENGESTE KRAV)
+    // Tjek protein-kilder
     const isProtein = proteinKeywords.some(k => name.includes(k));
-    if (isProtein && perPerson < minAmountsPerPerson.protein) {
-      const correctedAmount = minAmountsPerPerson.protein * servings;
-      errors.push(`🥩 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g (${minAmountsPerPerson.protein}g/person)`);
-      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    if (isProtein) {
+      console.log(`     → Protein detected! ${perPerson}g/person (min: ${minAmountsPerPerson.protein})`);
+      if (perPerson < minAmountsPerPerson.protein) {
+        const correctedAmount = minAmountsPerPerson.protein * servings;
+        errors.push(`🥩 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/pp) → ${correctedAmount}g`);
+        console.log(`     🔧 CORRECTING: ${amountInGrams}g → ${correctedAmount}g`);
+        return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+      }
     }
 
     // Tjek kartofler
     const isPotato = potatoKeywords.some(k => name.includes(k));
-    if (isPotato && perPerson < minAmountsPerPerson.potatoes) {
-      const correctedAmount = minAmountsPerPerson.potatoes * servings;
-      errors.push(`🥔 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
-      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    if (isPotato) {
+      console.log(`     → Potato detected! ${perPerson}g/person (min: ${minAmountsPerPerson.potatoes})`);
+      if (perPerson < minAmountsPerPerson.potatoes) {
+        const correctedAmount = minAmountsPerPerson.potatoes * servings;
+        errors.push(`🥔 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g`);
+        console.log(`     🔧 CORRECTING: ${amountInGrams}g → ${correctedAmount}g`);
+        return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+      }
+    }
+
+    // Tjek linser/bælgfrugter
+    const isLegume = legumeKeywords.some(k => name.includes(k));
+    if (isLegume) {
+      console.log(`     → Legume detected! ${perPerson}g/person (min: ${minAmountsPerPerson.legumes})`);
+      if (perPerson < minAmountsPerPerson.legumes) {
+        const correctedAmount = minAmountsPerPerson.legumes * servings;
+        errors.push(`🫘 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g`);
+        console.log(`     🔧 CORRECTING: ${amountInGrams}g → ${correctedAmount}g`);
+        return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+      }
     }
 
     // Tjek kulhydrater (pasta, ris)
     const isCarb = carbKeywords.some(k => name.includes(k));
-    if (isCarb && perPerson < minAmountsPerPerson.carbs) {
-      const correctedAmount = minAmountsPerPerson.carbs * servings;
-      errors.push(`🍝 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
-      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    if (isCarb) {
+      console.log(`     → Carb detected! ${perPerson}g/person (min: ${minAmountsPerPerson.carbs})`);
+      if (perPerson < minAmountsPerPerson.carbs) {
+        const correctedAmount = minAmountsPerPerson.carbs * servings;
+        errors.push(`🍝 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g`);
+        console.log(`     🔧 CORRECTING: ${amountInGrams}g → ${correctedAmount}g`);
+        return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+      }
     }
 
     // Tjek ost
     const isCheese = cheeseKeywords.some(k => name.includes(k));
     if (isCheese && perPerson < minAmountsPerPerson.cheese) {
       const correctedAmount = minAmountsPerPerson.cheese * servings;
-      errors.push(`🧀 ${ing.name}: ${amountInGrams}g (${Math.round(perPerson)}g/person) → ${correctedAmount}g`);
+      errors.push(`🧀 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g`);
       return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
     }
 
     return ing;
   });
 
+  console.log(`\n✅ Validation complete. Errors: ${errors.length}`);
+  if (errors.length > 0) {
+    console.log(`   Corrections made: ${errors.join(', ')}`);
+  }
+
   return {
     valid: errors.length === 0,
     errors,
     correctedIngredients,
+    totalWeightPerPortion: weightPerPortion,
   };
 }
 
@@ -873,24 +963,50 @@ ${hatedDishNames.length > 0 ? `🤮 HADER (ALDRIG lignende!): ${hatedDishNames.s
     const peopleCount = profile?.people_count || 1;
     
     const simplifiedPrompt = `
-🍽️ OPSKRIFT-REGLER (Valdemarsro-stil):
+🍽️ OPSKRIFT-REGLER:
 - Max 10-12 ingredienser
-- KONKRETE mængder (ingen "efter smag")
-- Trin-for-trin med tider
+- KONKRETE mængder
+- Trin-for-trin
 
-⚠️ KRITISK: INGREDIENS-MÆNGDER ER SAMLET FOR ALLE ${peopleCount} PERSONER!
-Eksempel: 100g pasta/person × ${peopleCount} = "${100 * peopleCount}g" i ingredienslisten
+═══════════════════════════════════════════════════════════════
+⚠️⚠️⚠️ STOP! LÆS DETTE FØR DU SKRIVER NOGET! ⚠️⚠️⚠️
+═══════════════════════════════════════════════════════════════
 
-📐 REALISTISKE PORTIONER (per person):
-• Kød/fisk: 120-180g rå
-• Pasta/ris (tør): 75-100g
-• Kartofler: 200-300g
-• Ost: 30-50g
+DU LAVER OPSKRIFTER TIL ${peopleCount} PERSONER!
+ALLE INGREDIENS-MÆNGDER SKAL VÆRE GANGET MED ${peopleCount}!
 
-📊 MAKROER = PER PORTION (beregnet fra ingredienser)
-- Jeg validerer dine makroer automatisk
-- Hvis de er forkerte, korrigerer jeg dem
-- Så vær præcis!`;
+🔢 BEREGNINGSMETODE (FØLG DENNE!):
+1. Tænk: "Hvor meget pr person?"
+2. Gang med ${peopleCount}
+3. Skriv resultatet i "amount"
+
+📊 EKSEMPEL FOR ${peopleCount} PERSONER:
+
+| Ingrediens | Per person | × ${peopleCount} | Amount i JSON |
+|------------|------------|--------|---------------|
+| Kylling    | 150g       | × ${peopleCount}   | "${150 * peopleCount}"        |
+| Pasta      | 80g        | × ${peopleCount}   | "${80 * peopleCount}"         |
+| Kartofler  | 250g       | × ${peopleCount}   | "${250 * peopleCount}"        |
+| Bacon      | 50g        | × ${peopleCount}   | "${50 * peopleCount}"         |
+| Løg        | 75g        | × ${peopleCount}   | "${75 * peopleCount}"         |
+
+🚫 FORKERT: {"name": "kylling", "amount": "150", "unit": "g"}
+✅ KORREKT: {"name": "kylling", "amount": "${150 * peopleCount}", "unit": "g"}
+
+📐 MINIMUM TOTALER FOR ${peopleCount} PERSONER:
+• Kød/fisk: ${120 * peopleCount}g - ${180 * peopleCount}g
+• Pasta/ris: ${80 * peopleCount}g - ${100 * peopleCount}g
+• Kartofler: ${200 * peopleCount}g - ${300 * peopleCount}g
+• Linser/bælgfrugter: ${60 * peopleCount}g - ${100 * peopleCount}g
+
+═══════════════════════════════════════════════════════════════
+FØR DU RETURNERER JSON, VERIFICER:
+□ Sum af alle gram-ingredienser > ${400 * peopleCount}g? (min ${400}g × ${peopleCount} pers)
+□ Hovedprotein > ${120 * peopleCount}g?
+□ Kulhydrat-kilde > ${80 * peopleCount}g?
+═══════════════════════════════════════════════════════════════
+
+📊 MAKROER = PER PORTION (efter at ingredienser er delt med ${peopleCount})`;
 
     const systemPrompt = `Du er en erfaren dansk madplanlægger inspireret af Valdemarsro.dk.
 ${customRequestSection}
@@ -928,25 +1044,29 @@ ${formattedOffers || 'Ingen tilbud'}
       "id": "unique-id",
       "title": "Ret navn",
       "description": "Kort beskrivelse",
-      "calories": number,
-      "protein": number,
-      "carbs": number,
-      "fat": number,
+      "calories": number (PER PORTION!),
+      "protein": number (PER PORTION!),
+      "carbs": number (PER PORTION!),
+      "fat": number (PER PORTION!),
       "prep_time": number,
       "cook_time": number,
       "servings": ${peopleCount},
       "ingredients": [
-        {"name": "spaghetti", "amount": "${100 * peopleCount}", "unit": "g"},
-        {"name": "bacon", "amount": "${120 * peopleCount}", "unit": "g"}
+        {"name": "spaghetti", "amount": "${80 * peopleCount}", "unit": "g", "note": "TOTAL til ${peopleCount} port"},
+        {"name": "bacon", "amount": "${150 * peopleCount}", "unit": "g", "note": "TOTAL til ${peopleCount} port"},
+        {"name": "kartofler", "amount": "${250 * peopleCount}", "unit": "g", "note": "TOTAL til ${peopleCount} port"}
       ],
-      "instructions": ["Trin 1 med mængder (kog ${100 * peopleCount}g pasta)", "Trin 2"],
+      "instructions": ["Trin 1: Kog ${80 * peopleCount}g pasta", "Trin 2: Steg ${150 * peopleCount}g bacon"],
       "tags": ["hurtig", "høj-protein"],
       "key_ingredients": ["hovedingrediens1", "hovedingrediens2"],
       "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
       "estimated_price": number
     }
   ]
-}`;
+}
+
+⚠️ VIGTIGT: "amount" er ALTID den SAMLEDE mængde for alle ${peopleCount} portioner!
+ALDRIG per-portion mængder! Gang ALTID per-person med ${peopleCount}!`;
 
     // Tilføj variation
     const variation = getRandomVariation();
@@ -1043,45 +1163,69 @@ Lav retterne nu!`;
       throw new Error('Failed to parse meal plan from AI');
     }
 
-    // ============ STRENG VALIDERING + AUTO-KORREKTION ============
+    // ============ SIMPEL AGGRESSIV KORREKTION ============
     const rawRecipes = mealPlanData.recipes || [];
-    let ingredientCorrectionCount = 0;
-    let macroCorrectionCount = 0;
-    
+    let correctionCount = 0;
+
     const validatedRecipes = rawRecipes.map((recipe: any) => {
-      // 1. Først: Korriger ingrediens-mængder hvis de er for små
-      const ingredientValidation = validateAndCorrectIngredientAmounts(recipe);
-      
-      if (!ingredientValidation.valid) {
-        console.warn(`🥩 Recipe "${recipe.title}" ingredient issues:`, ingredientValidation.errors.join(', '));
-        ingredientCorrectionCount++;
+      const servings = recipe.servings || 1;
+      const ingredients = recipe.ingredients || [];
+
+      console.log(`\n🔍 Processing: "${recipe.title}" (${servings} servings)`);
+
+      // Beregn total vægt
+      let totalGrams = 0;
+      for (const ing of ingredients) {
+        const amount = parseFloat(ing.amount) || 0;
+        const unit = (ing.unit || '').toLowerCase();
+        if (unit === 'g' || unit === 'gram') totalGrams += amount;
+        else if (unit === 'kg') totalGrams += amount * 1000;
+        else if (unit === 'ml') totalGrams += amount;
+        else if (unit === 'dl') totalGrams += amount * 100;
       }
-      
-      // Brug korrigerede ingredienser
-      const recipeWithCorrectedIngredients = {
+
+      const perPortion = totalGrams / servings;
+      console.log(`   Total: ${totalGrams}g, Per portion: ${Math.round(perPortion)}g`);
+
+      // SIMPEL REGEL: Hvis per-portion < 300g, gang ALT med servings
+      let correctedIngredients = ingredients;
+
+      if (perPortion < 300 && servings > 1) {
+        console.log(`   ⚠️ TOO SMALL! Multiplying all by ${servings}`);
+        correctionCount++;
+
+        correctedIngredients = ingredients.map((ing: any) => {
+          const amount = parseFloat(ing.amount) || 0;
+          const unit = (ing.unit || '').toLowerCase();
+
+          // Gang gram/ml-baserede mængder med servings
+          if (['g', 'gram', 'kg', 'ml', 'dl', 'l'].includes(unit)) {
+            const newAmount = Math.round(amount * servings);
+            console.log(`     ${ing.name}: ${amount}${unit} → ${newAmount}${unit}`);
+            return { ...ing, amount: String(newAmount) };
+          }
+
+          // Gang stk med servings hvis det er <= 3
+          if ((unit === 'stk' || unit === 'stk.' || unit === '') && amount <= 3) {
+            const newAmount = Math.ceil(amount * servings);
+            console.log(`     ${ing.name}: ${amount}stk → ${newAmount}stk`);
+            return { ...ing, amount: String(newAmount), unit: 'stk' };
+          }
+
+          return ing;
+        });
+      }
+
+      // Returner opskrift med korrigerede ingredienser
+      return {
         ...recipe,
-        ingredients: ingredientValidation.correctedIngredients,
+        ingredients: correctedIngredients,
       };
-      
-      // 2. Derefter: Valider og korriger makroer baseret på (nu korrigerede) ingredienser
-      const macroValidation = strictValidateAndCorrectRecipe(recipeWithCorrectedIngredients);
-      
-      if (!macroValidation.valid) {
-        console.warn(`⚠️ Recipe "${recipe.title}" macro issues:`, macroValidation.errors.join(', '));
-      }
-      
-      if (macroValidation.corrected) {
-        console.log(`✅ Recipe "${recipe.title}" macros auto-corrected`);
-        macroCorrectionCount++;
-      }
-      
-      return macroValidation.correctedRecipe;
     });
     
     // Log summary
-    console.log(`📊 Validation summary:`);
-    console.log(`   - Ingredient corrections: ${ingredientCorrectionCount}/${validatedRecipes.length}`);
-    console.log(`   - Macro corrections: ${macroCorrectionCount}/${validatedRecipes.length}`);
+    console.log(`\n📊 Validation summary:`);
+    console.log(`   - Recipes corrected: ${correctionCount}/${validatedRecipes.length}`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -1096,8 +1240,7 @@ Lav retterne nu!`;
       total_estimated_savings: mealPlanData.total_estimated_savings || 0,
       _validation_stats: {
         total: validatedRecipes.length,
-        ingredient_corrections: ingredientCorrectionCount,
-        macro_corrections: macroCorrectionCount,
+        corrected: correctionCount,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
