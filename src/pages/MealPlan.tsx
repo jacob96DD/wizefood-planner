@@ -17,6 +17,7 @@ import { MealTrackingCard } from '@/components/MealTrackingCard';
 import { AddSnackDialog } from '@/components/AddSnackDialog';
 import { useMealPlanPreferences } from '@/hooks/useMealPlanPreferences';
 import { useDailyMealLog } from '@/hooks/useDailyMealLog';
+import { type FoodwasteProduct } from '@/hooks/useFoodwaste';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/hooks/use-toast';
@@ -89,16 +90,19 @@ export default function MealPlan() {
     { emoji: '✨', text: t('mealPlan.loadingFinalizing', 'Finpudser din personlige madplan...') },
   ];
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (selectedFoodwaste?: FoodwasteProduct[]) => {
     setConfigOpen(false);
-    
+
     // Slet eksisterende plan før generering af ny
     if (currentPlan?.id) {
       await deleteMealPlan(currentPlan.id);
     }
-    
-    const result = await generateMealPlan({ duration_days: 7 });
-    
+
+    const result = await generateMealPlan({
+      duration_days: 7,
+      selected_foodwaste: selectedFoodwaste,
+    });
+
     if (result) {
       // Gå til swipe mode med genererede retter (ny struktur)
       setRecipes(result.recipes);

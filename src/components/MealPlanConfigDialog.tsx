@@ -18,6 +18,8 @@ import {
   useMealPlanPreferences,
 } from '@/hooks/useMealPlanPreferences';
 import { FridgeScanner } from '@/components/FridgeScanner';
+import { FoodwasteSelector } from '@/components/FoodwasteSelector';
+import { type FoodwasteProduct } from '@/hooks/useFoodwaste';
 import {
   Collapsible,
   CollapsibleContent,
@@ -29,7 +31,7 @@ import { toast } from 'sonner';
 interface MealPlanConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: () => void;
+  onGenerate: (selectedFoodwaste?: FoodwasteProduct[]) => void;
   generating: boolean;
   profile?: {
     daily_calories?: number | null;
@@ -73,7 +75,8 @@ export function MealPlanConfigDialog({
 
   const [localPrefs, setLocalPrefs] = useState(preferences);
   const [showFridgeScanner, setShowFridgeScanner] = useState(false);
-  
+  const [selectedFoodwaste, setSelectedFoodwaste] = useState<FoodwasteProduct[]>([]);
+
   // Real-life section - now loads from profile
   const [realLifeDescription, setRealLifeDescription] = useState('');
   const [isCalculatingRealLife, setIsCalculatingRealLife] = useState(false);
@@ -188,7 +191,7 @@ export function MealPlanConfigDialog({
   const handleSaveAndGenerate = async () => {
     const success = await savePreferences(localPrefs);
     if (success) {
-      onGenerate();
+      onGenerate(selectedFoodwaste.length > 0 ? selectedFoodwaste : undefined);
     }
   };
 
@@ -230,6 +233,9 @@ export function MealPlanConfigDialog({
               <FridgeScanner onComplete={() => setShowFridgeScanner(false)} />
             </CollapsibleContent>
           </Collapsible>
+
+          {/* Foodwaste Selector */}
+          <FoodwasteSelector onSelectionChange={setSelectedFoodwaste} />
 
           {/* Cooking Style */}
           <div className="space-y-3">

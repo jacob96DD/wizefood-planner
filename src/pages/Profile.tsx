@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown, Pizza, Package } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Target, Users, AlertTriangle, Edit2, Globe, Store, TrendingUp, ThumbsDown, Pizza, Package, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -439,7 +439,7 @@ export default function Profile() {
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
 
-              <div 
+              <div
                 className="flex items-center justify-between cursor-pointer"
                 onClick={() => navigate('/stores')}
               >
@@ -453,6 +453,24 @@ export default function Profile() {
                       {preferredStoresCount > 0
                         ? t('profile.storesSelected', { count: preferredStoresCount })
                         : t('profile.selectStores')}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+
+              <div
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => navigate('/salling-stores')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <Leaf className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Madspild (Salling)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Netto, Føtex, Bilka i nærheden
                     </p>
                   </div>
                 </div>

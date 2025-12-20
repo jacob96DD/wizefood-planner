@@ -14,6 +14,7 @@ import Shopping from "./pages/Shopping";
 import Profile from "./pages/Profile";
 import Progress from "./pages/Progress";
 import StorePreferences from "./pages/StorePreferences";
+import SallingStores from "./pages/SallingStores";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -96,6 +97,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/stores" element={<StorePreferences />} />
+            <Route path="/salling-stores" element={<SallingStores />} />
             {/* Redirects for old routes */}
             <Route path="/home" element={<Navigate to="/meal-plan" replace />} />
             <Route path="/shopping-list" element={<Navigate to="/shopping" replace />} />

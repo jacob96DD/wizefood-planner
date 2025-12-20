@@ -67,8 +67,8 @@ serve(async (req) => {
 
     console.log('Geocoded coordinates:', { lat, lng });
 
-    // 2. Find Salling butikker i radius
-    const storesUrl = `https://api.sallinggroup.com/v2/stores?geo=${lat},${lng}&radius=${radius}&brand=netto,foetex,bilka&per_page=15`;
+    // 2. Find Salling butikker i radius - hent alle og filtrer på netto/føtex/bilka
+    const storesUrl = `https://api.sallinggroup.com/v2/stores?geo=${lat},${lng}&radius=${radius}&per_page=50`;
 
     console.log('Fetching stores from:', storesUrl);
 
@@ -78,25 +78,59 @@ serve(async (req) => {
       }
     });
 
+    console.log('Salling API response status:', storesRes.status);
+
     if (!storesRes.ok) {
       const errorText = await storesRes.text();
       console.error('Salling API error:', storesRes.status, errorText);
-      throw new Error(`Salling API error: ${storesRes.status}`);
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Salling API fejl: ${storesRes.status}. Kontakt support.`,
+        stores: [],
+        latitude: lat,
+        longitude: lng,
+        radius,
+        total: 0,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const storesData = await storesRes.json();
 
-    console.log('Found stores:', storesData.length);
+    // Check if response is an error object instead of array
+    if (!Array.isArray(storesData)) {
+      console.error('Salling API returned non-array:', storesData);
+      return new Response(JSON.stringify({
+        success: false,
+        error: storesData.error || 'Uventet svar fra Salling API',
+        stores: [],
+        latitude: lat,
+        longitude: lng,
+        radius,
+        total: 0,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Filtrer til kun netto, føtex, bilka
+    const sallingBrands = ['netto', 'foetex', 'bilka'];
+    const filteredStores = storesData.filter((store: any) =>
+      sallingBrands.includes(store.brand?.toLowerCase())
+    );
+
+    console.log('Found stores:', storesData.length, '- After filter:', filteredStores.length);
 
     // 3. Format response
-    const stores = storesData.map((store: any) => ({
+    const stores = filteredStores.map((store: any) => ({
       id: store.id,
       name: store.name,
       brand: store.brand?.toLowerCase() || 'unknown',
       address: store.address?.street || '',
       city: store.address?.city || '',
       zip: store.address?.zip || '',
-      distance: store.distance || 0,
+      distance: store.distance_km || store.distance || 0,
       coordinates: store.coordinates,
       openingHours: store.hours?.open || null,
     }));

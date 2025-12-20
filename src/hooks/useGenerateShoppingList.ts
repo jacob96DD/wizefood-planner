@@ -421,7 +421,6 @@ export function useGenerateShoppingList() {
           
           if (!matchingOffer) {
             // No offer → wait until next week
-            console.log(`Skipping basislager "${ingredientName}" - no offer available`);
             return;
           }
           

@@ -31,7 +31,6 @@ export function useBasislager() {
     setLoading(true);
     setError(null);
     
-    console.log('🔍 Checking basislager for user:', user.id);
     
     try {
       // First check if user has basislager items
@@ -47,7 +46,6 @@ export function useBasislager() {
         throw fetchError;
       }
       
-      console.log('📦 Found basislager items:', inventoryItems?.length || 0);
 
       // Get pantry staples for icons and categories
       const { data: staples, error: staplesError } = await supabase
@@ -59,7 +57,6 @@ export function useBasislager() {
         throw staplesError;
       }
       
-      console.log('🌱 Pantry staples available:', staples?.length || 0);
 
       const stapleMap = new Map(
         staples?.map(s => [s.name.toLowerCase(), { icon: s.icon, category: s.category }]) || []
@@ -68,7 +65,6 @@ export function useBasislager() {
       // If no basislager items exist, initialize them
       if (!inventoryItems || inventoryItems.length === 0) {
         if (staples && staples.length > 0) {
-          console.log('⚡ Initializing basislager with', staples.length, 'items...');
           
           const newItems = staples.map(staple => ({
             user_id: user.id,
@@ -89,7 +85,6 @@ export function useBasislager() {
             return;
           }
           
-          console.log('✅ Inserted basislager:', insertedData?.length || 0, 'items');
           
           // Use inserted data directly
           setItems((insertedData || []).map(item => {
@@ -101,7 +96,6 @@ export function useBasislager() {
             };
           }));
         } else {
-          console.log('⚠️ No pantry staples found to initialize');
           setItems([]);
         }
       } else {

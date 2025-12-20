@@ -3,10 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import type { MealRecipe, MacroTargets } from '@/components/MealOptionSwiper';
+import { type FoodwasteProduct } from '@/hooks/useFoodwaste';
 
 interface GenerateMealPlanOptions {
   duration_days?: number;
   start_date?: string;
+  selected_foodwaste?: FoodwasteProduct[];
 }
 
 export interface GenerateMealPlanResult {
@@ -31,6 +33,16 @@ export function useGenerateMealPlan() {
         body: {
           duration_days: options.duration_days || 7,
           start_date: options.start_date || new Date().toISOString().split('T')[0],
+          selected_foodwaste: options.selected_foodwaste?.map(p => ({
+            product_description: p.product_description,
+            brand: p.brand,
+            store_name: p.store_name,
+            original_price: p.original_price,
+            new_price: p.new_price,
+            percent_discount: p.percent_discount,
+            stock: p.stock,
+            stock_unit: p.stock_unit,
+          })),
         },
       });
 

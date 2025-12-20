@@ -462,10 +462,22 @@ function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation 
   };
 }
 
+interface SelectedFoodwaste {
+  product_description: string;
+  brand: string;
+  store_name: string;
+  original_price: number;
+  new_price: number;
+  percent_discount: number;
+  stock: number;
+  stock_unit: string;
+}
+
 interface MealPlanRequest {
   duration_days: number;
   start_date: string;
   custom_request?: string;
+  selected_foodwaste?: SelectedFoodwaste[];
 }
 
 interface FixedMeal {
@@ -602,7 +614,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { duration_days = 7, start_date, custom_request } = await req.json() as MealPlanRequest;
+    const { duration_days = 7, start_date, custom_request, selected_foodwaste } = await req.json() as MealPlanRequest;
     const startDate = start_date ? new Date(start_date) : new Date();
 
     // ============ FETCH ALL DATA IN PARALLEL ============
@@ -633,9 +645,9 @@ serve(async (req) => {
       // Hent meal plan swipes (AI-genererede retter)
       supabase.from('swipes').select('rating, meal_plan_recipe_title, meal_plan_key_ingredients').eq('user_id', user.id).not('meal_plan_recipe_title', 'is', null),
       // Hent brugerens Salling butikker
-      supabase.from('user_salling_stores').select('salling_store_id, store_name, brand').eq('user_id', user.id).eq('enabled', true),
-      // Hent food waste produkter (cachet)
-      supabase.from('food_waste_products').select('*').gt('valid_until', new Date().toISOString()).order('discount_percent', { ascending: false }).limit(30),
+      supabase.from('user_salling_stores').select('store_id, store_name, brand, zip').eq('user_id', user.id).eq('is_active', true),
+      // Hent foodwaste produkter fra brugerens postnumre
+      supabase.from('foodwaste').select('*').eq('is_active', true).gt('end_time', new Date().toISOString()).order('percent_discount', { ascending: false }).limit(50),
     ]);
 
     const profile = profileResult.data;
@@ -779,20 +791,22 @@ serve(async (req) => {
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + duration_days);
 
-    let offersQuery = supabase
-      .from('offers')
-      .select('id, product_name, offer_text, offer_price_dkk, original_price_dkk, valid_from, valid_until, chain_id, store_chains(name)')
-      .eq('is_active', true)
-      .lte('valid_from', endDate.toISOString().split('T')[0])
-      .gte('valid_until', startDate.toISOString().split('T')[0])
-      .order('offer_price_dkk', { ascending: true })
-      .limit(50);
+    // Hvis brugeren ikke har nogen foretrukne butikker, hent ingen tilbud
+    let offers: any[] = [];
 
     if (chainIds.length > 0) {
-      offersQuery = offersQuery.in('chain_id', chainIds);
-    }
+      const { data: offersData } = await supabase
+        .from('offers')
+        .select('id, product_name, offer_text, offer_price_dkk, original_price_dkk, valid_from, valid_until, chain_id, store_chains(name)')
+        .eq('is_active', true)
+        .in('chain_id', chainIds)
+        .lte('valid_from', endDate.toISOString().split('T')[0])
+        .gte('valid_until', startDate.toISOString().split('T')[0])
+        .order('offer_price_dkk', { ascending: true })
+        .limit(50);
 
-    const { data: offers } = await offersQuery;
+      offers = offersData || [];
+    }
 
     // 🔴 KATEGORISER PROTEIN-TILBUD FØRST (for tilbuds-baseret opskriftsgenerering)
     const proteinKeywords = ['kylling', 'okse', 'svine', 'laks', 'torsk', 'hakket', 'bøf', 'filet', 'kød', 'rejer', 'flæsk', 'bacon', 'medister'];
@@ -878,34 +892,53 @@ ${proteinOffers.slice(0, 8).map((o: any) => {
     const prioritizeBudget = dietaryGoal === 'maintain' || (weeklyBudget && weeklyBudget < 600);
 
     // ============ FOOD WASTE PRODUKTER (Salling Group) ============
-    const userSallingStores = sallingStoresResult.data || [];
-    const foodWasteProducts = foodWasteResult.data || [];
+    // Brug selected_foodwaste fra request hvis det findes, ellers hent fra database
+    let foodWasteSection = '';
 
-    // Filtrer food waste til brugerens butikker hvis de har valgt nogle
-    const relevantFoodWaste = userSallingStores.length > 0
-      ? foodWasteProducts.filter((p: any) =>
-          userSallingStores.some((s: any) => s.salling_store_id === p.salling_store_id)
-        )
-      : foodWasteProducts;
+    if (selected_foodwaste && selected_foodwaste.length > 0) {
+      // Bruger har valgt specifikke madspild produkter
+      console.log('Using selected foodwaste from request:', selected_foodwaste.length, 'products');
 
-    const foodWasteSection = relevantFoodWaste.length > 0 ? `
-🌱 MADSPILD-TILBUD (Salling Group - HØJESTE PRIORITET FOR BESPARELSER!):
-${relevantFoodWaste.slice(0, 12).map((p: any) => {
+      foodWasteSection = `
+🌱 MADSPILD-TILBUD (BRUGER HAR VALGT DISSE - BRUG DEM!):
+${selected_foodwaste.map((p) => {
   const savings = (p.original_price - p.new_price).toFixed(0);
-  const expiryDate = new Date(p.valid_until).toLocaleDateString('da-DK');
-  return `- ${p.product_name} @ ${p.store_name || p.brand}
-    FØR: ${p.original_price} kr → NU: ${p.new_price} kr (SPAR ${savings} kr / -${Math.round(p.discount_percent)}%)
-    Udløber: ${expiryDate} | Lager: ${p.stock || '?'} stk`;
+  return `- ${p.product_description} @ ${p.store_name || p.brand}
+    FØR: ${p.original_price} kr → NU: ${p.new_price} kr (SPAR ${savings} kr / -${Math.round(p.percent_discount)}%)
+    Lager: ${p.stock || '?'} ${p.stock_unit || 'stk'}`;
 }).join('\n')}
 
-⚡ MADSPILD-REGLER (UFRAVIGELIGE):
-1. BRUG MINDST 2-3 af disse madspild-varer i opskrifterne!
-2. Disse har HØJERE prioritet end normale tilbud (større besparelse + reducerer spild)
-3. Tjek udløbsdato - brug dem der udløber først
-4. Beregn besparelsen i "uses_offers" feltet
-` : '';
+⚡ MADSPILD-REGLER (UFRAVIGELIGE - BRUGEREN HAR SPECIFIKT VALGT DISSE!):
+1. BRUG ALLE disse madspild-varer i opskrifterne! Brugeren har selv valgt dem!
+2. Disse har HØJESTE prioritet - lav opskrifter der bruger disse ingredienser
+3. Beregn besparelsen i "uses_offers" feltet med "store": "Salling (madspild)"
+`;
+    } else {
+      // Fallback: Hent fra database hvis bruger ikke har valgt specifikke produkter
+      const userSallingStores = sallingStoresResult.data || [];
+      const foodWasteProducts = foodWasteResult.data || [];
 
-    console.log('Food waste products available:', relevantFoodWaste.length, 'from', userSallingStores.length, 'stores');
+      const relevantFoodWaste = userSallingStores.length > 0
+        ? foodWasteProducts.filter((p: any) =>
+            userSallingStores.some((s: any) => s.store_id === p.store_id)
+          )
+        : foodWasteProducts;
+
+      if (relevantFoodWaste.length > 0) {
+        foodWasteSection = `
+🌱 MADSPILD-TILBUD (Salling Group - kan bruges hvis relevant):
+${relevantFoodWaste.slice(0, 12).map((p: any) => {
+  const savings = (p.original_price - p.new_price).toFixed(0);
+  const expiryDate = new Date(p.end_time).toLocaleDateString('da-DK');
+  return `- ${p.product_description} @ ${p.store_name || p.brand}
+    FØR: ${p.original_price} kr → NU: ${p.new_price} kr (SPAR ${savings} kr / -${Math.round(p.percent_discount)}%)
+    Udløber: ${expiryDate} | Lager: ${p.stock || '?'} ${p.stock_unit || 'stk'}`;
+}).join('\n')}
+`;
+      }
+
+      console.log('Food waste products from database:', relevantFoodWaste.length, 'from', userSallingStores.length, 'stores');
+    }
 
     // ============ BUILD PRIORITIZED AI PROMPT ============
     const fixedMealsDescription = (prefs.fixed_meals || []).length > 0
