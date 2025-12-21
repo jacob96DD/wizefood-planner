@@ -166,7 +166,7 @@ export function FoodwasteSelector({ onSelectionChange }: FoodwasteSelectorProps)
             <div
               key={product.id}
               className={cn(
-                "p-3 flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors",
+                "p-2 flex items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors",
                 isSelected && "bg-green-50 dark:bg-green-950/20"
               )}
               onClick={() => handleToggle(product.id)}
@@ -175,47 +175,27 @@ export function FoodwasteSelector({ onSelectionChange }: FoodwasteSelectorProps)
                 checked={isSelected}
                 onCheckedChange={() => handleToggle(product.id)}
                 onClick={(e) => e.stopPropagation()}
+                className="shrink-0"
               />
 
-              {product.product_image ? (
-                <img
-                  src={product.product_image}
-                  alt={product.product_description}
-                  className="w-12 h-12 object-cover rounded"
-                />
-              ) : (
-                <div className={cn(
-                  "w-12 h-12 rounded flex items-center justify-center text-white",
-                  getBrandColor(product.brand)
-                )}>
-                  <Store className="w-6 h-6" />
-                </div>
-              )}
-
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">
+                <p className="font-medium text-xs leading-tight line-clamp-2">
                   {product.product_description}
                 </p>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                   <span className="text-xs text-muted-foreground capitalize">
                     {product.brand}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {product.stock} {product.stock_unit}
+                  <span className="text-xs font-bold text-green-600">
+                    {product.new_price} kr
                   </span>
+                  <span className="text-xs text-muted-foreground line-through">
+                    {product.original_price} kr
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-800">
+                    -{Math.round(product.percent_discount)}%
+                  </Badge>
                 </div>
-              </div>
-
-              <div className="text-right">
-                <p className="font-bold text-green-600">
-                  {product.new_price} kr
-                </p>
-                <p className="text-xs text-muted-foreground line-through">
-                  {product.original_price} kr
-                </p>
-                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
-                  -{Math.round(product.percent_discount)}%
-                </Badge>
               </div>
             </div>
           );
