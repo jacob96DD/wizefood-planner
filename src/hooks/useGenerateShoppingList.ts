@@ -467,9 +467,31 @@ export function useGenerateShoppingList() {
         };
 
         if (matchingOffer && matchingOffer.offer_price_dkk) {
-          // Reelt tilbud fundet
-          item.offerPrice = matchingOffer.offer_price_dkk;
-          item.price = matchingOffer.original_price_dkk || undefined;
+          // Reelt tilbud fundet - beregn pris baseret på antal pakker
+          // Antag pakke = 500g for kød/fisk, 1L for væsker, 1kg for grøntsager
+          const pricePerPack = matchingOffer.offer_price_dkk;
+          const originalPerPack = matchingOffer.original_price_dkk || pricePerPack;
+
+          // Beregn antal pakker baseret på mængde
+          const unit = value.unit.toLowerCase();
+          let packCount = 1;
+
+          if (unit === 'g' || unit === 'gram') {
+            packCount = Math.ceil(neededAmount / 500); // 500g pakker
+          } else if (unit === 'kg') {
+            packCount = Math.ceil(neededAmount * 2); // 500g pakker
+          } else if (unit === 'dl') {
+            packCount = Math.ceil(neededAmount / 5); // 0.5L pakker
+          } else if (unit === 'l' || unit === 'liter') {
+            packCount = Math.ceil(neededAmount); // 1L pakker
+          } else if (unit === 'ml') {
+            packCount = Math.ceil(neededAmount / 500); // 500ml pakker
+          } else {
+            packCount = Math.ceil(neededAmount);
+          }
+
+          item.offerPrice = Math.round(pricePerPack * packCount);
+          item.price = Math.round(originalPerPack * packCount);
           item.offerId = matchingOffer.id;
           item.isEstimate = false;
           // Gem butiksnavn fra JOIN

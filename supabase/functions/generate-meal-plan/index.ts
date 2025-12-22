@@ -1093,12 +1093,7 @@ VIGTIGT: Alle mængder og makroer er PER PORTION. Backend skalerer automatisk.`;
 4. Mindst 1 vegetar-venlig ret eller ret med bælgfrugter
 5. UNDGÅ disse nylige retter: ${recentMealTitles.slice(0, 10).join(', ') || 'Ingen'}
 
-🥩 INGREDIENS-MÆNGDER ER KRITISKE (for ${peopleCount} personer):
-- Protein (kød/fisk): ${120 * peopleCount}g - ${180 * peopleCount}g TOTAL
-- Pasta/ris (tør): ${80 * peopleCount}g - ${100 * peopleCount}g TOTAL
-- Kartofler: ${200 * peopleCount}g - ${300 * peopleCount}g TOTAL
-
-Husk:
+Husk (mængder er PER PORTION - backend skalerer automatisk):
 - ${recipesNeeded} retter vælges af brugeren
 - Giv ${recipesToGenerate - recipesNeeded} ekstra alternativer
 - Varier proteiner og tilberedningsmetoder
