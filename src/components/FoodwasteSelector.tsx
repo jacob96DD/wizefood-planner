@@ -112,9 +112,6 @@ export function FoodwasteSelector({ onSelectionChange }: FoodwasteSelectorProps)
     );
   }
 
-  // Vis produkter
-  const displayProducts = expanded ? products : products.slice(0, 5);
-
   return (
     <Card className="overflow-hidden border-green-200 dark:border-green-800">
       {/* Header */}
@@ -148,67 +145,63 @@ export function FoodwasteSelector({ onSelectionChange }: FoodwasteSelectorProps)
         </p>
       </div>
 
-      {/* Actions */}
-      <div className="px-4 py-2 border-b flex gap-2">
-        <Button variant="ghost" size="sm" onClick={handleSelectAll}>
-          Vælg alle
-        </Button>
-        <Button variant="ghost" size="sm" onClick={handleClearAll}>
-          Ryd valg
-        </Button>
-      </div>
+      {/* Collapsible content */}
+      {expanded && (
+        <>
+          {/* Actions */}
+          <div className="px-4 py-2 border-b flex gap-2">
+            <Button variant="ghost" size="sm" onClick={handleSelectAll}>
+              Vælg alle
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleClearAll}>
+              Ryd valg
+            </Button>
+          </div>
 
-      {/* Product list */}
-      <div className="divide-y max-h-80 overflow-y-auto">
-        {displayProducts.map((product) => {
-          const isSelected = selectedProducts.has(product.id);
-          return (
-            <div
-              key={product.id}
-              className={cn(
-                "p-2 flex items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors",
-                isSelected && "bg-green-50 dark:bg-green-950/20"
-              )}
-              onClick={() => handleToggle(product.id)}
-            >
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={() => handleToggle(product.id)}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0"
-              />
+          {/* Product list */}
+          <div className="divide-y max-h-80 overflow-y-auto">
+            {products.map((product) => {
+              const isSelected = selectedProducts.has(product.id);
+              return (
+                <div
+                  key={product.id}
+                  className={cn(
+                    "p-2 flex items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors",
+                    isSelected && "bg-green-50 dark:bg-green-950/20"
+                  )}
+                  onClick={() => handleToggle(product.id)}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => handleToggle(product.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0"
+                  />
 
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-xs leading-tight line-clamp-2">
-                  {product.product_description}
-                </p>
-                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {product.brand}
-                  </span>
-                  <span className="text-xs font-bold text-green-600">
-                    {product.new_price} kr
-                  </span>
-                  <span className="text-xs text-muted-foreground line-through">
-                    {product.original_price} kr
-                  </span>
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-800">
-                    -{Math.round(product.percent_discount)}%
-                  </Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-xs leading-tight line-clamp-2">
+                      {product.product_description}
+                    </p>
+                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                      <span className="text-xs text-muted-foreground capitalize">
+                        {product.brand}
+                      </span>
+                      <span className="text-xs font-bold text-green-600">
+                        {product.new_price} kr
+                      </span>
+                      <span className="text-xs text-muted-foreground line-through">
+                        {product.original_price} kr
+                      </span>
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-800">
+                        -{Math.round(product.percent_discount)}%
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Show more */}
-      {products.length > 5 && !expanded && (
-        <div className="p-3 text-center border-t">
-          <Button variant="ghost" size="sm" onClick={() => setExpanded(true)}>
-            Vis {products.length - 5} flere produkter
-          </Button>
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </Card>
   );
