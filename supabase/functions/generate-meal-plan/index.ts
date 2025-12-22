@@ -992,54 +992,28 @@ ${hatedDishNames.length > 0 ? `🤮 HADER (ALDRIG lignende!): ${hatedDishNames.s
       ? `DAGLIG MADLAVNING: ${recipesNeeded} forskellige retter (én ny ret hver dag)`
       : `MEAL PREP: ${recipesNeeded} retter der skal genbruges hele ugen (laves i store portioner)`;
 
-    // 🍽️ VALDEMARSRO-STIL: Danske hverdagsretter med konkrete mængder
-    const peopleCount = profile?.people_count || 1;
-    
+    // 🍽️ SIMPEL PROMPT: AI giver ALTID per-portion, backend ganger op
     const simplifiedPrompt = `
-🍽️ OPSKRIFT-REGLER:
-- Max 10-12 ingredienser
-- KONKRETE mængder
-- Trin-for-trin
+INGREDIENS-REGLER (KRITISK):
+- Alle mængder er PER PORTION (1 person)
+- Backend ganger automatisk op til antal portioner
+- Max 10-12 ingredienser per ret
 
-═══════════════════════════════════════════════════════════════
-⚠️⚠️⚠️ STOP! LÆS DETTE FØR DU SKRIVER NOGET! ⚠️⚠️⚠️
-═══════════════════════════════════════════════════════════════
+PER-PORTION MÆNGDER (brug disse som guide):
+• Kød/fisk: 120-180g
+• Pasta/ris (tør): 80-100g
+• Kartofler: 200-300g
+• Linser/bønner: 60-100g
+• Grøntsager: 100-150g
+• Ost: 25-50g
 
-DU LAVER OPSKRIFTER TIL ${peopleCount} PERSONER!
-ALLE INGREDIENS-MÆNGDER SKAL VÆRE GANGET MED ${peopleCount}!
+EKSEMPEL (korrekt per-portion):
+{"name": "kyllingebryst", "amount": "150", "unit": "g"}
+{"name": "pasta", "amount": "85", "unit": "g"}
+{"name": "fløde", "amount": "0.5", "unit": "dl"}
+{"name": "løg", "amount": "1", "unit": "stk"}
 
-🔢 BEREGNINGSMETODE (FØLG DENNE!):
-1. Tænk: "Hvor meget pr person?"
-2. Gang med ${peopleCount}
-3. Skriv resultatet i "amount"
-
-📊 EKSEMPEL FOR ${peopleCount} PERSONER:
-
-| Ingrediens | Per person | × ${peopleCount} | Amount i JSON |
-|------------|------------|--------|---------------|
-| Kylling    | 150g       | × ${peopleCount}   | "${150 * peopleCount}"        |
-| Pasta      | 80g        | × ${peopleCount}   | "${80 * peopleCount}"         |
-| Kartofler  | 250g       | × ${peopleCount}   | "${250 * peopleCount}"        |
-| Bacon      | 50g        | × ${peopleCount}   | "${50 * peopleCount}"         |
-| Løg        | 75g        | × ${peopleCount}   | "${75 * peopleCount}"         |
-
-🚫 FORKERT: {"name": "kylling", "amount": "150", "unit": "g"}
-✅ KORREKT: {"name": "kylling", "amount": "${150 * peopleCount}", "unit": "g"}
-
-📐 MINIMUM TOTALER FOR ${peopleCount} PERSONER:
-• Kød/fisk: ${120 * peopleCount}g - ${180 * peopleCount}g
-• Pasta/ris: ${80 * peopleCount}g - ${100 * peopleCount}g
-• Kartofler: ${200 * peopleCount}g - ${300 * peopleCount}g
-• Linser/bælgfrugter: ${60 * peopleCount}g - ${100 * peopleCount}g
-
-═══════════════════════════════════════════════════════════════
-FØR DU RETURNERER JSON, VERIFICER:
-□ Sum af alle gram-ingredienser > ${400 * peopleCount}g? (min ${400}g × ${peopleCount} pers)
-□ Hovedprotein > ${120 * peopleCount}g?
-□ Kulhydrat-kilde > ${80 * peopleCount}g?
-═══════════════════════════════════════════════════════════════
-
-📊 MAKROER = PER PORTION (efter at ingredienser er delt med ${peopleCount})`;
+MAKROER er også PER PORTION.`;
 
     const systemPrompt = `Du er en erfaren dansk madplanlægger inspireret af Valdemarsro.dk.
 ${customRequestSection}
@@ -1077,29 +1051,28 @@ ${formattedOffers || 'Ingen tilbud'}
       "id": "unique-id",
       "title": "Ret navn",
       "description": "Kort beskrivelse",
-      "calories": number (PER PORTION!),
-      "protein": number (PER PORTION!),
-      "carbs": number (PER PORTION!),
-      "fat": number (PER PORTION!),
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
       "prep_time": number,
       "cook_time": number,
-      "servings": ${peopleCount},
+      "servings": 1,
       "ingredients": [
-        {"name": "spaghetti", "amount": "${80 * peopleCount}", "unit": "g", "note": "TOTAL til ${peopleCount} port"},
-        {"name": "bacon", "amount": "${150 * peopleCount}", "unit": "g", "note": "TOTAL til ${peopleCount} port"},
-        {"name": "kartofler", "amount": "${250 * peopleCount}", "unit": "g", "note": "TOTAL til ${peopleCount} port"}
+        {"name": "kyllingebryst", "amount": "150", "unit": "g"},
+        {"name": "pasta", "amount": "85", "unit": "g"},
+        {"name": "fløde", "amount": "0.5", "unit": "dl"}
       ],
-      "instructions": ["Trin 1: Kog ${80 * peopleCount}g pasta", "Trin 2: Steg ${150 * peopleCount}g bacon"],
+      "instructions": ["Trin 1...", "Trin 2..."],
       "tags": ["hurtig", "høj-protein"],
-      "key_ingredients": ["hovedingrediens1", "hovedingrediens2"],
+      "key_ingredients": ["kylling", "pasta"],
       "uses_offers": [{"offer_text": "string", "store": "string", "savings": number}],
       "estimated_price": number
     }
   ]
 }
 
-⚠️ VIGTIGT: "amount" er ALTID den SAMLEDE mængde for alle ${peopleCount} portioner!
-ALDRIG per-portion mængder! Gang ALTID per-person med ${peopleCount}!`;
+VIGTIGT: Alle mængder og makroer er PER PORTION. Backend skalerer automatisk.`;
 
     // Tilføj variation
     const variation = getRandomVariation();
@@ -1196,73 +1169,60 @@ Lav retterne nu!`;
       throw new Error('Failed to parse meal plan from AI');
     }
 
-    // ============ SIMPEL AGGRESSIV KORREKTION ============
+    // ============ SKALÉR ALLE OPSKRIFTER TIL KORREKT ANTAL PORTIONER ============
+    // AI giver per-portion mængder, vi ganger op til det antal portioner brugeren har valgt
     const rawRecipes = mealPlanData.recipes || [];
-    let correctionCount = 0;
+    const targetServings = duration_days; // 7 dage = 7 portioner
 
-    const validatedRecipes = rawRecipes.map((recipe: any) => {
-      const servings = recipe.servings || 1;
+    console.log(`\n🔄 Scaling all recipes to ${targetServings} servings...`);
+
+    const scaledRecipes = rawRecipes.map((recipe: any) => {
       const ingredients = recipe.ingredients || [];
 
-      console.log(`\n🔍 Processing: "${recipe.title}" (${servings} servings)`);
+      console.log(`\n📦 Scaling: "${recipe.title}"`);
 
-      // Beregn total vægt
-      let totalGrams = 0;
-      for (const ing of ingredients) {
+      // Gang ALLE ingredienser med targetServings
+      const scaledIngredients = ingredients.map((ing: any) => {
         const amount = parseFloat(ing.amount) || 0;
         const unit = (ing.unit || '').toLowerCase();
-        if (unit === 'g' || unit === 'gram') totalGrams += amount;
-        else if (unit === 'kg') totalGrams += amount * 1000;
-        else if (unit === 'ml') totalGrams += amount;
-        else if (unit === 'dl') totalGrams += amount * 100;
-      }
 
-      const perPortion = totalGrams / servings;
-      console.log(`   Total: ${totalGrams}g, Per portion: ${Math.round(perPortion)}g`);
+        // Numeriske mængder ganges med portioner
+        if (['g', 'gram', 'kg', 'ml', 'dl', 'l'].includes(unit)) {
+          const newAmount = Math.round(amount * targetServings);
+          console.log(`   ${ing.name}: ${amount}${unit} × ${targetServings} = ${newAmount}${unit}`);
+          return { ...ing, amount: String(newAmount) };
+        }
 
-      // SIMPEL REGEL: Hvis per-portion < 300g, gang ALT med servings
-      let correctedIngredients = ingredients;
+        // Stk-baserede mængder ganges også
+        if (unit === 'stk' || unit === 'stk.' || unit === '') {
+          const newAmount = Math.ceil(amount * targetServings);
+          console.log(`   ${ing.name}: ${amount} stk × ${targetServings} = ${newAmount} stk`);
+          return { ...ing, amount: String(newAmount), unit: 'stk' };
+        }
 
-      if (perPortion < 300 && servings > 1) {
-        console.log(`   ⚠️ TOO SMALL! Multiplying all by ${servings}`);
-        correctionCount++;
+        // Fed, tsk, spsk - gang også op
+        if (['fed', 'tsk', 'spsk'].includes(unit)) {
+          const newAmount = Math.ceil(amount * targetServings);
+          console.log(`   ${ing.name}: ${amount} ${unit} × ${targetServings} = ${newAmount} ${unit}`);
+          return { ...ing, amount: String(newAmount) };
+        }
 
-        correctedIngredients = ingredients.map((ing: any) => {
-          const amount = parseFloat(ing.amount) || 0;
-          const unit = (ing.unit || '').toLowerCase();
+        return ing;
+      });
 
-          // Gang gram/ml-baserede mængder med servings
-          if (['g', 'gram', 'kg', 'ml', 'dl', 'l'].includes(unit)) {
-            const newAmount = Math.round(amount * servings);
-            console.log(`     ${ing.name}: ${amount}${unit} → ${newAmount}${unit}`);
-            return { ...ing, amount: String(newAmount) };
-          }
-
-          // Gang stk med servings hvis det er <= 3
-          if ((unit === 'stk' || unit === 'stk.' || unit === '') && amount <= 3) {
-            const newAmount = Math.ceil(amount * servings);
-            console.log(`     ${ing.name}: ${amount}stk → ${newAmount}stk`);
-            return { ...ing, amount: String(newAmount), unit: 'stk' };
-          }
-
-          return ing;
-        });
-      }
-
-      // Returner opskrift med korrigerede ingredienser
+      // Returner skaleret opskrift
       return {
         ...recipe,
-        ingredients: correctedIngredients,
+        servings: targetServings,
+        ingredients: scaledIngredients,
       };
     });
-    
-    // Log summary
-    console.log(`\n📊 Validation summary:`);
-    console.log(`   - Recipes corrected: ${correctionCount}/${validatedRecipes.length}`);
+
+    console.log(`\n✅ Scaled ${scaledRecipes.length} recipes to ${targetServings} servings each`);
 
     return new Response(JSON.stringify({
       success: true,
-      recipes: validatedRecipes,
+      recipes: scaledRecipes,
       recipes_needed: recipesNeeded,
       macro_targets: {
         calories: availableCalories,
@@ -1271,9 +1231,10 @@ Lav retterne nu!`;
         fat: baseFat,
       },
       total_estimated_savings: mealPlanData.total_estimated_savings || 0,
-      _validation_stats: {
-        total: validatedRecipes.length,
-        corrected: correctionCount,
+      _scaling_info: {
+        original_servings: 1,
+        scaled_to: targetServings,
+        recipes_count: scaledRecipes.length,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
