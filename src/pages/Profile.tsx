@@ -548,6 +548,12 @@ export default function Profile() {
           gender: data.gender,
           activityLevel: data.activityLevel,
         }}
+        realLifeData={{
+          caloriesPerWeek: realLifeCaloriesPerWeek,
+          proteinPerWeek: realLifeProtein,
+          carbsPerWeek: realLifeCarbs,
+          fatPerWeek: realLifeFat,
+        }}
         onSave={handleSaveMacros}
       />
 

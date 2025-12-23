@@ -272,50 +272,6 @@ export default function Shopping() {
                   <ShoppingBag className="w-5 h-5 mr-2" />
                   {t('shopping.goToMealPlan')}
                 </Button>
-
-                {/* Aktuelle tilbud */}
-                {activeOffers.length > 0 && (
-                  <Card className="mt-6 w-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
-                        <Store className="w-5 h-5 text-primary" />
-                        <CardTitle className="text-base">{t('shopping.currentOffers')}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {activeOffers.map((offer: Offer) => (
-                          <div
-                            key={offer.id}
-                            className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl"
-                          >
-                            <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="text-xs">
-                                {offer.chain_name}
-                              </Badge>
-                              <div>
-                                <span className="font-medium">
-                                  {offer.product_name || offer.offer_text?.split(' - ')[0] || 'Produkt'}
-                                </span>
-                                {offer.brand && (
-                                  <span className="text-sm text-muted-foreground ml-2">{offer.brand}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-bold text-primary">{offer.offer_price_dkk} {t('common.kr')}</span>
-                              {offer.original_price_dkk && (
-                                <span className="text-sm text-muted-foreground line-through ml-2">
-                                  {offer.original_price_dkk} {t('common.kr')}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </div>
             )}
           </TabsContent>

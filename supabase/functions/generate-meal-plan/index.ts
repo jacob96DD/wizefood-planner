@@ -1101,17 +1101,29 @@ Husk (mængder er PER PORTION - backend skalerer automatisk):
 
 Lav retterne nu!`;
 
-    console.log('Generating meal plan with Claude Sonnet 4:', {
+    console.log('='.repeat(80));
+    console.log('GENERATING MEAL PLAN');
+    console.log('='.repeat(80));
+    console.log('\n📋 CONFIG:', {
       cooking_style: prefs.cooking_style,
       recipesNeeded,
       recipesToGenerate,
+      duration_days,
       availableCalories,
+      availableProtein,
+    });
+    console.log('\n📊 DATA:', {
       offers: offers?.length || 0,
       inventory: inventory.length,
       allergens: allergenNames.length,
       dislikes: allDislikes.length,
       lovedIngredients: allLovedIngredients.length,
     });
+    console.log('\n🤖 SYSTEM PROMPT (first 2000 chars):');
+    console.log(systemPrompt.substring(0, 2000));
+    console.log('\n👤 USER PROMPT:');
+    console.log(userPrompt);
+    console.log('='.repeat(80));
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -1215,9 +1227,44 @@ Lav retterne nu!`;
 
     console.log(`\n✅ Scaled ${scaledRecipes.length} recipes to ${targetServings} servings each`);
 
+    // ============ VALIDER OG KORRIGER ALLE OPSKRIFTER ============
+    console.log('\n🔍 VALIDATING AND CORRECTING ALL RECIPES...');
+
+    const validatedRecipes = scaledRecipes.map((recipe: any) => {
+      // 1. Valider ingrediens-mængder
+      const ingredientValidation = validateAndCorrectIngredientAmounts(recipe);
+
+      let correctedRecipe = {
+        ...recipe,
+        ingredients: ingredientValidation.correctedIngredients,
+      };
+
+      // 2. Valider og korriger makroer baseret på ingredienser
+      const macroValidation = strictValidateAndCorrectRecipe(correctedRecipe);
+
+      if (macroValidation.corrected) {
+        console.log(`🔧 MACRO CORRECTION for "${recipe.title}":`);
+        console.log(`   Original: ${recipe.calories} kcal, ${recipe.protein}g P`);
+        console.log(`   Corrected: ${macroValidation.correctedRecipe.calories} kcal, ${macroValidation.correctedRecipe.protein}g P`);
+        correctedRecipe = macroValidation.correctedRecipe;
+      }
+
+      // 3. Sanity check: Makroer skal matche kalorier
+      const macroKcal = (correctedRecipe.protein * 4) + (correctedRecipe.carbs * 4) + (correctedRecipe.fat * 9);
+      if (Math.abs(macroKcal - correctedRecipe.calories) > 100) {
+        console.warn(`⚠️ Macro-calorie mismatch for "${recipe.title}": ${macroKcal} vs ${correctedRecipe.calories} kcal`);
+        // Juster kalorier til at matche makroer
+        correctedRecipe.calories = macroKcal;
+      }
+
+      return correctedRecipe;
+    });
+
+    console.log(`\n✅ Validated ${validatedRecipes.length} recipes`);
+
     return new Response(JSON.stringify({
       success: true,
-      recipes: scaledRecipes,
+      recipes: validatedRecipes,
       recipes_needed: recipesNeeded,
       macro_targets: {
         calories: availableCalories,

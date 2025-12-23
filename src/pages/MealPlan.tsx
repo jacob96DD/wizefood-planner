@@ -168,12 +168,14 @@ export default function MealPlan() {
         });
 
         // Auto-generer indkøbsliste baseret på valgte retter
-        const selectedMealsLegacy = {
-          breakfast: selectedMeals,
-          lunch: selectedMeals,
-          dinner: selectedMeals,
+        // VIGTIGT: Send kun retterne én gang - IKKE for alle meal types!
+        // Før sendte vi de samme retter til breakfast+lunch+dinner, hvilket tredoblet mængderne
+        const selectedMealsForShopping = {
+          breakfast: [], // Tom - vi vil ikke dobbelt-tælle
+          lunch: [], // Tom - vi vil ikke dobbelt-tælle
+          dinner: selectedMeals, // Alle valgte retter én gang
         };
-        await generateShoppingList(selectedMealsLegacy, savedPlan.id);
+        await generateShoppingList(selectedMealsForShopping, savedPlan.id);
       } else {
         toast({
           title: 'Fejl ved gemning',

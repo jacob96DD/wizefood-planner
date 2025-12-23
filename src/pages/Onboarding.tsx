@@ -263,24 +263,40 @@ export default function Onboarding() {
 
   // Get user's current location and find nearby stores
   const useMyLocation = async () => {
+    console.log('🔍 useMyLocation called');
+
     if (!navigator.geolocation) {
+      console.error('❌ Geolocation not supported');
       setLocationError('Din browser understøtter ikke lokation');
+      return;
+    }
+
+    // Check if we're on HTTPS (required for geolocation)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      console.warn('⚠️ Geolocation requires HTTPS');
+      setLocationError('Lokation kræver HTTPS. Indtast adresse manuelt.');
       return;
     }
 
     setIsGettingLocation(true);
     setLocationError(null);
 
+    console.log('📍 Requesting geolocation...');
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        console.log('✅ Got coordinates:', { latitude, longitude });
         updateData({ latitude, longitude });
 
         // Search for stores with the coordinates
         try {
+          console.log('🔄 Calling find-salling-stores...');
           const { data: responseData, error } = await supabase.functions.invoke('find-salling-stores', {
             body: { latitude, longitude, radius: 10 },
           });
+
+          console.log('📦 Response:', { responseData, error });
 
           if (error) throw error;
 
@@ -293,34 +309,42 @@ export default function Onboarding() {
               city: s.city,
               distance: s.distance,
             }));
+            console.log('✅ Found stores:', stores.length);
             setNearbySallingStores(stores);
-            setSelectedSallingStoreIds(new Set(stores.map(s => s.id)));
+            setSelectedSallingStoreIds(new Set()); // Ingen pre-selection - bruger vælger selv
             toast({
               title: '📍 ' + t('onboarding.location.found', 'Lokation fundet!'),
-              description: `${stores.length} Salling butikker i nærheden`,
+              description: `${stores.length} Salling butikker fundet - vælg dem du vil bruge`,
             });
+          } else if (!responseData.success) {
+            console.error('❌ API returned error:', responseData.error);
+            setLocationError(responseData.error || 'Kunne ikke finde butikker');
           }
         } catch (error: any) {
-          console.error('Error finding stores:', error);
+          console.error('❌ Error finding stores:', error);
           setLocationError(error.message || 'Kunne ikke finde butikker');
         } finally {
           setIsGettingLocation(false);
         }
       },
       (error) => {
+        console.error('❌ Geolocation error:', error.code, error.message);
         setIsGettingLocation(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
             setLocationError('Du afviste lokationstilladelse. Indtast adresse manuelt.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError('Lokation ikke tilgængelig. Indtast adresse manuelt.');
+            setLocationError('Lokation ikke tilgængelig. Prøv at refreshe siden eller indtast adresse.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Timeout - kunne ikke få lokation. Prøv igen eller indtast adresse.');
             break;
           default:
-            setLocationError('Kunne ikke få din lokation. Indtast adresse manuelt.');
+            setLocationError(`Lokationsfejl (${error.code}): ${error.message}. Indtast adresse manuelt.`);
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
     );
   };
 
@@ -358,8 +382,8 @@ export default function Onboarding() {
           distance: s.distance,
         }));
         setNearbySallingStores(stores);
-        // Auto-select all stores
-        setSelectedSallingStoreIds(new Set(stores.map(s => s.id)));
+        // Ingen pre-selection - bruger vælger selv
+        setSelectedSallingStoreIds(new Set());
         // Save coordinates to store
         if (responseData.latitude && responseData.longitude) {
           updateData({
@@ -369,7 +393,7 @@ export default function Onboarding() {
         }
         toast({
           title: '🛒 ' + t('onboarding.address.storesFound', 'Butikker fundet!'),
-          description: t('onboarding.address.storesFoundDesc', `Vi fandt ${stores.length} butikker i nærheden`).replace('${count}', stores.length.toString()),
+          description: `${stores.length} butikker fundet - vælg dem du vil bruge`,
         });
       } else {
         toast({

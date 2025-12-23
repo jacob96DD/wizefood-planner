@@ -55,9 +55,11 @@ export function useMealPlans() {
   const { user } = useAuthStore();
 
   useEffect(() => {
+    console.log('[useMealPlans] useEffect triggered, user:', user?.id);
     if (user) {
       fetchMealPlans();
     } else {
+      console.log('[useMealPlans] No user, setting loading=false');
       setLoading(false);
     }
   }, [user]);
@@ -65,6 +67,7 @@ export function useMealPlans() {
   const fetchMealPlans = async () => {
     if (!user) return;
 
+    console.log('[useMealPlans] fetchMealPlans starting for user:', user.id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -73,6 +76,7 @@ export function useMealPlans() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      console.log('[useMealPlans] Query result:', { data: data?.length, error });
       if (error) throw error;
 
       const formattedPlans: MealPlan[] = (data || []).map(plan => ({

@@ -242,17 +242,112 @@ const findPriceInfo = (name: string): PriceInfo | null => {
   return null;
 };
 
-// Beregn pris baseret på mængde og enhed
+// Beregn pris baseret på mængde og enhed - REALISTISKE DANSKE PRISER 2024
 const calculateIngredientPrice = (name: string, amount: number, unit: string): number => {
-  const priceInfo = findPriceInfo(name);
-  
-  if (!priceInfo) {
-    // Fallback: antag 15 kr per ingrediens
-    return 15;
+  const lowerUnit = unit.toLowerCase();
+  const lowerName = name.toLowerCase();
+
+  // ===== DIREKTE PRISBEREGNING BASERET PÅ INGREDIENS-TYPE =====
+
+  // Kød (ca. 80-120 kr/kg)
+  if (lowerName.includes('kylling') || lowerName.includes('chicken')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 1000 * 80);
+    if (lowerUnit === 'kg') return Math.ceil(amount * 80);
   }
-  
-  const amountInBase = convertToBaseUnit(amount, unit, priceInfo.unit);
-  return Math.round(priceInfo.price * amountInBase);
+  if (lowerName.includes('flæsk') || lowerName.includes('svine')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 1000 * 70);
+    if (lowerUnit === 'kg') return Math.ceil(amount * 70);
+  }
+  if (lowerName.includes('okse') || lowerName.includes('hakket')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 1000 * 100);
+    if (lowerUnit === 'kg') return Math.ceil(amount * 100);
+  }
+  if (lowerName.includes('bacon')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 200) * 25; // 200g pakker á 25 kr
+    if (lowerUnit === 'kg') return Math.ceil(amount * 125);
+  }
+
+  // Mejeriprodukter
+  if (lowerName.includes('fløde') || lowerName.includes('piskefløde')) {
+    if (lowerUnit === 'dl') return Math.ceil(amount / 5) * 15; // 0.5L á 15 kr
+    if (lowerUnit === 'l' || lowerUnit === 'liter') return Math.ceil(amount * 2) * 15;
+  }
+  if (lowerName.includes('mælk') && !lowerName.includes('kokos')) {
+    if (lowerUnit === 'dl') return Math.ceil(amount / 10) * 12; // 1L á 12 kr
+    if (lowerUnit === 'l' || lowerUnit === 'liter') return Math.ceil(amount) * 12;
+  }
+  if (lowerName.includes('kokosmælk')) {
+    if (lowerUnit === 'dl') return Math.ceil(amount / 4) * 15; // 400ml dåse á 15 kr
+  }
+  if (lowerName.includes('smør')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 250) * 25; // 250g á 25 kr
+  }
+  if (lowerName.includes('ost') || lowerName.includes('feta')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 200) * 25; // 200g á 25 kr
+  }
+  if (lowerName.includes('æg')) {
+    if (lowerUnit === 'stk') return Math.ceil(amount / 10) * 30; // 10 stk á 30 kr
+  }
+
+  // Brød og wraps - PAKKE-PRISER
+  if (lowerName.includes('tortilla') || lowerName.includes('wrap')) {
+    if (lowerUnit === 'stk') return Math.ceil(amount / 8) * 25; // 8 stk/pakke á 25 kr
+  }
+  if (lowerName.includes('rugbrød')) {
+    if (lowerUnit === 'stk' || lowerUnit === 'skiver') return Math.ceil(amount / 12) * 25; // 1 brød á 25 kr
+  }
+
+  // Grøntsager
+  if (lowerName.includes('kartof')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 1000 * 15);
+    if (lowerUnit === 'kg') return Math.ceil(amount * 15);
+  }
+  if (lowerName.includes('løg') && !lowerName.includes('hvidløg')) {
+    if (lowerUnit === 'stk') return Math.ceil(amount / 3) * 10; // Net á 10 kr
+  }
+  if (lowerName.includes('hvidløg')) {
+    if (lowerUnit === 'fed') return Math.ceil(amount / 10) * 8; // 1 hoved á 8 kr
+    if (lowerUnit === 'stk') return Math.ceil(amount) * 8;
+  }
+  if (lowerName.includes('agurk')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 400) * 10; // 1 agurk á 10 kr
+    if (lowerUnit === 'stk') return Math.ceil(amount) * 10;
+  }
+  if (lowerName.includes('rødkål')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 500) * 15; // Glas á 15 kr
+  }
+
+  // Krydderier - små faste priser (antager man har det meste)
+  if (lowerUnit === 'tsk' || lowerUnit === 'spsk') {
+    return 5; // Krydderier er billige per portion
+  }
+  if (lowerName.includes('garam') || lowerName.includes('karry') || lowerName.includes('krydderi')) {
+    return 10;
+  }
+
+  // ===== GENEREL FALLBACK =====
+  const priceInfo = findPriceInfo(name);
+  if (priceInfo) {
+    // Konverter til base-enhed og beregn
+    if (priceInfo.unit === 'kg') {
+      if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 1000 * priceInfo.price);
+      if (lowerUnit === 'kg') return Math.ceil(amount * priceInfo.price);
+    }
+    if (priceInfo.unit === 'l') {
+      if (lowerUnit === 'ml') return Math.ceil(amount / 1000 * priceInfo.price);
+      if (lowerUnit === 'dl') return Math.ceil(amount / 10 * priceInfo.price);
+      if (lowerUnit === 'l' || lowerUnit === 'liter') return Math.ceil(amount * priceInfo.price);
+    }
+    if (priceInfo.unit === 'stk') {
+      return Math.ceil(amount) * priceInfo.price;
+    }
+    if (priceInfo.unit === 'pk') {
+      return Math.ceil(amount / 4) * priceInfo.price; // Antag 4 stk per pakke som default
+    }
+  }
+
+  // Absolut fallback
+  return 15;
 };
 
 export function useGenerateShoppingList() {
@@ -468,33 +563,45 @@ export function useGenerateShoppingList() {
 
         if (matchingOffer && matchingOffer.offer_price_dkk) {
           // Reelt tilbud fundet - beregn pris baseret på antal pakker
-          // Antag pakke = 500g for kød/fisk, 1L for væsker, 1kg for grøntsager
           const pricePerPack = matchingOffer.offer_price_dkk;
           const originalPerPack = matchingOffer.original_price_dkk || pricePerPack;
 
-          // Beregn antal pakker baseret på mængde
+          // Beregn antal pakker baseret på mængde og enhed
           const unit = value.unit.toLowerCase();
           let packCount = 1;
 
           if (unit === 'g' || unit === 'gram') {
             packCount = Math.ceil(neededAmount / 500); // 500g pakker
           } else if (unit === 'kg') {
-            packCount = Math.ceil(neededAmount * 2); // 500g pakker
+            packCount = Math.ceil(neededAmount); // 1kg pakker
           } else if (unit === 'dl') {
-            packCount = Math.ceil(neededAmount / 5); // 0.5L pakker
+            packCount = Math.ceil(neededAmount / 5); // 0.5L pakker = 5dl
           } else if (unit === 'l' || unit === 'liter') {
             packCount = Math.ceil(neededAmount); // 1L pakker
           } else if (unit === 'ml') {
             packCount = Math.ceil(neededAmount / 500); // 500ml pakker
+          } else if (unit === 'stk') {
+            // For 'stk' - tjek om det er noget der sælges i pakker
+            const lowerName = ingredientName.toLowerCase();
+            if (lowerName.includes('tortilla') || lowerName.includes('wrap') || lowerName.includes('pitabrød')) {
+              packCount = Math.ceil(neededAmount / 8); // ~8 stk per pakke
+            } else if (lowerName.includes('æg')) {
+              packCount = Math.ceil(neededAmount / 10); // 10 æg per bakke
+            } else if (lowerName.includes('løg') || lowerName.includes('kartof')) {
+              packCount = Math.ceil(neededAmount / 3); // ~3 stk per net/pose
+            } else {
+              // Default: antag 1 pakke per 4 stk
+              packCount = Math.max(1, Math.ceil(neededAmount / 4));
+            }
           } else {
-            packCount = Math.ceil(neededAmount);
+            // tsk, spsk, fed osv - typisk 1 pakke
+            packCount = 1;
           }
 
           item.offerPrice = Math.round(pricePerPack * packCount);
           item.price = Math.round(originalPerPack * packCount);
           item.offerId = matchingOffer.id;
           item.isEstimate = false;
-          // Gem butiksnavn fra JOIN
           const storeChain = matchingOffer.store_chains as { name: string } | null;
           item.store = storeChain?.name || undefined;
         } else {

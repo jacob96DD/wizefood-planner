@@ -63,19 +63,24 @@ export default function SallingStores() {
   }, [user]);
 
   const findStores = async (lat: number, lng: number, radiusKm: number) => {
+    console.log('[SallingStores] findStores called:', { lat, lng, radiusKm });
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('find-salling-stores', {
         body: { latitude: lat, longitude: lng, radius: radiusKm }
       });
 
+      console.log('[SallingStores] findStores response:', { data, error });
       if (error) throw error;
 
       if (data.success && data.stores) {
+        console.log('[SallingStores] Found stores:', data.stores.length);
         setStores(data.stores);
+      } else {
+        console.warn('[SallingStores] No stores in response:', data);
       }
     } catch (error) {
-      console.error('Error finding stores:', error);
+      console.error('[SallingStores] Error finding stores:', error);
       toast.error('Kunne ikke finde butikker');
     } finally {
       setLoading(false);
@@ -83,19 +88,38 @@ export default function SallingStores() {
   };
 
   const handleUseLocation = () => {
+    console.log('[SallingStores] handleUseLocation called');
     setLocationLoading(true);
+
+    if (!navigator.geolocation) {
+      console.error('[SallingStores] Geolocation not supported');
+      toast.error('Din browser understøtter ikke geolocation');
+      setLocationLoading(false);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        console.log('[SallingStores] Got position:', latitude, longitude);
         setUserLocation({ lat: latitude, lng: longitude });
         findStores(latitude, longitude, radius);
         setLocationLoading(false);
       },
       (error) => {
-        console.error('Geolocation error:', error);
-        toast.error('Kunne ikke hente din lokation');
+        console.error('[SallingStores] Geolocation error:', error.code, error.message);
+        if (error.code === 1) {
+          toast.error('Lokationstilladelse nægtet - tillad i browserindstillinger');
+        } else if (error.code === 2) {
+          toast.error('Kunne ikke bestemme position');
+        } else if (error.code === 3) {
+          toast.error('Timeout ved hentning af lokation');
+        } else {
+          toast.error('Kunne ikke hente din lokation');
+        }
         setLocationLoading(false);
-      }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
   };
 

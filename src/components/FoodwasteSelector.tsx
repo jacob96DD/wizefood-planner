@@ -178,6 +178,22 @@ export function FoodwasteSelector({ onSelectionChange }: FoodwasteSelectorProps)
                     className="shrink-0"
                   />
 
+                  {/* Produkt billede */}
+                  {product.product_image ? (
+                    <img
+                      src={product.product_image}
+                      alt={product.product_description}
+                      className="w-12 h-12 object-cover rounded shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center shrink-0">
+                      <Leaf className="w-6 h-6 text-green-500" />
+                    </div>
+                  )}
+
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-xs leading-tight line-clamp-2">
                       {product.product_description}

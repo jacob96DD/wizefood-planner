@@ -28,6 +28,13 @@ interface ProfileData {
   activityLevel?: string | null;
 }
 
+interface RealLifeData {
+  caloriesPerWeek?: number | null;
+  proteinPerWeek?: number | null;
+  carbsPerWeek?: number | null;
+  fatPerWeek?: number | null;
+}
+
 interface EditMacrosDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,6 +42,7 @@ interface EditMacrosDialogProps {
   calculatedValues: MacroValues;
   dietaryGoal?: string;
   profileData?: ProfileData;
+  realLifeData?: RealLifeData;
   onSave: (values: MacroValues) => void;
 }
 
@@ -75,6 +83,7 @@ export function EditMacrosDialog({
   calculatedValues,
   dietaryGoal,
   profileData,
+  realLifeData,
   onSave,
 }: EditMacrosDialogProps) {
   const { t } = useTranslation();
@@ -93,7 +102,7 @@ export function EditMacrosDialog({
     // Genberegn fra profileData direkte
     if (profileData?.weightKg && profileData?.heightCm && profileData?.age) {
       const { weightKg, heightCm, age, gender, activityLevel } = profileData;
-      
+
       // Mifflin-St Jeor BMR formula (mest præcis for moderne befolkninger)
       const bmr = gender === 'male'
         ? (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5
@@ -102,11 +111,15 @@ export function EditMacrosDialog({
       const activity = activityMultipliers[activityLevel || 'moderate'];
       const tdee = bmr * activity.multiplier;
 
-      let calories = Math.round(tdee);
-      if (dietaryGoal === 'lose') calories -= 500;
-      if (dietaryGoal === 'gain') calories += 500;
+      let adjustedCalories = Math.round(tdee);
+      if (dietaryGoal === 'lose') adjustedCalories -= 500;
+      if (dietaryGoal === 'gain') adjustedCalories += 500;
 
-      // Makro-fordeling baseret på mål
+      // Fratræk real-life kalorier
+      const realLifeCaloriesPerDay = Math.round((realLifeData?.caloriesPerWeek || 0) / 7);
+      const calories = adjustedCalories - realLifeCaloriesPerDay;
+
+      // Makro-fordeling baseret på mål (beregnet fra FINALE kalorier)
       let proteinRatio = 0.25;
       let carbsRatio = 0.45;
       let fatRatio = 0.30;
@@ -157,7 +170,24 @@ export function EditMacrosDialog({
   const hasMacroOverflow = totalMacroCalories > values.calories;
   const isCaloriesTooLow = values.calories < practicalMinCalories;
   const needsProteinPowder = values.protein >= 100 && values.calories < 800;
-  
+
+  // NYE VALIDERINGS-CHECKS for ekstreme værdier
+  const weightKg = profileData?.weightKg || 70;
+  const proteinPerKg = values.protein / weightKg;
+  const recommendedProtein = Math.round(weightKg * 2.0); // Max anbefalet for muskelvækst
+  const hasExcessiveProtein = proteinPerKg > 2.2; // Over 2.2g/kg er for meget
+  const proteinExcessPercent = hasExcessiveProtein ? Math.round((values.protein - recommendedProtein) / recommendedProtein * 100) : 0;
+
+  const fatPercent = values.calories > 0 ? (caloriesFromFat / values.calories) * 100 : 0;
+  const fatPerKg = values.fat / weightKg;
+  const minFatPerKg = 0.7; // Minimum 0.7g fedt per kg for hormon-produktion
+  const minFatPercent = 20; // Minimum 20% af kalorier
+  const hasDangerouslyLowFat = fatPercent < minFatPercent || fatPerKg < minFatPerKg;
+  const recommendedFat = Math.max(
+    Math.round(values.calories * 0.25 / 9), // 25% af kalorier
+    Math.round(weightKg * 0.8) // 0.8g per kg
+  );
+
   const isValid = !hasProteinCalorieConflict && !hasCarbsCalorieConflict && !hasFatCalorieConflict && values.calories >= 800;
 
   // Calculate BMR and TDEE for display using Mifflin-St Jeor
@@ -167,7 +197,7 @@ export function EditMacrosDialog({
     }
 
     const { weightKg, heightCm, age, gender, activityLevel } = profileData;
-    
+
     // Mifflin-St Jeor BMR formula (mest præcis for moderne befolkninger)
     const bmr = gender === 'male'
       ? Math.round((10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5)
@@ -176,21 +206,29 @@ export function EditMacrosDialog({
     const activity = activityMultipliers[activityLevel || 'moderate'];
     const tdee = Math.round(bmr * activity.multiplier);
 
-    let finalCalories = tdee;
+    let adjustedCalories = tdee;
     let adjustment = 0;
     if (dietaryGoal === 'lose') {
       adjustment = -500;
-      finalCalories = tdee - 500;
+      adjustedCalories = tdee - 500;
     } else if (dietaryGoal === 'gain') {
       adjustment = 500;
-      finalCalories = tdee + 500;
+      adjustedCalories = tdee + 500;
     }
+
+    // Real-life fradrag
+    const realLifeCaloriesPerDay = Math.round((realLifeData?.caloriesPerWeek || 0) / 7);
+    const realLifeProteinPerDay = Math.round((realLifeData?.proteinPerWeek || 0) / 7);
+    const finalCalories = adjustedCalories - realLifeCaloriesPerDay;
 
     return {
       bmr,
       tdee,
+      adjustedCalories,
       finalCalories,
       adjustment,
+      realLifeCaloriesPerDay,
+      realLifeProteinPerDay,
       activityName: activity.name,
       activityMultiplier: activity.multiplier,
       weightKg,
@@ -363,8 +401,40 @@ export function EditMacrosDialog({
               <AlertDescription>
                 <strong>Tip: Overvej proteinpulver</strong>
                 <br />
-                Med {values.protein}g protein og kun {values.calories} kcal, kan proteinpulver 
+                Med {values.protein}g protein og kun {values.calories} kcal, kan proteinpulver
                 hjælpe (~25g protein per 100 kcal).
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {hasExcessiveProtein && (
+            <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800 dark:text-orange-200">
+                <strong>Protein for højt!</strong>
+                <br />
+                {values.protein}g protein = {proteinPerKg.toFixed(1)}g/kg kropsvægt ({proteinExcessPercent}% over anbefalet).
+                <br />
+                <span className="text-sm">
+                  Anbefalet for muskelvækst: {recommendedProtein}g/dag (2.0g/kg).
+                  Overskydende protein giver ingen ekstra fordele og kan belaste nyrerne.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {hasDangerouslyLowFat && (
+            <Alert className="border-red-500 bg-red-50 dark:bg-red-950/20">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800 dark:text-red-200">
+                <strong>Fedt farligt lavt!</strong>
+                <br />
+                {values.fat}g fedt = {fatPerKg.toFixed(1)}g/kg ({fatPercent.toFixed(0)}% af kalorier).
+                <br />
+                <span className="text-sm">
+                  Minimum anbefalet: {recommendedFat}g/dag.
+                  For lavt fedt påvirker hormonproduktion (testosteron) og vitaminoptagelse (A, D, E, K).
+                </span>
               </AlertDescription>
             </Alert>
           )}
@@ -401,19 +471,27 @@ export function EditMacrosDialog({
                 </p>
                 {dietaryGoal === 'lose' && (
                   <p className="mt-2">
-                    {details.tdee} − 500 kcal (vægttab) = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
+                    {details.tdee} − 500 kcal (vægttab) = {details.adjustedCalories} kcal
                   </p>
                 )}
                 {dietaryGoal === 'gain' && (
                   <p className="mt-2">
-                    {details.tdee} + 500 kcal (vægtøgning) = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
+                    {details.tdee} + 500 kcal (vægtøgning) = {details.adjustedCalories} kcal
                   </p>
                 )}
                 {(!dietaryGoal || dietaryGoal === 'maintain') && (
                   <p className="mt-2">
-                    = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span>
+                    = {details.adjustedCalories} kcal
                   </p>
                 )}
+                {details.realLifeCaloriesPerDay > 0 && (
+                  <p className="mt-1 text-orange-600 dark:text-orange-400">
+                    − {details.realLifeCaloriesPerDay} kcal (real-life fradrag)
+                  </p>
+                )}
+                <p className="mt-1 pt-1 border-t border-border/50">
+                  = <span className="text-primary font-bold">{details.finalCalories} kcal/dag</span> (mål for madplan)
+                </p>
               </div>
               <div className="pt-2 border-t border-border/50">
                 <p className="font-medium text-foreground">Makro-fordeling ({goalNames[dietaryGoal || 'maintain']}):</p>
