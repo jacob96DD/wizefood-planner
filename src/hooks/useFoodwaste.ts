@@ -35,9 +35,33 @@ export function useFoodwaste() {
   const [error, setError] = useState<string | null>(null);
 
   // Hent brugerens Salling butikker og deres foodwaste
+  // Refetch hver gang hooken mountes (f.eks. når dialog åbnes eller man kommer tilbage fra butiks-valg)
   useEffect(() => {
     if (!user) return;
     fetchFoodwaste();
+  }, [user]);
+
+  // Auto-refetch når siden bliver synlig igen (f.eks. efter navigation tilbage)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        fetchFoodwaste();
+      }
+    };
+
+    const handleFocus = () => {
+      if (user) {
+        fetchFoodwaste();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [user]);
 
   const fetchFoodwaste = async () => {

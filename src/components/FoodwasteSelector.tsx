@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, ChevronDown, ChevronUp, Store, Loader2, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -23,8 +23,14 @@ export function FoodwasteSelector({ onSelectionChange }: FoodwasteSelectorProps)
     selectAll,
     clearAll,
     getSelectedProducts,
-    hasStores
+    hasStores,
+    refetch
   } = useFoodwaste();
+
+  // Auto-refetch når komponenten mounter (f.eks. når dialog åbnes)
+  useEffect(() => {
+    refetch();
+  }, []);
 
   const [expanded, setExpanded] = useState(false);
 

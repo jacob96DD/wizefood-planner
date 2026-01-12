@@ -1,14 +1,39 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChefHat, Sparkles, TrendingDown, Clock, Leaf, MapPin, ArrowRight } from 'lucide-react';
+import { ChefHat, Sparkles, TrendingDown, Clock, Leaf, MapPin, ArrowRight, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Landing() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { user, isOnboarded } = useAuthStore();
+  const { user, isOnboarded, isLoading } = useAuthStore();
+
+  // Auto-redirect logged in users to dashboard
+  useEffect(() => {
+    if (!isLoading && user && isOnboarded) {
+      navigate('/meal-plan', { replace: true });
+    }
+  }, [user, isOnboarded, isLoading, navigate]);
+
+  // Show loading while checking auth to prevent flash
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center shadow-glow animate-pulse">
+          <ChefHat className="w-8 h-8 text-primary-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  // Don't show landing if user will be redirected
+  if (user && isOnboarded) {
+    return null;
+  }
 
   const features = [
     {
@@ -58,6 +83,11 @@ export default function Landing() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -83,9 +113,9 @@ export default function Landing() {
             {t('landing.subtitle')}
           </p>
 
-          {/* CTA Button */}
-          <div 
-            className="animate-slide-up"
+          {/* CTA Buttons */}
+          <div
+            className="animate-slide-up flex flex-col sm:flex-row items-center justify-center gap-4"
             style={{ animationDelay: '0.2s' }}
           >
             <Button
@@ -94,10 +124,39 @@ export default function Landing() {
               onClick={handleGetStarted}
               className="group"
             >
-              <span>{t('landing.getStarted')}</span>
+              <span>{user ? (isOnboarded ? t('mealPlan.title', 'Madplan') : t('onboarding.continue', 'Fortsæt')) : t('landing.getStarted')}</span>
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </Button>
+
+            {user ? (
+              <Button
+                variant="outline"
+                size="xl"
+                onClick={handleLogout}
+                className="group"
+              >
+                <LogOut className="w-5 h-5 mr-2" />
+                <span>{t('auth.logout', 'Log ud')}</span>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="xl"
+                onClick={() => navigate('/auth')}
+                className="group"
+              >
+                <LogIn className="w-5 h-5 mr-2" />
+                <span>{t('auth.login', 'Log ind')}</span>
+              </Button>
+            )}
           </div>
+
+          {/* Show logged in status */}
+          {user && (
+            <p className="mt-4 text-sm text-muted-foreground animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              {t('auth.loggedInAs', 'Logget ind som')} <span className="font-medium">{user.email}</span>
+            </p>
+          )}
         </div>
       </section>
 

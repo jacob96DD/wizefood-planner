@@ -990,6 +990,111 @@ export type Database = {
         }
         Relationships: []
       }
+      user_salling_stores: {
+        Row: {
+          id: string
+          user_id: string
+          store_id: string
+          store_name: string
+          brand: string
+          address: string | null
+          city: string | null
+          zip: string
+          latitude: number | null
+          longitude: number | null
+          radius_km: number | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          store_id: string
+          store_name: string
+          brand: string
+          address?: string | null
+          city?: string | null
+          zip: string
+          latitude?: number | null
+          longitude?: number | null
+          radius_km?: number | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          store_id?: string
+          store_name?: string
+          brand?: string
+          address?: string | null
+          city?: string | null
+          zip?: string
+          latitude?: number | null
+          longitude?: number | null
+          radius_km?: number | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      foodwaste: {
+        Row: {
+          id: string
+          store_id: string
+          store_name: string
+          brand: string
+          zip: string
+          ean: string
+          product_description: string
+          product_image: string | null
+          original_price: number
+          new_price: number
+          percent_discount: number
+          stock: number
+          stock_unit: string
+          end_time: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          store_name: string
+          brand: string
+          zip: string
+          ean: string
+          product_description: string
+          product_image?: string | null
+          original_price: number
+          new_price: number
+          percent_discount: number
+          stock: number
+          stock_unit: string
+          end_time: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          store_name?: string
+          brand?: string
+          zip?: string
+          ean?: string
+          product_description?: string
+          product_image?: string | null
+          original_price?: number
+          new_price?: number
+          percent_discount?: number
+          stock?: number
+          stock_unit?: string
+          end_time?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
