@@ -28,6 +28,9 @@ const PRICES_PER_UNIT: Record<string, PriceInfo> = {
   'kyllingebryst': { price: 90, unit: 'kg' },
   'kyllingelår': { price: 60, unit: 'kg' },
   'hel kylling': { price: 50, unit: 'kg' },
+  'kalkun': { price: 100, unit: 'kg' },
+  'kalkunbryst': { price: 110, unit: 'kg' },
+  'kalkunfilet': { price: 110, unit: 'kg' },
   'svinekød': { price: 70, unit: 'kg' },
   'hakket svinekød': { price: 60, unit: 'kg' },
   'nakkefilet': { price: 80, unit: 'kg' },
@@ -157,6 +160,15 @@ const PRICES_PER_UNIT: Record<string, PriceInfo> = {
   'ketchup': { price: 30, unit: 'l' },
   'sennep': { price: 25, unit: 'l' },
   'honning': { price: 80, unit: 'kg' },
+
+  // Friske krydderurter
+  'dild': { price: 15, unit: 'pk' },
+  'persille': { price: 15, unit: 'pk' },
+  'koriander': { price: 15, unit: 'pk' },
+  'mynte': { price: 15, unit: 'pk' },
+  'basilikum': { price: 20, unit: 'pk' },
+  'rosmarin': { price: 15, unit: 'pk' },
+  'timian': { price: 15, unit: 'pk' },
 };
 
 // Konverter mængde til base-enhed (kg, l, stk, pk)
@@ -266,6 +278,10 @@ const calculateIngredientPrice = (name: string, amount: number, unit: string): n
     if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 200) * 25; // 200g pakker á 25 kr
     if (lowerUnit === 'kg') return Math.ceil(amount * 125);
   }
+  if (lowerName.includes('kalkun')) {
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 1000 * 110);
+    if (lowerUnit === 'kg') return Math.ceil(amount * 110);
+  }
 
   // Mejeriprodukter
   if (lowerName.includes('fløde') || lowerName.includes('piskefløde')) {
@@ -292,6 +308,8 @@ const calculateIngredientPrice = (name: string, amount: number, unit: string): n
   // Brød og wraps - PAKKE-PRISER
   if (lowerName.includes('tortilla') || lowerName.includes('wrap')) {
     if (lowerUnit === 'stk') return Math.ceil(amount / 8) * 25; // 8 stk/pakke á 25 kr
+    // Gram: en tortilla vejer ca. 50g, pakke med 8 stk = 400g
+    if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 400) * 25;
   }
   if (lowerName.includes('rugbrød')) {
     if (lowerUnit === 'stk' || lowerUnit === 'skiver') return Math.ceil(amount / 12) * 25; // 1 brød á 25 kr
@@ -317,6 +335,30 @@ const calculateIngredientPrice = (name: string, amount: number, unit: string): n
     if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 500) * 15; // Glas á 15 kr
   }
 
+  // Friske krydderurter - sælges per bundt
+  if (lowerName.includes('dild') || lowerName.includes('persille') ||
+      lowerName.includes('koriander') || lowerName.includes('mynte') ||
+      lowerName.includes('basilikum') || lowerName.includes('rosmarin') ||
+      lowerName.includes('timian')) {
+    return 15; // 1 bundt á 15 kr
+  }
+
+  // Bouillon - typisk terninger eller glas
+  if (lowerName.includes('bouillon')) {
+    if (lowerUnit === 'dl') return Math.ceil(amount / 10) * 20; // 1L bouillon = 20 kr
+    if (lowerUnit === 'l' || lowerUnit === 'liter') return Math.ceil(amount) * 20;
+    if (lowerUnit === 'stk' || lowerUnit === 'terning') return Math.ceil(amount / 12) * 15; // 12 terninger á 15 kr
+    return 20; // Default 1 pakke
+  }
+
+  // Olie - flasker
+  if (lowerName.includes('olie')) {
+    if (lowerUnit === 'spsk') return Math.ceil(amount / 30) * 30; // ~30 spsk per flaske
+    if (lowerUnit === 'dl') return Math.ceil(amount / 5) * 30; // 0.5L flaske
+    if (lowerUnit === 'l' || lowerUnit === 'liter') return Math.ceil(amount) * 50;
+    return 30; // Default 1 flaske
+  }
+
   // Krydderier - små faste priser (antager man har det meste)
   if (lowerUnit === 'tsk' || lowerUnit === 'spsk') {
     return 5; // Krydderier er billige per portion
@@ -339,14 +381,36 @@ const calculateIngredientPrice = (name: string, amount: number, unit: string): n
       if (lowerUnit === 'l' || lowerUnit === 'liter') return Math.ceil(amount * priceInfo.price);
     }
     if (priceInfo.unit === 'stk') {
-      return Math.ceil(amount) * priceInfo.price;
+      if (lowerUnit === 'stk' || lowerUnit === '') return Math.ceil(amount) * priceInfo.price;
+      // Hvis gram, antag 1 stk = 100g
+      if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 100) * priceInfo.price;
     }
     if (priceInfo.unit === 'pk') {
-      return Math.ceil(amount / 4) * priceInfo.price; // Antag 4 stk per pakke som default
+      // Pakke-priser: konverter baseret på enhed
+      if (lowerUnit === 'stk') return Math.ceil(amount / 8) * priceInfo.price; // 8 stk per pakke
+      if (lowerUnit === 'g' || lowerUnit === 'gram') return Math.ceil(amount / 400) * priceInfo.price; // 400g per pakke
+      if (lowerUnit === 'ml') return Math.ceil(amount / 400) * priceInfo.price; // 400ml per pakke
+      if (lowerUnit === 'dl') return Math.ceil(amount / 4) * priceInfo.price; // 4dl = 400ml
+      return Math.max(1, Math.ceil(amount)) * priceInfo.price; // Fallback: 1 pakke
     }
   }
 
-  // Absolut fallback
+  // Absolut fallback - beregn en rimelig pris baseret på mængde
+  if (lowerUnit === 'g' || lowerUnit === 'gram') {
+    // Ca. 50 kr/kg for ukendte ingredienser
+    return Math.max(10, Math.ceil(amount / 1000 * 50));
+  }
+  if (lowerUnit === 'kg') {
+    return Math.max(15, Math.ceil(amount * 50));
+  }
+  if (lowerUnit === 'dl') {
+    return Math.max(5, Math.ceil(amount / 10 * 30)); // Ca. 30 kr/L
+  }
+  if (lowerUnit === 'l' || lowerUnit === 'liter') {
+    return Math.max(10, Math.ceil(amount * 30));
+  }
+
+  // Absolut fallback for stk/spsk/tsk
   return 15;
 };
 
@@ -484,13 +548,12 @@ export function useGenerateShoppingList() {
       // 4. Build shopping list items with smart basislager handling
       const shoppingItems: ShoppingListItem[] = [];
 
-      // Common basislager keywords to detect
+      // Basislager: KUN små krydderier der bruges i minimale mængder
+      // IKKE olie, bouillon, smør - de bruges i større mængder og skal med på listen!
       const basislagerKeywords = [
-        'salt', 'peber', 'olie', 'olivenolie', 'rapsolie', 'smør', 'margarine',
-        'mel', 'hvedemel', 'sukker', 'eddike', 'sojasauce', 'bouillon',
-        'hønsebouillon', 'oksebouillon', 'karry', 'paprika', 'oregano',
-        'timian', 'basilikum', 'persille', 'kanel', 'muskatnød', 'ingefær',
-        'hvidløgspulver', 'løgpulver', 'spidskommen', 'gurkemeje', 'chiliflager'
+        'salt', 'peber', 'karry', 'paprika', 'oregano', 'timian',
+        'kanel', 'muskatnød', 'hvidløgspulver', 'løgpulver',
+        'spidskommen', 'gurkemeje', 'chiliflager', 'vaniljesukker'
       ];
       
       const isBasislagerIngredient = (name: string): boolean => {
@@ -565,38 +628,54 @@ export function useGenerateShoppingList() {
           // Reelt tilbud fundet - beregn pris baseret på antal pakker
           const pricePerPack = matchingOffer.offer_price_dkk;
           const originalPerPack = matchingOffer.original_price_dkk || pricePerPack;
+          const lowerName = ingredientName.toLowerCase();
 
-          // Beregn antal pakker baseret på mængde og enhed
+          // Beregn antal pakker baseret på mængde, enhed OG produkt-type
           const unit = value.unit.toLowerCase();
           let packCount = 1;
+          let packSizeGrams = 400; // Default pakke-størrelse
+
+          // Bestem pakke-størrelse baseret på produkt-type
+          if (lowerName.includes('kødpølse') || lowerName.includes('pølse') || lowerName.includes('medister')) {
+            packSizeGrams = 350; // Pølser sælges typisk i 300-400g pakker
+          } else if (lowerName.includes('bacon')) {
+            packSizeGrams = 200;
+          } else if (lowerName.includes('kylling') || lowerName.includes('kalkun')) {
+            packSizeGrams = 500; // Kyllingebryst i 400-600g pakker
+          } else if (lowerName.includes('hakket') || lowerName.includes('oksekød')) {
+            packSizeGrams = 500;
+          } else if (lowerName.includes('ost') || lowerName.includes('feta')) {
+            packSizeGrams = 200;
+          } else if (lowerName.includes('rejer')) {
+            packSizeGrams = 200; // Rejer i 150-250g pakker
+          }
 
           if (unit === 'g' || unit === 'gram') {
-            packCount = Math.ceil(neededAmount / 500); // 500g pakker
+            packCount = Math.ceil(neededAmount / packSizeGrams);
           } else if (unit === 'kg') {
-            packCount = Math.ceil(neededAmount); // 1kg pakker
+            packCount = Math.ceil(neededAmount * 1000 / packSizeGrams);
           } else if (unit === 'dl') {
-            packCount = Math.ceil(neededAmount / 5); // 0.5L pakker = 5dl
+            packCount = Math.ceil(neededAmount / 4); // 4dl = 400ml pakke
           } else if (unit === 'l' || unit === 'liter') {
             packCount = Math.ceil(neededAmount); // 1L pakker
           } else if (unit === 'ml') {
-            packCount = Math.ceil(neededAmount / 500); // 500ml pakker
+            packCount = Math.ceil(neededAmount / 400);
           } else if (unit === 'stk') {
-            // For 'stk' - tjek om det er noget der sælges i pakker
-            const lowerName = ingredientName.toLowerCase();
             if (lowerName.includes('tortilla') || lowerName.includes('wrap') || lowerName.includes('pitabrød')) {
-              packCount = Math.ceil(neededAmount / 8); // ~8 stk per pakke
+              packCount = Math.ceil(neededAmount / 8);
             } else if (lowerName.includes('æg')) {
-              packCount = Math.ceil(neededAmount / 10); // 10 æg per bakke
+              packCount = Math.ceil(neededAmount / 10);
             } else if (lowerName.includes('løg') || lowerName.includes('kartof')) {
-              packCount = Math.ceil(neededAmount / 3); // ~3 stk per net/pose
+              packCount = Math.ceil(neededAmount / 3);
             } else {
-              // Default: antag 1 pakke per 4 stk
               packCount = Math.max(1, Math.ceil(neededAmount / 4));
             }
           } else {
-            // tsk, spsk, fed osv - typisk 1 pakke
             packCount = 1;
           }
+
+          // Sørg for minimum 1 pakke
+          packCount = Math.max(1, packCount);
 
           item.offerPrice = Math.round(pricePerPack * packCount);
           item.price = Math.round(originalPerPack * packCount);

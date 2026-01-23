@@ -629,8 +629,6 @@ serve(async (req) => {
       recentMealsResult,
       discoverSwipesResult,
       mealPlanSwipesResult,
-      sallingStoresResult,
-      foodWasteResult,
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('meal_plan_preferences').select('*').eq('user_id', user.id).maybeSingle(),
@@ -644,10 +642,7 @@ serve(async (req) => {
       supabase.from('swipes').select('discover_recipe_id, direction, rating, discover_recipes(title, key_ingredients)').eq('user_id', user.id).not('discover_recipe_id', 'is', null),
       // Hent meal plan swipes (AI-genererede retter)
       supabase.from('swipes').select('rating, meal_plan_recipe_title, meal_plan_key_ingredients').eq('user_id', user.id).not('meal_plan_recipe_title', 'is', null),
-      // Hent brugerens Salling butikker
-      supabase.from('user_salling_stores').select('store_id, store_name, brand, zip').eq('user_id', user.id).eq('is_active', true),
-      // Hent foodwaste produkter fra brugerens postnumre
-      supabase.from('foodwaste').select('*').eq('is_active', true).gt('end_time', new Date().toISOString()).order('percent_discount', { ascending: false }).limit(50),
+      // NOTE: Foodwaste hentes KUN når bruger eksplicit vælger dem (sendes med i request)
     ]);
 
     const profile = profileResult.data;
@@ -809,36 +804,77 @@ serve(async (req) => {
     }
 
     // 🔴 KATEGORISER PROTEIN-TILBUD FØRST (for tilbuds-baseret opskriftsgenerering)
-    const proteinKeywords = ['kylling', 'okse', 'svine', 'laks', 'torsk', 'hakket', 'bøf', 'filet', 'kød', 'rejer', 'flæsk', 'bacon', 'medister'];
+    // Protein keywords - KUN rigtige proteinkilder
+    const proteinKeywords = ['kylling', 'okse', 'svine', 'laks', 'torsk', 'hakket', 'bøf', 'filet', 'rejer', 'flæsk', 'bacon', 'medister', 'fisk', 'oksekød', 'svinekød', 'kalkun', 'and', 'lam', 'skinke', 'pølse', 'frikadelle', 'karbonade', 'schnitzel', 'mørbrad', 'tun', 'makrel'];
+    // Ekskluder grøntsager der fejlagtigt matcher (f.eks. "grønkål" matcher "kål" men er ikke protein)
+    const excludeKeywords = ['kål', 'rosenkål', 'grønkål', 'hvidkål', 'rødkål', 'blomkål', 'spidskål', 'savoykål', 'grøntsag', 'frugt', 'vand', 'sodavand', 'juice', 'øl', 'vin', 'snack', 'chips', 'kiks', 'brød', 'mel', 'sukker', 'slik', 'chokolade', 'is', 'yoghurt', 'mælk', 'ost'];
+
     const proteinOffers = (offers || []).filter((o: any) => {
       const text = ((o.offer_text || '') + ' ' + (o.product_name || '')).toLowerCase();
-      return proteinKeywords.some(kw => text.includes(kw));
+      // Tjek at det matcher protein OG IKKE matcher exclude-list
+      const hasProtein = proteinKeywords.some(kw => text.includes(kw));
+      const isExcluded = excludeKeywords.some(kw => text.includes(kw));
+      return hasProtein && !isExcluded;
     });
 
+    // 📊 TABEL-FORMAT for protein-tilbud (mere kompakt og læsbart)
     const proteinOffersSection = proteinOffers.length > 0 ? `
-🔴 PROTEIN PÅ TILBUD DENNE UGE (BYGG OPSKRIFTER RUNDT OM DISSE!):
-${proteinOffers.slice(0, 8).map((o: any) => {
-  const savings = o.original_price_dkk && o.offer_price_dkk 
-    ? `(spar ${(o.original_price_dkk - o.offer_price_dkk).toFixed(0)} kr)` 
-    : '';
-  const storeName = o.store_chains?.name || 'Ukendt butik';
-  return `- ${o.offer_text || o.product_name}: ${o.offer_price_dkk} kr ${savings} @ ${storeName}`;
+🥩 PROTEIN PÅ TILBUD (byg opskrifter rundt om disse!):
+┌─────────────────────────────────────────────────────────────┐
+${proteinOffers.slice(0, 6).map((o: any) => {
+  const name = (o.offer_text || o.product_name || '').substring(0, 35).padEnd(35);
+  const price = `${o.offer_price_dkk} kr`.padStart(8);
+  const savings = o.original_price_dkk && o.offer_price_dkk
+    ? `-${(o.original_price_dkk - o.offer_price_dkk).toFixed(0)}kr`.padStart(6)
+    : ''.padStart(6);
+  const store = (o.store_chains?.name || '').substring(0, 12);
+  return `│ ${name} │${price}${savings} │ ${store}`;
 }).join('\n')}
-
-⚡ DIN OPGAVE:
-1. Vælg 2-3 af disse protein-tilbud som BASE for opskrifterne
-2. Design opskrifter der BRUGER tilbuds-protein som hovedingrediens
-3. Justér portion-størrelse for at ramme protein-target (${availableProtein}g/dag)
-4. Beregn besparelser baseret på tilbudspris vs. normalpris
+└─────────────────────────────────────────────────────────────┘
 ` : '';
 
-    const formattedOffers = (offers || []).slice(0, 20).map((offer: any) => {
-      const savings = offer.original_price_dkk && offer.offer_price_dkk 
-        ? `(spar ${(offer.original_price_dkk - offer.offer_price_dkk).toFixed(0)} kr)` 
-        : '';
-      const storeName = offer.store_chains?.name || 'Ukendt butik';
-      return `- ${offer.offer_text || offer.product_name}: ${offer.offer_price_dkk} kr ${savings} @ ${storeName}`;
-    }).join('\n');
+    // 📊 KOMPAKT TILBUDS-FORMAT (kategoriseret)
+    const categorizeOffer = (text: string): string => {
+      const t = text.toLowerCase();
+      if (proteinKeywords.some(kw => t.includes(kw)) && !excludeKeywords.some(kw => t.includes(kw))) return 'protein';
+      if (['pasta', 'ris', 'nudler', 'kartof', 'brød', 'mel'].some(kw => t.includes(kw))) return 'kulhydrat';
+      if (['tomat', 'gulerod', 'løg', 'peber', 'squash', 'salat', 'agurk', 'spinat', 'broccoli'].some(kw => t.includes(kw))) return 'grøntsag';
+      if (['æble', 'banan', 'appelsin', 'bær', 'frugt'].some(kw => t.includes(kw))) return 'frugt';
+      if (['mælk', 'ost', 'yoghurt', 'smør', 'fløde'].some(kw => t.includes(kw))) return 'mejeri';
+      return 'andet';
+    };
+
+    // Filtrer tilbud til kun mad-relevante (ekskluder sodavand, snacks, non-food)
+    const foodOffers = (offers || []).filter((o: any) => {
+      const text = ((o.offer_text || '') + ' ' + (o.product_name || '')).toLowerCase();
+      const nonFoodKeywords = ['sodavand', 'cola', 'øl', 'vin', 'spiritus', 'vand', 'juice', 'kaffe', 'te', 'slik', 'chips', 'snack', 'kiks', 'is', 'vanter', 'handsker', 'strømper', 'tøj', 'rengøring', 'shampoo', 'sæbe', 'papir', 'batteri', 'pære', 'stearinlys'];
+      return !nonFoodKeywords.some(kw => text.includes(kw));
+    });
+
+    // Gruppér tilbud efter kategori
+    const offersByCategory: Record<string, any[]> = {};
+    foodOffers.slice(0, 25).forEach((o: any) => {
+      const cat = categorizeOffer((o.offer_text || '') + ' ' + (o.product_name || ''));
+      if (!offersByCategory[cat]) offersByCategory[cat] = [];
+      if (offersByCategory[cat].length < 5) offersByCategory[cat].push(o);
+    });
+
+    const categoryEmojis: Record<string, string> = { protein: '🥩', kulhydrat: '🍝', grøntsag: '🥬', frugt: '🍎', mejeri: '🧀', andet: '📦' };
+    const categoryNames: Record<string, string> = { protein: 'Protein', kulhydrat: 'Kulhydrater', grøntsag: 'Grøntsager', frugt: 'Frugt', mejeri: 'Mejeri', andet: 'Andet' };
+
+    const formattedOffers = Object.entries(offersByCategory)
+      .filter(([_, items]) => items.length > 0)
+      .map(([cat, items]) => {
+        const emoji = categoryEmojis[cat] || '📦';
+        const name = categoryNames[cat] || 'Andet';
+        const itemsList = items.map((o: any) => {
+          const shortName = (o.offer_text || o.product_name || '').substring(0, 40);
+          const price = o.offer_price_dkk;
+          const store = (o.store_chains?.name || '').substring(0, 10);
+          return `  • ${shortName}: ${price}kr @${store}`;
+        }).join('\n');
+        return `${emoji} ${name}:\n${itemsList}`;
+      }).join('\n\n');
 
     const weeklyBudget = prefs.max_weekly_budget || profile?.budget_per_week || 800;
 
@@ -865,21 +901,64 @@ ${proteinOffers.slice(0, 8).map((o: any) => {
     const weekendMaxTime = prefs.weekend_max_cook_time || 60;
 
     const inventory = inventoryResult.data || [];
-    const inventoryItems = inventory.map((item: any) => {
-      const expiry = item.expires_at ? ` (udløber ${item.expires_at})` : '';
-      return `- ${item.ingredient_name}${item.quantity ? `: ${item.quantity} ${item.unit || ''}` : ''}${expiry}`;
-    }).join('\n');
 
-    const recentMealTitles: string[] = [];
+    // 📦 KOMPAKT LAGER-FORMAT (grupperet efter kategori)
+    const inventoryByCategory: Record<string, any[]> = {};
+    const categoryOrder = ['protein', 'kulhydrat', 'grøntsag', 'mejeri', 'krydderi', 'basis', 'andet'];
+
+    inventory.forEach((item: any) => {
+      const cat = item.category?.toLowerCase() || 'andet';
+      // Map til simplere kategorier
+      let mappedCat = 'andet';
+      if (['kød', 'fisk', 'protein'].some(k => cat.includes(k))) mappedCat = 'protein';
+      else if (['kulhydrat', 'pasta', 'ris', 'brød'].some(k => cat.includes(k))) mappedCat = 'kulhydrat';
+      else if (['grøntsag', 'frugt'].some(k => cat.includes(k))) mappedCat = 'grøntsag';
+      else if (['mejeri', 'mælk', 'ost'].some(k => cat.includes(k))) mappedCat = 'mejeri';
+      else if (['krydderi', 'krydder'].some(k => cat.includes(k))) mappedCat = 'krydderi';
+      else if (['basis', 'olie', 'sauce', 'konserves'].some(k => cat.includes(k))) mappedCat = 'basis';
+
+      if (!inventoryByCategory[mappedCat]) inventoryByCategory[mappedCat] = [];
+      inventoryByCategory[mappedCat].push(item);
+    });
+
+    const inventoryCategoryNames: Record<string, string> = {
+      protein: '🥩 Protein', kulhydrat: '🍝 Kulhydrater', grøntsag: '🥬 Grøntsager',
+      mejeri: '🧀 Mejeri', krydderi: '🧂 Krydderier', basis: '🫒 Basis', andet: '📦 Andet'
+    };
+
+    // Kompakt format: vis kun ingrediensnavne (ikke mængder på krydderier/basis)
+    const inventoryItems = categoryOrder
+      .filter(cat => inventoryByCategory[cat]?.length > 0)
+      .map(cat => {
+        const items = inventoryByCategory[cat];
+        const catName = inventoryCategoryNames[cat] || cat;
+        if (['krydderi', 'basis'].includes(cat)) {
+          // Bare navne for krydderier/basis (uden mængder)
+          return `${catName}: ${items.map((i: any) => i.ingredient_name).join(', ')}`;
+        } else {
+          // Med mængder for protein/kulhydrater/grøntsager
+          const itemsList = items.slice(0, 5).map((i: any) => {
+            const qty = i.quantity ? `${i.quantity}${i.unit || ''}` : '';
+            const expiry = i.expires_at ? ` ⚠️${i.expires_at.substring(5, 10)}` : '';
+            return qty ? `${i.ingredient_name}(${qty}${expiry})` : i.ingredient_name;
+          }).join(', ');
+          return `${catName}: ${itemsList}${items.length > 5 ? ` +${items.length - 5} mere` : ''}`;
+        }
+      }).join('\n');
+
+    // 🔄 DE-DUPLIKÉR nylige retter
+    const recentMealTitlesRaw: string[] = [];
     (recentMealsResult.data || []).forEach((plan: any) => {
       if (Array.isArray(plan.meals)) {
         plan.meals.forEach((day: any) => {
-          if (day.breakfast?.title) recentMealTitles.push(day.breakfast.title);
-          if (day.lunch?.title) recentMealTitles.push(day.lunch.title);
-          if (day.dinner?.title) recentMealTitles.push(day.dinner.title);
+          if (day.breakfast?.title) recentMealTitlesRaw.push(day.breakfast.title);
+          if (day.lunch?.title) recentMealTitlesRaw.push(day.lunch.title);
+          if (day.dinner?.title) recentMealTitlesRaw.push(day.dinner.title);
         });
       }
     });
+    // Unikke titler kun
+    const recentMealTitles = [...new Set(recentMealTitlesRaw)];
 
     // ============ PRIORITY 4: CONTEXT ============
     const likedRecipes = (swipesResult.data || [])
@@ -914,30 +993,8 @@ ${selected_foodwaste.map((p) => {
 3. Beregn besparelsen i "uses_offers" feltet med "store": "Salling (madspild)"
 `;
     } else {
-      // Fallback: Hent fra database hvis bruger ikke har valgt specifikke produkter
-      const userSallingStores = sallingStoresResult.data || [];
-      const foodWasteProducts = foodWasteResult.data || [];
-
-      const relevantFoodWaste = userSallingStores.length > 0
-        ? foodWasteProducts.filter((p: any) =>
-            userSallingStores.some((s: any) => s.store_id === p.store_id)
-          )
-        : foodWasteProducts;
-
-      if (relevantFoodWaste.length > 0) {
-        foodWasteSection = `
-🌱 MADSPILD-TILBUD (Salling Group - kan bruges hvis relevant):
-${relevantFoodWaste.slice(0, 12).map((p: any) => {
-  const savings = (p.original_price - p.new_price).toFixed(0);
-  const expiryDate = new Date(p.end_time).toLocaleDateString('da-DK');
-  return `- ${p.product_description} @ ${p.store_name || p.brand}
-    FØR: ${p.original_price} kr → NU: ${p.new_price} kr (SPAR ${savings} kr / -${Math.round(p.percent_discount)}%)
-    Udløber: ${expiryDate} | Lager: ${p.stock || '?'} ${p.stock_unit || 'stk'}`;
-}).join('\n')}
-`;
-      }
-
-      console.log('Food waste products from database:', relevantFoodWaste.length, 'from', userSallingStores.length, 'stores');
+      // Ingen madspild valgt - inkluder IKKE automatisk i prompten
+      console.log('No foodwaste selected by user - skipping foodwaste section');
     }
 
     // ============ BUILD PRIORITIZED AI PROMPT ============
@@ -1015,34 +1072,45 @@ EKSEMPEL (korrekt per-portion):
 
 MAKROER er også PER PORTION.`;
 
-    const systemPrompt = `Du er en erfaren dansk madplanlægger inspireret af Valdemarsro.dk.
+    // 🧹 BYGG DYNAMISK PROMPT - kun inkluder ikke-tomme sektioner
+    const criticalRules: string[] = [];
+    if (allergenNames.length > 0) {
+      criticalRules.push(`⛔ ALLERGENER (ALDRIG brug): ${allergenNames.join(', ')}`);
+    }
+    if (allDislikes.length > 0) {
+      criticalRules.push(`🚫 HADER (undgå): ${allDislikes.slice(0, 12).join(', ')}`);
+    }
+    criticalRules.push(`🎯 Kalorie-mål: ~${Math.round(availableCalories / mealsPerDay)} kcal/ret`);
+    criticalRules.push(`💪 Protein-mål: ~${Math.round(availableProtein / mealsPerDay)}g/ret`);
+
+    const otherPriorities: string[] = [];
+    if (allLikes.length > 0) {
+      otherPriorities.push(`❤️ Elsker: ${allLikes.slice(0, 12).join(', ')}`);
+    }
+    otherPriorities.push(`🌿 Sæson (${season}): ${seasonalIngredients.join(', ')}`);
+    otherPriorities.push(`⏱️ Max tid: ${weekdayMaxTime}-${weekendMaxTime} min`);
+    if (recentMealTitles.length > 0) {
+      otherPriorities.push(`🔄 Undgå nylige: ${recentMealTitles.slice(0, 6).join(', ')}`);
+    }
+
+    const systemPrompt = `Du er en erfaren dansk madplanlægger.
 ${customRequestSection}
 ${discoverPreferencesSection}
 
 ${simplifiedPrompt}
 
-🔴 KRITISKE REGLER (UFRAVIGELIGE):
-1. ALDRIG brug disse (allergener): ${allergenNames.length > 0 ? allergenNames.join(', ') : 'Ingen'}
-2. ALDRIG foreslå disse (bruger hader): ${allDislikes.length > 0 ? allDislikes.slice(0, 15).join(', ') : 'Ingen'}
-3. Hver ret skal ramme ca. ${Math.round(availableCalories / mealsPerDay)} kcal
-4. Protein per ret: ~${Math.round(availableProtein / mealsPerDay)}g
+🔴 KRITISKE REGLER:
+${criticalRules.join('\n')}
 
-📋 MADLAVNINGSSTIL:
-${cookingStyleDescription}
-
+📋 MADLAVNINGSSTIL: ${cookingStyleDescription}
 ${foodWasteSection}
 ${proteinOffersSection}
 ${inventorySection}
 ${focusSection}
+${formattedOffers ? `\n🛒 TILBUD:\n${formattedOffers}` : ''}
 
-🟠 TILBUD (brug disse!):
-${formattedOffers || 'Ingen tilbud'}
-
-🟡 ANDRE PRIORITETER:
-1. Ingredienser bruger elsker: ${allLikes.slice(0, 15).join(', ') || 'Ingen'}
-2. Sæsonvarer (${season}): ${seasonalIngredients.join(', ')}
-3. Max ${weekdayMaxTime}-${weekendMaxTime} min tilberedning
-4. Undgå nylige retter: ${recentMealTitles.length > 0 ? recentMealTitles.slice(0, 8).join(', ') : 'Ingen'}
+🟡 PRIORITETER:
+${otherPriorities.join('\n')}
 
 📊 OUTPUT (KUN JSON):
 {
@@ -1262,6 +1330,194 @@ Lav retterne nu!`;
 
     console.log(`\n✅ Validated ${validatedRecipes.length} recipes`);
 
+    // ============ BEREGN METRICS TIL LOGGING ============
+    const totalCalories = validatedRecipes.reduce((sum: number, r: any) => sum + (r.calories || 0), 0);
+    const totalProtein = validatedRecipes.reduce((sum: number, r: any) => sum + (r.protein || 0), 0);
+    const totalCarbs = validatedRecipes.reduce((sum: number, r: any) => sum + (r.carbs || 0), 0);
+    const totalFat = validatedRecipes.reduce((sum: number, r: any) => sum + (r.fat || 0), 0);
+    const avgCaloriesPerRecipe = validatedRecipes.length > 0 ? Math.round(totalCalories / validatedRecipes.length) : 0;
+    const avgPrepTime = validatedRecipes.length > 0
+      ? Math.round(validatedRecipes.reduce((sum: number, r: any) => sum + (r.prep_time || 0) + (r.cook_time || 0), 0) / validatedRecipes.length)
+      : 0;
+
+    // Samle alle ingredienser
+    const allIngredients: any[] = [];
+    validatedRecipes.forEach((recipe: any) => {
+      (recipe.ingredients || []).forEach((ing: any) => {
+        allIngredients.push({
+          recipe: recipe.title,
+          name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit,
+        });
+      });
+    });
+
+    // Samle alle tilbud der bruges
+    const offersUsed: any[] = [];
+    validatedRecipes.forEach((recipe: any) => {
+      (recipe.uses_offers || []).forEach((offer: any) => {
+        offersUsed.push({
+          recipe: recipe.title,
+          offer_text: offer.offer_text,
+          store: offer.store,
+          savings: offer.savings,
+        });
+      });
+    });
+    const totalSavingsFromOffers = offersUsed.reduce((sum, o) => sum + (o.savings || 0), 0);
+
+    // Estimeret totalpris
+    const totalEstimatedPrice = validatedRecipes.reduce((sum: number, r: any) => sum + (r.estimated_price || 0), 0);
+
+    // ============ GEM TIL MEAL_PLAN_LOGS ============
+    const logEntry = {
+      user_id: user.id,
+
+      // Request - hvad brugeren bad om
+      request: {
+        duration_days,
+        start_date: startDate.toISOString(),
+        custom_request: custom_request || null,
+        selected_foodwaste_count: selected_foodwaste?.length || 0,
+        cooking_style: prefs.cooking_style,
+        skip_breakfast: prefs.skip_breakfast,
+        skip_lunch: prefs.skip_lunch,
+        skip_dinner: prefs.skip_dinner,
+      },
+
+      // Targets - hvad vi sigtede efter
+      targets: {
+        calories_per_day: availableCalories,
+        protein_per_day: availableProtein,
+        carbs_per_day: baseCarbs,
+        fat_per_day: baseFat,
+        recipes_needed: recipesNeeded,
+        recipes_to_generate: recipesToGenerate,
+        max_budget: weeklyBudget,
+        weekday_max_time: weekdayMaxTime,
+        weekend_max_time: weekendMaxTime,
+      },
+
+      // Results - hvad vi faktisk genererede
+      results: {
+        recipes_generated: validatedRecipes.length,
+        total_calories: totalCalories,
+        total_protein: totalProtein,
+        total_carbs: totalCarbs,
+        total_fat: totalFat,
+        avg_calories_per_recipe: avgCaloriesPerRecipe,
+        avg_prep_time_minutes: avgPrepTime,
+        total_ingredients: allIngredients.length,
+        unique_ingredients: [...new Set(allIngredients.map(i => i.name.toLowerCase()))].length,
+      },
+
+      // Recipes - kompakt array af alle opskrifter
+      recipes: validatedRecipes.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        calories: r.calories,
+        protein: r.protein,
+        carbs: r.carbs,
+        fat: r.fat,
+        prep_time: r.prep_time,
+        cook_time: r.cook_time,
+        servings: r.servings,
+        estimated_price: r.estimated_price,
+        ingredients_count: (r.ingredients || []).length,
+        tags: r.tags || [],
+        key_ingredients: r.key_ingredients || [],
+        uses_offers_count: (r.uses_offers || []).length,
+      })),
+
+      // Prices - prisdetaljer
+      prices: {
+        total_estimated: totalEstimatedPrice,
+        per_portion: recipesNeeded > 0 ? Math.round(totalEstimatedPrice / recipesNeeded) : 0,
+        savings_from_offers: totalSavingsFromOffers,
+        offers_used: offersUsed,
+        budget_target: weeklyBudget,
+        within_budget: totalEstimatedPrice <= weeklyBudget,
+      },
+
+      // Ingredients - alle ingredienser
+      ingredients: allIngredients,
+
+      // Quality metrics
+      quality_metrics: {
+        calorie_target_per_recipe: Math.round(availableCalories / (mealsPerDay || 1)),
+        actual_avg_calories: avgCaloriesPerRecipe,
+        calorie_accuracy_pct: avgCaloriesPerRecipe > 0
+          ? Math.round((1 - Math.abs(avgCaloriesPerRecipe - (availableCalories / mealsPerDay)) / (availableCalories / mealsPerDay)) * 100)
+          : 0,
+        protein_target_per_recipe: Math.round(availableProtein / (mealsPerDay || 1)),
+        actual_avg_protein: validatedRecipes.length > 0 ? Math.round(totalProtein / validatedRecipes.length) : 0,
+        variety_score: [...new Set(validatedRecipes.map((r: any) => r.key_ingredients?.[0]))].length,
+        avg_prep_time: avgPrepTime,
+        recipes_with_offers: validatedRecipes.filter((r: any) => (r.uses_offers || []).length > 0).length,
+      },
+
+      // AI Response metadata
+      ai_response: {
+        model: 'claude-sonnet-4-20250514',
+        raw_recipes_count: rawRecipes.length,
+        response_length: content?.length || 0,
+        variation_used: variation,
+      },
+
+      // Prompts - den fulde prompt der blev sendt til AI
+      prompts: {
+        system_prompt: systemPrompt,
+        user_prompt: userPrompt,
+        system_prompt_length: systemPrompt?.length || 0,
+        user_prompt_length: userPrompt?.length || 0,
+        total_prompt_length: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
+      },
+
+      status: 'completed',
+    };
+
+    // Gem til database - brug service role hvis tilgængelig, ellers user auth
+    try {
+      console.log('📊 Logging meal plan...');
+
+      // Forbered log entry med trunkerede prompts
+      const logEntryWithoutPrompts = {
+        ...logEntry,
+        prompts: {
+          system_prompt_length: logEntry.prompts.system_prompt_length,
+          user_prompt_length: logEntry.prompts.user_prompt_length,
+          total_prompt_length: logEntry.prompts.total_prompt_length,
+          // Gem kun første 5000 tegn af hver prompt
+          system_prompt: logEntry.prompts.system_prompt?.substring(0, 5000) || '',
+          user_prompt: logEntry.prompts.user_prompt?.substring(0, 5000) || '',
+        }
+      };
+
+      // Prøv service role først, fallback til user auth (RLS har "Allow all inserts")
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      const logClient = supabaseServiceKey
+        ? createClient(supabaseUrl, supabaseServiceKey)
+        : supabase; // Fallback til user-authenticated client
+
+      console.log('📊 Using:', supabaseServiceKey ? 'service role' : 'user auth (fallback)');
+
+      const { data: insertedLog, error: logError } = await logClient
+        .from('meal_plan_logs')
+        .insert(logEntryWithoutPrompts)
+        .select()
+        .single();
+
+      if (logError) {
+        console.error('❌ Error logging meal plan:', JSON.stringify(logError));
+      } else {
+        console.log('✅ Meal plan logged! ID:', insertedLog?.id);
+      }
+    } catch (logError) {
+      console.error('❌ Exception logging meal plan:', logError);
+      // Fortsæt alligevel - logging fejl skal ikke blokere brugeren
+    }
+
     return new Response(JSON.stringify({
       success: true,
       recipes: validatedRecipes,
@@ -1284,8 +1540,30 @@ Lav retterne nu!`;
 
   } catch (error) {
     console.error('Error in generate-meal-plan:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+
+    // Log fejl - tabellen tillader nu NULL på alle JSONB felter
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+      // Brug service role hvis tilgængelig, ellers anon key
+      const errorSupabase = createClient(
+        supabaseUrl,
+        supabaseServiceKey || supabaseAnonKey
+      );
+
+      await errorSupabase.from('meal_plan_logs').insert({
+        status: 'error',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
+      console.log('📊 Error logged to meal_plan_logs');
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
