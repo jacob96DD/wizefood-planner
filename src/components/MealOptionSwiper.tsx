@@ -87,28 +87,32 @@ export function MealOptionSwiper({
   const needsMoreOptions = currentIndex >= localRecipes.length && totalSelected < recipesNeeded;
   const allComplete = totalSelected >= recipesNeeded;
 
-  // Calculate current macro averages from selected meals
+  // Calculate current macro averages from selected meals (PER PORTION)
   const calculateCurrentMacros = useCallback(() => {
     if (selectedMeals.length === 0) {
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
 
-    const totals = selectedMeals.reduce(
-      (sum, meal) => ({
-        calories: sum.calories + (meal.calories || 0),
-        protein: sum.protein + (meal.protein || 0),
-        carbs: sum.carbs + (meal.carbs || 0),
-        fat: sum.fat + (meal.fat || 0),
-      }),
+    // VIGTIGT: Beregn per-portion for hver ret, IKKE totaler
+    const perPortionTotals = selectedMeals.reduce(
+      (sum, meal) => {
+        const servings = meal.servings || 1;
+        return {
+          calories: sum.calories + Math.round((meal.calories || 0) / servings),
+          protein: sum.protein + Math.round((meal.protein || 0) / servings),
+          carbs: sum.carbs + Math.round((meal.carbs || 0) / servings),
+          fat: sum.fat + Math.round((meal.fat || 0) / servings),
+        };
+      },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
 
     const count = selectedMeals.length;
     return {
-      calories: Math.round(totals.calories / count),
-      protein: Math.round(totals.protein / count),
-      carbs: Math.round(totals.carbs / count),
-      fat: Math.round(totals.fat / count),
+      calories: Math.round(perPortionTotals.calories / count),
+      protein: Math.round(perPortionTotals.protein / count),
+      carbs: Math.round(perPortionTotals.carbs / count),
+      fat: Math.round(perPortionTotals.fat / count),
     };
   }, [selectedMeals]);
 
@@ -457,23 +461,23 @@ export function MealOptionSwiper({
                 {currentRecipe.description}
               </p>
 
-              {/* Macros */}
+              {/* Macros - VIGTIGT: Divider med servings for at vise PER PORTION */}
               <div className="grid grid-cols-4 gap-2 mb-3">
                 <div className="text-center p-2 bg-muted rounded-lg">
                   <Flame className="w-4 h-4 mx-auto mb-1 text-orange-500" />
-                  <div className="text-sm font-bold">{currentRecipe.calories}</div>
+                  <div className="text-sm font-bold">{Math.round(currentRecipe.calories / (currentRecipe.servings || 1))}</div>
                   <div className="text-xs text-muted-foreground">kcal</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
-                  <div className="text-sm font-bold">{currentRecipe.protein}g</div>
+                  <div className="text-sm font-bold">{Math.round(currentRecipe.protein / (currentRecipe.servings || 1))}g</div>
                   <div className="text-xs text-muted-foreground">protein</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
-                  <div className="text-sm font-bold">{currentRecipe.carbs}g</div>
+                  <div className="text-sm font-bold">{Math.round(currentRecipe.carbs / (currentRecipe.servings || 1))}g</div>
                   <div className="text-xs text-muted-foreground">kulh.</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
-                  <div className="text-sm font-bold">{currentRecipe.fat}g</div>
+                  <div className="text-sm font-bold">{Math.round(currentRecipe.fat / (currentRecipe.servings || 1))}g</div>
                   <div className="text-xs text-muted-foreground">fedt</div>
                 </div>
               </div>

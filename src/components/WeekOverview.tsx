@@ -38,6 +38,7 @@ interface UniqueDish {
   description?: string;
   ingredients?: { name: string; amount: string; unit: string }[];
   instructions?: string[];
+  servings?: number; // Rettens faktiske antal portioner
 }
 
 // Gennemsnitligt dansk husholdningsbudget
@@ -126,6 +127,7 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
             description: meal.description,
             ingredients: meal.ingredients,
             instructions: meal.instructions,
+            servings: meal.servings || 7, // Rettens faktiske portioner (typisk 7)
           });
         }
       };
@@ -164,6 +166,7 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
 
   const handleRecipeClick = (dish: UniqueDish) => {
     // Create a RecipeDetail from the stored dish data
+    // VIGTIGT: Brug dish.servings (rettens faktiske portioner), IKKE dish.count (antal dage den bruges)
     const recipeDetail: RecipeDetail = {
       id: dish.id,
       title: dish.title,
@@ -173,7 +176,7 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
       carbs: dish.carbs || 0,
       fat: dish.fat || 0,
       prep_time: dish.prepTime || 0,
-      servings: dish.count,
+      servings: dish.servings || 7, // Rettens faktiske portioner (typisk 7 for meal prep)
       ingredients: dish.ingredients || [],
       instructions: dish.instructions || [],
       image_url: dish.imageUrl,
@@ -289,7 +292,7 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
                     <h4 className="font-semibold text-sm line-clamp-1">{dish.title}</h4>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-muted-foreground">
-                        {dish.calories} kcal · {dish.prepTime}+ min
+                        {Math.round(dish.calories / (dish.servings || 1))} kcal/portion · {dish.prepTime}+ min
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {[...new Set(dish.usageDays)].join(', ')}

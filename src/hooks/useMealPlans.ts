@@ -29,6 +29,7 @@ export interface MealPlanMeal {
   ingredients?: MealPlanMealIngredient[];
   instructions?: string[];
   uses_offers?: MealPlanMealOffer[];
+  servings?: number; // Antal portioner retten er lavet til (typisk 7)
 }
 
 export interface MealPlanDay {

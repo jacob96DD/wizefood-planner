@@ -192,58 +192,63 @@ interface ValidationResult {
 function strictValidateAndCorrectRecipe(recipe: any): ValidationResult {
   const errors: string[] = [];
   const servings = recipe.servings || 1;
-  
+
   // Beregn makroer fra ingredienser
   const calculated = calculateMacrosFromIngredients(recipe.ingredients, servings);
-  
+
   // Tjek om vi matchede nok ingredienser
-  const matchRatio = calculated.totalIngredients > 0 
-    ? calculated.matchedIngredients / calculated.totalIngredients 
+  const matchRatio = calculated.totalIngredients > 0
+    ? calculated.matchedIngredients / calculated.totalIngredients
     : 0;
-  
+
   if (matchRatio < 0.5) {
     console.warn(`Recipe "${recipe.title}": Only matched ${calculated.matchedIngredients}/${calculated.totalIngredients} ingredients`);
   }
-  
-  // 1. Tjek kalorier (max 30% afvigelse eller brug beregnet)
+
+  // 1. Tjek kalorier afvigelse (kun til logging)
   const kcalDiff = Math.abs(calculated.perPortionKcal - recipe.calories);
   const kcalDeviation = recipe.calories > 0 ? kcalDiff / recipe.calories : 1;
-  
-  if (kcalDeviation > 0.3 && calculated.matchedIngredients >= 3) {
+
+  if (kcalDeviation > 0.15 && calculated.matchedIngredients >= 2) {
     errors.push(`Kalorier: beregnet ${calculated.perPortionKcal} vs påstået ${recipe.calories} (${Math.round(kcalDeviation * 100)}% afvigelse)`);
   }
-  
-  // 2. Tjek protein (max 30% afvigelse)
+
+  // 2. Tjek protein afvigelse (kun til logging)
   const proteinDiff = Math.abs(calculated.perPortionP - recipe.protein);
   const proteinDeviation = recipe.protein > 0 ? proteinDiff / recipe.protein : 1;
-  
-  if (proteinDeviation > 0.3 && calculated.matchedIngredients >= 3) {
+
+  if (proteinDeviation > 0.15 && calculated.matchedIngredients >= 2) {
     errors.push(`Protein: beregnet ${calculated.perPortionP}g vs påstået ${recipe.protein}g (${Math.round(proteinDeviation * 100)}% afvigelse)`);
   }
-  
+
   // 3. Tjek makro-sum konsistens
   const macroKcal = (recipe.protein * 4) + (recipe.carbs * 4) + (recipe.fat * 9);
   if (Math.abs(macroKcal - recipe.calories) > 100) {
     errors.push(`Makro-sum: ${macroKcal} ≠ ${recipe.calories} kcal`);
   }
-  
-  // 4. Korriger hvis vi har nok data og store afvigelser
-  const shouldCorrect = errors.length > 0 && calculated.matchedIngredients >= 3 && matchRatio >= 0.4;
-  
+
+  // 🔴 ALTID brug beregnede makroer når vi har mindst 2 matchede ingredienser
+  // Dette sikrer at påståede værdier ALTID matcher de faktiske ingredienser
+  const shouldCorrect = calculated.matchedIngredients >= 2 && calculated.perPortionKcal > 0;
+
   let correctedRecipe = { ...recipe };
-  
+
   if (shouldCorrect) {
-    console.log(`🔧 Correcting "${recipe.title}": ${errors.join(', ')}`);
-    console.log(`   Calculated: ${calculated.perPortionKcal} kcal, ${calculated.perPortionP}g P, ${calculated.perPortionC}g C, ${calculated.perPortionF}g F`);
-    console.log(`   Original: ${recipe.calories} kcal, ${recipe.protein}g P, ${recipe.carbs}g C, ${recipe.fat}g F`);
-    
+    // Log kun hvis der er signifikant afvigelse
+    if (errors.length > 0) {
+      console.log(`🔧 MACRO CORRECTION for "${recipe.title}":`);
+      console.log(`   AI claimed: ${recipe.calories} kcal, ${recipe.protein}g P, ${recipe.carbs}g C, ${recipe.fat}g F`);
+      console.log(`   Calculated: ${calculated.perPortionKcal} kcal, ${calculated.perPortionP}g P, ${calculated.perPortionC}g C, ${calculated.perPortionF}g F`);
+      console.log(`   Matched: ${calculated.matchedIngredients}/${calculated.totalIngredients} ingredients (${Math.round(matchRatio * 100)}%)`);
+    }
+
     correctedRecipe = {
       ...recipe,
       calories: calculated.perPortionKcal,
       protein: calculated.perPortionP,
       carbs: calculated.perPortionC,
       fat: calculated.perPortionF,
-      _corrected: true,
+      _corrected: errors.length > 0,
       _original: {
         calories: recipe.calories,
         protein: recipe.protein,
@@ -253,7 +258,7 @@ function strictValidateAndCorrectRecipe(recipe: any): ValidationResult {
       _calculated: calculated,
     };
   }
-  
+
   return {
     valid: errors.length === 0,
     corrected: shouldCorrect,
@@ -289,11 +294,26 @@ function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation 
     'vegetables': 80,  // Grøntsager
   };
 
+  // 🔴 NY: MAKSIMUM mængder per person for at undgå urealistiske værdier
+  const maxAmountsPerPerson: Record<string, number> = {
+    'protein': 250,    // Max 250g kød/fisk per person
+    'carbs': 150,      // Max 150g pasta/ris tør vægt
+    'potatoes': 400,   // Max 400g kartofler
+    'legumes': 150,    // Max 150g linser/bønner
+    'cheese': 100,     // Max 100g ost per person
+    'dairy': 200,      // Max 200g mejeri (hytteost, yoghurt etc.)
+    'vegetables': 300, // Max 300g grøntsager
+    'eggs': 4,         // Max 4 æg per person
+    'bread': 4,        // Max 4 skiver brød
+    'avocado': 1,      // Max 1 avocado per person
+  };
+
   const proteinKeywords = ['kød', 'kylling', 'laks', 'bacon', 'flæsk', 'okse', 'svin', 'fisk', 'rejer', 'bøf', 'medister', 'torsk', 'filet', 'bryst', 'lår', 'kotelet', 'schnitzel', 'frikadelle', 'kalkun', 'and', 'tun', 'sej', 'rødspætte', 'hakkekød', 'mørbrad', 'entrecote', 'culotte', 'steg'];
   const carbKeywords = ['pasta', 'spaghetti', 'ris', 'nudler', 'penne', 'fusilli', 'bulgur', 'couscous', 'tagliatelle', 'fettuccine', 'makaroni', 'lasagneplader', 'farfalle', 'rigatoni'];
   const potatoKeywords = ['kartof', 'kartofler', 'kartoffelmos', 'pommes', 'fritter'];
   const legumeKeywords = ['linse', 'linser', 'bønner', 'kikærter', 'kidney', 'sorte bønner', 'hvide bønner'];
   const cheeseKeywords = ['ost', 'parmesan', 'mozzarella', 'feta', 'cheddar', 'gouda', 'emmentaler', 'brie', 'camembert'];
+  const dairyKeywords = ['hytteost', 'yoghurt', 'skyr', 'creme fraiche', 'cremefraiche', 'flødeost', 'ricotta'];
 
   // ============ TRIN 1: BEREGN TOTAL VÆGT ============
   let totalGrams = 0;
@@ -438,12 +458,83 @@ function validateAndCorrectIngredientAmounts(recipe: any): IngredientValidation 
       }
     }
 
-    // Tjek ost
+    // Tjek ost - MIN validering
     const isCheese = cheeseKeywords.some(k => name.includes(k));
     if (isCheese && perPerson < minAmountsPerPerson.cheese) {
       const correctedAmount = minAmountsPerPerson.cheese * servings;
       errors.push(`🧀 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g`);
       return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true };
+    }
+
+    // 🔴 NY: MAX-VALIDERING for at undgå urealistiske mængder
+
+    // Tjek mejeriprodukter (hytteost, yoghurt etc.) - MAX validering
+    const isDairy = dairyKeywords.some(k => name.includes(k));
+    if (isDairy && perPerson > maxAmountsPerPerson.dairy) {
+      const correctedAmount = maxAmountsPerPerson.dairy * servings;
+      console.log(`     ⚠️ OVER MAX! ${ing.name}: ${Math.round(perPerson)}g/person > ${maxAmountsPerPerson.dairy}g max`);
+      errors.push(`🥛 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g (MAX overskredet)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true, _reason: 'max_exceeded' };
+    }
+
+    // Tjek ost - MAX validering
+    if (isCheese && perPerson > maxAmountsPerPerson.cheese) {
+      const correctedAmount = maxAmountsPerPerson.cheese * servings;
+      console.log(`     ⚠️ OVER MAX! ${ing.name}: ${Math.round(perPerson)}g/person > ${maxAmountsPerPerson.cheese}g max`);
+      errors.push(`🧀 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g (MAX overskredet)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true, _reason: 'max_exceeded' };
+    }
+
+    // Tjek protein - MAX validering
+    if (isProtein && perPerson > maxAmountsPerPerson.protein) {
+      const correctedAmount = maxAmountsPerPerson.protein * servings;
+      console.log(`     ⚠️ OVER MAX! ${ing.name}: ${Math.round(perPerson)}g/person > ${maxAmountsPerPerson.protein}g max`);
+      errors.push(`🥩 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g (MAX overskredet)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true, _reason: 'max_exceeded' };
+    }
+
+    // Tjek kulhydrater - MAX validering
+    if (isCarb && perPerson > maxAmountsPerPerson.carbs) {
+      const correctedAmount = maxAmountsPerPerson.carbs * servings;
+      console.log(`     ⚠️ OVER MAX! ${ing.name}: ${Math.round(perPerson)}g/person > ${maxAmountsPerPerson.carbs}g max`);
+      errors.push(`🍝 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g (MAX overskredet)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true, _reason: 'max_exceeded' };
+    }
+
+    // Tjek kartofler - MAX validering
+    if (isPotato && perPerson > maxAmountsPerPerson.potatoes) {
+      const correctedAmount = maxAmountsPerPerson.potatoes * servings;
+      console.log(`     ⚠️ OVER MAX! ${ing.name}: ${Math.round(perPerson)}g/person > ${maxAmountsPerPerson.potatoes}g max`);
+      errors.push(`🥔 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g (MAX overskredet)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true, _reason: 'max_exceeded' };
+    }
+
+    // Tjek bælgfrugter - MAX validering
+    if (isLegume && perPerson > maxAmountsPerPerson.legumes) {
+      const correctedAmount = maxAmountsPerPerson.legumes * servings;
+      console.log(`     ⚠️ OVER MAX! ${ing.name}: ${Math.round(perPerson)}g/person > ${maxAmountsPerPerson.legumes}g max`);
+      errors.push(`🫘 ${ing.name}: ${amountInGrams}g → ${correctedAmount}g (MAX overskredet)`);
+      return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'g', _corrected: true, _reason: 'max_exceeded' };
+    }
+
+    // Tjek æg (stk-baseret) - MAX validering
+    if ((name.includes('æg') || name === 'æg') && (unit === 'stk' || unit === '')) {
+      if (amount / servings > maxAmountsPerPerson.eggs) {
+        const correctedAmount = maxAmountsPerPerson.eggs * servings;
+        console.log(`     ⚠️ OVER MAX! ${ing.name}: ${amount/servings} stk/person > ${maxAmountsPerPerson.eggs} max`);
+        errors.push(`🥚 ${ing.name}: ${amount}stk → ${correctedAmount}stk (MAX overskredet)`);
+        return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'stk', _corrected: true, _reason: 'max_exceeded' };
+      }
+    }
+
+    // Tjek avocado (stk-baseret) - MAX validering
+    if (name.includes('avocado') && (unit === 'stk' || unit === '')) {
+      if (amount / servings > maxAmountsPerPerson.avocado) {
+        const correctedAmount = maxAmountsPerPerson.avocado * servings;
+        console.log(`     ⚠️ OVER MAX! ${ing.name}: ${amount/servings} stk/person > ${maxAmountsPerPerson.avocado} max`);
+        errors.push(`🥑 ${ing.name}: ${amount}stk → ${correctedAmount}stk (MAX overskredet)`);
+        return { ...ing, amount: String(Math.round(correctedAmount)), unit: 'stk', _corrected: true, _reason: 'max_exceeded' };
+      }
     }
 
     return ing;
