@@ -5,7 +5,45 @@
 
 ---
 
-## Hvad vi har fikset
+## Hvad er Wizefood?
+
+Wizefood er en dansk madplanlægger-app der bruger AI til at generere personlige madplaner baseret på brugerens:
+
+- **Kalorie- og proteinmål** - Tilpasset vægt, højde, alder og aktivitetsniveau
+- **Budget** - Ugentligt madbudget i DKK
+- **Præferencer** - Allergener, yndlingsretter, og madtyper man ikke kan lide
+- **Tilbud** - Integrerer aktuelle supermarkedstilbud for at spare penge
+
+### Hovedfunktioner
+
+| Funktion | Beskrivelse |
+|----------|-------------|
+| **AI Madplan** | Genererer 5 unikke retter til en uge med korrekte makroer |
+| **Meal Prep** | Designet til at lave 2-3 retter der genbruges hele ugen |
+| **Indkøbsliste** | Automatisk genereret liste med alle ingredienser |
+| **Sæson-tilpasset** | Foreslår ingredienser der er i sæson |
+| **Tilbuds-integration** | Bruger aktuelle tilbud til at spare penge |
+| **Opskrift-swipe** | Tinder-stil interface til at vælge opskrifter |
+
+### Teknologi
+
+- **Frontend:** React + TypeScript + Tailwind CSS
+- **Backend:** Supabase (PostgreSQL + Edge Functions)
+- **AI:** Claude Sonnet 4 (Anthropic API)
+- **Hosting:** Supabase Cloud
+
+### Målgruppe
+
+- Travle danskere der vil spare tid på madplanlægning
+- Folk der vil holde styr på kalorier og protein
+- Familier der vil spare penge på mad
+- Fitness-entusiaster med specifikke makro-mål
+
+---
+
+## Seneste opdatering (28. jan 2026)
+
+### Hvad vi har fikset
 
 ### 1. Makro-validering (KRITISK FIX)
 
