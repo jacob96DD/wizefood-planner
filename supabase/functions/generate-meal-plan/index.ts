@@ -24,7 +24,24 @@ const MACRO_DB: Record<string, { kcal: number; p: number; c: number; f: number }
   'bulgur': { kcal: 340, p: 12, c: 69, f: 1.5 },
   'couscous': { kcal: 360, p: 13, c: 73, f: 1.5 },
   'nudler': { kcal: 360, p: 12, c: 72, f: 2 },
-  
+  'farfalle': { kcal: 360, p: 13, c: 75, f: 1.5 },
+  'rigatoni': { kcal: 360, p: 13, c: 75, f: 1.5 },
+  'makaroni': { kcal: 360, p: 13, c: 75, f: 1.5 },
+  'lasagneplader': { kcal: 360, p: 13, c: 75, f: 1.5 },
+  'brune ris': { kcal: 360, p: 8, c: 74, f: 3 },
+  'søde kartofler': { kcal: 86, p: 1.6, c: 20, f: 0.1 },
+  'rugbrød': { kcal: 220, p: 7, c: 42, f: 2 },
+  'toastbrød': { kcal: 265, p: 9, c: 49, f: 3 },
+  'ægnudler': { kcal: 380, p: 14, c: 71, f: 4 },
+  'risnudler': { kcal: 360, p: 3, c: 84, f: 0.5 },
+  'glasnudler': { kcal: 330, p: 0, c: 82, f: 0 },
+  'havregryn': { kcal: 370, p: 13, c: 60, f: 7 },
+  'quinoa': { kcal: 370, p: 14, c: 64, f: 6 },
+  'tortilla': { kcal: 310, p: 8, c: 50, f: 8 },
+  'wraps': { kcal: 310, p: 8, c: 50, f: 8 },
+  'pitabrød': { kcal: 275, p: 9, c: 55, f: 1.2 },
+  'fuldkornsmel': { kcal: 340, p: 13, c: 62, f: 2.5 },
+
   // Kød
   'kyllingebryst': { kcal: 165, p: 31, c: 0, f: 3.6 },
   'kylling': { kcal: 165, p: 31, c: 0, f: 3.6 },
@@ -41,7 +58,32 @@ const MACRO_DB: Record<string, { kcal: number; p: number; c: number; f: number }
   'bøf': { kcal: 220, p: 26, c: 0, f: 14 },
   'kalvekød': { kcal: 150, p: 21, c: 0, f: 8 },
   'lam': { kcal: 280, p: 25, c: 0, f: 20 },
-  
+  'kyllingefilet': { kcal: 165, p: 31, c: 0, f: 3.6 },
+  'kyllingevinge': { kcal: 222, p: 18, c: 0, f: 16 },
+  'hel kylling': { kcal: 190, p: 27, c: 0, f: 9 },
+  'kalkun': { kcal: 135, p: 30, c: 0, f: 1 },
+  'kalkunbryst': { kcal: 135, p: 30, c: 0, f: 1 },
+  'kalkunfilet': { kcal: 135, p: 30, c: 0, f: 1 },
+  'and': { kcal: 340, p: 19, c: 0, f: 28 },
+  'andebryst': { kcal: 200, p: 23, c: 0, f: 11 },
+  'oksemørbrad': { kcal: 180, p: 28, c: 0, f: 8 },
+  'entrecote': { kcal: 250, p: 25, c: 0, f: 17 },
+  'culotte': { kcal: 200, p: 27, c: 0, f: 10 },
+  'svinemørbrad': { kcal: 143, p: 26, c: 0, f: 3.5 },
+  'svinekotelet': { kcal: 200, p: 25, c: 0, f: 11 },
+  'nakkefilet': { kcal: 220, p: 22, c: 0, f: 15 },
+  'medisterpølse': { kcal: 280, p: 14, c: 3, f: 24 },
+  'lammekølle': { kcal: 280, p: 25, c: 0, f: 20 },
+  'frikadelle': { kcal: 240, p: 18, c: 8, f: 15 },
+  'frikadeller': { kcal: 240, p: 18, c: 8, f: 15 },
+  'hakkekød': { kcal: 240, p: 25, c: 0, f: 16 },
+  'hakket kylling': { kcal: 170, p: 20, c: 0, f: 10 },
+  'skinke': { kcal: 110, p: 18, c: 1, f: 4 },
+  'pølser': { kcal: 300, p: 12, c: 2, f: 27 },
+  'spegepølse': { kcal: 400, p: 20, c: 2, f: 35 },
+  'salami': { kcal: 430, p: 21, c: 1, f: 38 },
+  'leverpostej': { kcal: 200, p: 10, c: 4, f: 16 },
+
   // Fisk og skaldyr
   'laks': { kcal: 200, p: 20, c: 0, f: 13 },
   'torsk': { kcal: 82, p: 18, c: 0, f: 0.7 },
@@ -50,7 +92,20 @@ const MACRO_DB: Record<string, { kcal: number; p: number; c: number; f: number }
   'sej': { kcal: 80, p: 17, c: 0, f: 1 },
   'makrel': { kcal: 260, p: 24, c: 0, f: 18 },
   'rødspætte': { kcal: 90, p: 18, c: 0, f: 1.5 },
-  
+  'laksfilet': { kcal: 200, p: 20, c: 0, f: 13 },
+  'røget laks': { kcal: 160, p: 25, c: 0, f: 7 },
+  'torskefilet': { kcal: 82, p: 18, c: 0, f: 0.7 },
+  'tunfisk': { kcal: 130, p: 29, c: 0, f: 1 },
+  'tun på dåse': { kcal: 110, p: 26, c: 0, f: 0.8 },
+  'makrel i tomat': { kcal: 180, p: 14, c: 4, f: 12 },
+  'hellefisk': { kcal: 90, p: 19, c: 0, f: 1.2 },
+  'kuller': { kcal: 90, p: 20, c: 0, f: 0.8 },
+  'blåmuslinger': { kcal: 86, p: 12, c: 4, f: 2 },
+  'kammuslinger': { kcal: 80, p: 15, c: 3, f: 0.5 },
+  'fiskefrikadelle': { kcal: 180, p: 14, c: 10, f: 9 },
+  'fiskefrikadeller': { kcal: 180, p: 14, c: 10, f: 9 },
+  'surimi': { kcal: 95, p: 8, c: 13, f: 0.5 },
+
   // Mejeriprodukter
   'æg': { kcal: 150, p: 12, c: 1, f: 11 },
   'parmesan': { kcal: 430, p: 38, c: 4, f: 29 },
@@ -63,12 +118,30 @@ const MACRO_DB: Record<string, { kcal: number; p: number; c: number; f: number }
   'mælk': { kcal: 64, p: 3, c: 5, f: 4 },
   'yoghurt': { kcal: 60, p: 4, c: 6, f: 2 },
   'smør': { kcal: 740, p: 0.5, c: 0, f: 82 },
-  
+  'cheddar': { kcal: 400, p: 25, c: 1, f: 33 },
+  'gouda': { kcal: 350, p: 25, c: 2, f: 27 },
+  'brie': { kcal: 330, p: 21, c: 0.5, f: 27 },
+  'hytteost': { kcal: 98, p: 11, c: 3, f: 4.3 },
+  'ricotta': { kcal: 170, p: 11, c: 3, f: 13 },
+  'cream cheese': { kcal: 340, p: 6, c: 4, f: 33 },
+  'cremefraiche': { kcal: 190, p: 3, c: 4, f: 18 },
+  'piskefløde': { kcal: 340, p: 2, c: 3, f: 36 },
+  'letfløde': { kcal: 170, p: 3, c: 4, f: 15 },
+  'letmælk': { kcal: 46, p: 3, c: 5, f: 1.5 },
+  'minimælk': { kcal: 39, p: 3, c: 5, f: 0.5 },
+  'sødmælk': { kcal: 64, p: 3, c: 5, f: 4 },
+  'græsk yoghurt': { kcal: 97, p: 9, c: 4, f: 5 },
+  'skyr': { kcal: 63, p: 11, c: 4, f: 0.2 },
+  'margarine': { kcal: 720, p: 0.1, c: 0.5, f: 80 },
+
   // Fedt
   'olie': { kcal: 900, p: 0, c: 0, f: 100 },
   'olivenolie': { kcal: 900, p: 0, c: 0, f: 100 },
   'rapsolie': { kcal: 900, p: 0, c: 0, f: 100 },
-  
+  'kokosolie': { kcal: 900, p: 0, c: 0, f: 100 },
+  'sesamolie': { kcal: 900, p: 0, c: 0, f: 100 },
+  'solsikkeolie': { kcal: 900, p: 0, c: 0, f: 100 },
+
   // Grøntsager
   'løg': { kcal: 40, p: 1, c: 9, f: 0.1 },
   'hvidløg': { kcal: 150, p: 6, c: 33, f: 0.5 },
@@ -90,19 +163,371 @@ const MACRO_DB: Record<string, { kcal: number; p: number; c: number; f: number }
   'ærter': { kcal: 80, p: 5, c: 14, f: 0.4 },
   'majs': { kcal: 86, p: 3, c: 19, f: 1.2 },
   'avocado': { kcal: 160, p: 2, c: 9, f: 15 },
-  
+  'rødløg': { kcal: 42, p: 1, c: 10, f: 0.1 },
+  'forårsløg': { kcal: 32, p: 2, c: 7, f: 0.2 },
+  'hvidløgsfed': { kcal: 150, p: 6, c: 33, f: 0.5 },
+  'blomkål': { kcal: 25, p: 2, c: 5, f: 0.3 },
+  'grønkål': { kcal: 50, p: 4, c: 9, f: 0.9 },
+  'cherrytomater': { kcal: 18, p: 1, c: 4, f: 0.2 },
+  'hakkede tomater': { kcal: 20, p: 1, c: 4, f: 0.1 },
+  'rød peberfrugt': { kcal: 30, p: 1, c: 6, f: 0.3 },
+  'zucchini': { kcal: 17, p: 1, c: 3, f: 0.3 },
+  'shiitake': { kcal: 34, p: 2, c: 7, f: 0.5 },
+  'porrer': { kcal: 61, p: 1.5, c: 14, f: 0.3 },
+  'porre': { kcal: 61, p: 1.5, c: 14, f: 0.3 },
+  'iceberg': { kcal: 15, p: 1, c: 3, f: 0.1 },
+  'rucola': { kcal: 25, p: 3, c: 4, f: 0.7 },
+  'hvidkål': { kcal: 25, p: 1, c: 6, f: 0.1 },
+  'rødkål': { kcal: 31, p: 1, c: 7, f: 0.2 },
+  'spidskål': { kcal: 25, p: 1, c: 6, f: 0.1 },
+  'grønne bønner': { kcal: 31, p: 2, c: 7, f: 0.1 },
+  'edamame': { kcal: 120, p: 12, c: 9, f: 5 },
+  'agurk': { kcal: 12, p: 0.7, c: 2, f: 0.1 },
+  'selleri': { kcal: 16, p: 0.7, c: 3, f: 0.2 },
+  'rødbede': { kcal: 43, p: 2, c: 10, f: 0.1 },
+  'rødbeder': { kcal: 43, p: 2, c: 10, f: 0.1 },
+  'pastinak': { kcal: 75, p: 1, c: 18, f: 0.3 },
+  'persillerod': { kcal: 55, p: 1, c: 12, f: 0.5 },
+  'radiser': { kcal: 16, p: 0.7, c: 3, f: 0.1 },
+  'asparges': { kcal: 20, p: 2, c: 4, f: 0.1 },
+  'artiskok': { kcal: 47, p: 3, c: 11, f: 0.2 },
+  'græskar': { kcal: 26, p: 1, c: 7, f: 0.1 },
+  'hokkaido': { kcal: 45, p: 1, c: 10, f: 0.1 },
+  'butternut squash': { kcal: 45, p: 1, c: 12, f: 0.1 },
+  'ingefær': { kcal: 80, p: 2, c: 18, f: 0.8 },
+  'jalapeño': { kcal: 29, p: 1, c: 6, f: 0.4 },
+  'chili': { kcal: 40, p: 2, c: 9, f: 0.4 },
+
   // Bælgfrugter
   'linser': { kcal: 115, p: 9, c: 20, f: 0.4 },
   'kikærter': { kcal: 120, p: 8, c: 18, f: 2 },
   'kidneybønner': { kcal: 110, p: 7, c: 18, f: 0.5 },
   'sorte bønner': { kcal: 130, p: 9, c: 22, f: 0.5 },
-  
-  // Andet
+  'røde linser': { kcal: 115, p: 9, c: 20, f: 0.4 },
+  'grønne linser': { kcal: 115, p: 9, c: 20, f: 0.4 },
+  'hvide bønner': { kcal: 115, p: 8, c: 20, f: 0.5 },
+  'cannellinibønner': { kcal: 115, p: 8, c: 20, f: 0.5 },
+  'tofu': { kcal: 76, p: 8, c: 2, f: 4 },
+  'tempeh': { kcal: 190, p: 20, c: 8, f: 11 },
+
+  // Nødder og frø
+  'mandler': { kcal: 580, p: 21, c: 22, f: 50 },
+  'valnødder': { kcal: 650, p: 15, c: 14, f: 65 },
+  'cashewnødder': { kcal: 550, p: 18, c: 30, f: 44 },
+  'peanuts': { kcal: 570, p: 26, c: 16, f: 49 },
+  'jordnødder': { kcal: 570, p: 26, c: 16, f: 49 },
+  'pinjekerner': { kcal: 670, p: 14, c: 13, f: 68 },
+  'solsikkefrø': { kcal: 580, p: 21, c: 20, f: 51 },
+  'sesamfrø': { kcal: 570, p: 18, c: 23, f: 50 },
+  'chiafrø': { kcal: 490, p: 17, c: 42, f: 31 },
+  'hørfrø': { kcal: 530, p: 18, c: 29, f: 42 },
+  'peanutbutter': { kcal: 590, p: 25, c: 20, f: 50 },
+  'tahini': { kcal: 600, p: 17, c: 22, f: 54 },
+
+  // Frugt
+  'æble': { kcal: 52, p: 0.3, c: 14, f: 0.2 },
+  'æbler': { kcal: 52, p: 0.3, c: 14, f: 0.2 },
+  'banan': { kcal: 90, p: 1, c: 23, f: 0.3 },
+  'bananer': { kcal: 90, p: 1, c: 23, f: 0.3 },
+  'appelsin': { kcal: 47, p: 1, c: 12, f: 0.1 },
+  'appelsiner': { kcal: 47, p: 1, c: 12, f: 0.1 },
+  'citron': { kcal: 29, p: 1, c: 9, f: 0.3 },
+  'lime': { kcal: 30, p: 0.7, c: 11, f: 0.2 },
+  'jordbær': { kcal: 32, p: 0.7, c: 8, f: 0.3 },
+  'blåbær': { kcal: 57, p: 0.7, c: 14, f: 0.3 },
+  'hindbær': { kcal: 52, p: 1, c: 12, f: 0.7 },
+  'mango': { kcal: 60, p: 0.8, c: 15, f: 0.4 },
+  'ananas': { kcal: 50, p: 0.5, c: 13, f: 0.1 },
+  'fersken': { kcal: 39, p: 1, c: 10, f: 0.3 },
+  'pære': { kcal: 57, p: 0.4, c: 15, f: 0.1 },
+  'vindruer': { kcal: 69, p: 0.7, c: 18, f: 0.2 },
+  'rosiner': { kcal: 300, p: 3, c: 79, f: 0.5 },
+  'tørrede abrikoser': { kcal: 240, p: 3, c: 63, f: 0.5 },
+  'dadler': { kcal: 280, p: 2, c: 75, f: 0.2 },
+  'kokosflag': { kcal: 670, p: 6, c: 24, f: 62 },
+
+  // Saucer og dressinger
   'kokosmælk': { kcal: 200, p: 2, c: 4, f: 21 },
+  'kokosmælk let': { kcal: 100, p: 1, c: 3, f: 10 },
   'pesto': { kcal: 470, p: 5, c: 4, f: 48 },
   'tomatpuré': { kcal: 80, p: 4, c: 17, f: 0.5 },
+  'tomatpassata': { kcal: 25, p: 1, c: 5, f: 0.1 },
   'sojasauce': { kcal: 60, p: 6, c: 6, f: 0 },
+  'fiskesauce': { kcal: 35, p: 5, c: 4, f: 0 },
+  'oystersauce': { kcal: 50, p: 1, c: 11, f: 0 },
+  'sriracha': { kcal: 90, p: 2, c: 19, f: 1 },
+  'sweet chili': { kcal: 220, p: 0.5, c: 54, f: 0.3 },
+  'mayonnaise': { kcal: 680, p: 1, c: 1, f: 75 },
+  'ketchup': { kcal: 100, p: 1, c: 26, f: 0.1 },
+  'sennep': { kcal: 60, p: 4, c: 6, f: 3 },
+  'honning': { kcal: 310, p: 0.3, c: 82, f: 0 },
+  'ahornsirup': { kcal: 260, p: 0, c: 67, f: 0 },
+  'hummus': { kcal: 170, p: 8, c: 14, f: 10 },
+  'tzatziki': { kcal: 90, p: 3, c: 4, f: 7 },
+  'curry paste': { kcal: 100, p: 2, c: 12, f: 5 },
+  'rød karry paste': { kcal: 100, p: 2, c: 12, f: 5 },
+  'grøn karry paste': { kcal: 100, p: 2, c: 12, f: 5 },
+  'harissa': { kcal: 80, p: 3, c: 10, f: 4 },
+  'balsamico': { kcal: 90, p: 0.5, c: 17, f: 0 },
+  'eddike': { kcal: 18, p: 0, c: 0.6, f: 0 },
+  'bouillon': { kcal: 10, p: 1, c: 0.5, f: 0.5 },
+  'hønsebouillon': { kcal: 10, p: 1, c: 0.5, f: 0.5 },
+  'oksebouillon': { kcal: 10, p: 1, c: 0.5, f: 0.5 },
+
+  // Krydderier (per 100g)
+  'paprika': { kcal: 280, p: 14, c: 54, f: 13 },
+  'spidskommen': { kcal: 375, p: 18, c: 44, f: 22 },
+  'kanel': { kcal: 250, p: 4, c: 80, f: 1 },
+  'gurkemeje': { kcal: 310, p: 8, c: 67, f: 3 },
+  'karry': { kcal: 325, p: 14, c: 58, f: 14 },
+  'oregano': { kcal: 270, p: 9, c: 69, f: 4 },
+  'timian': { kcal: 275, p: 9, c: 64, f: 7 },
+  'rosmarin': { kcal: 130, p: 3, c: 21, f: 6 },
+  'basilikum': { kcal: 22, p: 3, c: 3, f: 0.6 },
+  'persille': { kcal: 36, p: 3, c: 6, f: 0.8 },
+  'dild': { kcal: 43, p: 4, c: 7, f: 1 },
+  'koriander': { kcal: 23, p: 2, c: 4, f: 0.5 },
+  'mynte': { kcal: 44, p: 3, c: 8, f: 0.7 },
+
+  // Diverse
+  'sukker': { kcal: 400, p: 0, c: 100, f: 0 },
+  'salt': { kcal: 0, p: 0, c: 0, f: 0 },
+  'peber': { kcal: 250, p: 10, c: 64, f: 3 },
+  'kakao': { kcal: 230, p: 20, c: 58, f: 14 },
+  'mørk chokolade': { kcal: 540, p: 5, c: 60, f: 31 },
+  'panko': { kcal: 360, p: 11, c: 75, f: 2 },
+  'rasp': { kcal: 360, p: 11, c: 75, f: 2 },
+  'majsstivelse': { kcal: 360, p: 0.3, c: 88, f: 0 },
 };
+
+// ============ PRIS-DATABASE (danske 2025-priser) ============
+const PRICE_DB: Record<string, { price: number; unit: 'kg' | 'l' | 'stk' | 'pk' }> = {
+  // Kød
+  'kyllingebryst': { price: 90, unit: 'kg' },
+  'kylling': { price: 80, unit: 'kg' },
+  'kyllingelår': { price: 60, unit: 'kg' },
+  'kyllingefilet': { price: 90, unit: 'kg' },
+  'hel kylling': { price: 50, unit: 'kg' },
+  'kalkun': { price: 100, unit: 'kg' },
+  'kalkunbryst': { price: 110, unit: 'kg' },
+  'hakket oksekød': { price: 100, unit: 'kg' },
+  'hakket okse': { price: 100, unit: 'kg' },
+  'oksekød': { price: 130, unit: 'kg' },
+  'oksemørbrad': { price: 250, unit: 'kg' },
+  'entrecote': { price: 200, unit: 'kg' },
+  'culotte': { price: 170, unit: 'kg' },
+  'bøf': { price: 160, unit: 'kg' },
+  'hakket svinekød': { price: 60, unit: 'kg' },
+  'svinekød': { price: 70, unit: 'kg' },
+  'svinemørbrad': { price: 90, unit: 'kg' },
+  'svinekotelet': { price: 80, unit: 'kg' },
+  'nakkefilet': { price: 80, unit: 'kg' },
+  'flæskesteg': { price: 50, unit: 'kg' },
+  'bacon': { price: 120, unit: 'kg' },
+  'medister': { price: 50, unit: 'kg' },
+  'medisterpølse': { price: 50, unit: 'kg' },
+  'lam': { price: 140, unit: 'kg' },
+  'frikadeller': { price: 80, unit: 'kg' },
+  'frikadelle': { price: 80, unit: 'kg' },
+  'hakkekød': { price: 80, unit: 'kg' },
+  'skinke': { price: 100, unit: 'kg' },
+  'pølser': { price: 60, unit: 'kg' },
+  'leverpostej': { price: 30, unit: 'kg' },
+
+  // Fisk
+  'laks': { price: 180, unit: 'kg' },
+  'laksfilet': { price: 180, unit: 'kg' },
+  'røget laks': { price: 250, unit: 'kg' },
+  'torsk': { price: 140, unit: 'kg' },
+  'torskefilet': { price: 140, unit: 'kg' },
+  'rejer': { price: 200, unit: 'kg' },
+  'tun': { price: 80, unit: 'pk' },
+  'tun på dåse': { price: 15, unit: 'stk' },
+  'sej': { price: 100, unit: 'kg' },
+  'rødspætte': { price: 120, unit: 'kg' },
+  'makrel': { price: 80, unit: 'kg' },
+
+  // Mejeri
+  'mælk': { price: 12, unit: 'l' },
+  'letmælk': { price: 12, unit: 'l' },
+  'minimælk': { price: 12, unit: 'l' },
+  'sødmælk': { price: 12, unit: 'l' },
+  'fløde': { price: 28, unit: 'l' },
+  'piskefløde': { price: 28, unit: 'l' },
+  'letfløde': { price: 22, unit: 'l' },
+  'creme fraiche': { price: 18, unit: 'pk' },
+  'cremefraiche': { price: 18, unit: 'pk' },
+  'smør': { price: 100, unit: 'kg' },
+  'ost': { price: 100, unit: 'kg' },
+  'cheddar': { price: 120, unit: 'kg' },
+  'parmesan': { price: 200, unit: 'kg' },
+  'mozzarella': { price: 80, unit: 'kg' },
+  'feta': { price: 90, unit: 'kg' },
+  'yoghurt': { price: 20, unit: 'l' },
+  'græsk yoghurt': { price: 25, unit: 'l' },
+  'skyr': { price: 25, unit: 'l' },
+  'hytteost': { price: 20, unit: 'pk' },
+  'æg': { price: 3, unit: 'stk' },
+
+  // Grøntsager
+  'kartofler': { price: 15, unit: 'kg' },
+  'kartoffel': { price: 15, unit: 'kg' },
+  'søde kartofler': { price: 30, unit: 'kg' },
+  'løg': { price: 15, unit: 'kg' },
+  'rødløg': { price: 25, unit: 'kg' },
+  'hvidløg': { price: 5, unit: 'stk' },
+  'hvidløgsfed': { price: 5, unit: 'stk' },
+  'gulerødder': { price: 15, unit: 'kg' },
+  'gulerod': { price: 15, unit: 'kg' },
+  'tomat': { price: 30, unit: 'kg' },
+  'tomater': { price: 30, unit: 'kg' },
+  'cherrytomater': { price: 50, unit: 'kg' },
+  'agurk': { price: 10, unit: 'stk' },
+  'salat': { price: 15, unit: 'stk' },
+  'spinat': { price: 40, unit: 'kg' },
+  'broccoli': { price: 30, unit: 'kg' },
+  'blomkål': { price: 25, unit: 'stk' },
+  'peberfrugt': { price: 40, unit: 'kg' },
+  'squash': { price: 25, unit: 'kg' },
+  'zucchini': { price: 25, unit: 'kg' },
+  'aubergine': { price: 30, unit: 'kg' },
+  'champignon': { price: 60, unit: 'kg' },
+  'porrer': { price: 25, unit: 'kg' },
+  'porre': { price: 25, unit: 'kg' },
+  'kål': { price: 15, unit: 'kg' },
+  'avocado': { price: 15, unit: 'stk' },
+  'majs': { price: 10, unit: 'pk' },
+  'ærter': { price: 20, unit: 'pk' },
+  'bønner': { price: 15, unit: 'pk' },
+  'grønne bønner': { price: 40, unit: 'kg' },
+  'rødbeder': { price: 20, unit: 'kg' },
+  'rødbede': { price: 20, unit: 'kg' },
+  'asparges': { price: 60, unit: 'kg' },
+  'ingefær': { price: 80, unit: 'kg' },
+  'chili': { price: 5, unit: 'stk' },
+
+  // Bælgfrugter
+  'linser': { price: 30, unit: 'kg' },
+  'røde linser': { price: 30, unit: 'kg' },
+  'grønne linser': { price: 30, unit: 'kg' },
+  'kikærter': { price: 15, unit: 'pk' },
+  'kidneybønner': { price: 15, unit: 'pk' },
+  'sorte bønner': { price: 15, unit: 'pk' },
+  'hvide bønner': { price: 15, unit: 'pk' },
+  'cannellinibønner': { price: 15, unit: 'pk' },
+  'tofu': { price: 30, unit: 'pk' },
+
+  // Tørvarer
+  'pasta': { price: 20, unit: 'kg' },
+  'spaghetti': { price: 20, unit: 'kg' },
+  'penne': { price: 20, unit: 'kg' },
+  'fusilli': { price: 20, unit: 'kg' },
+  'farfalle': { price: 20, unit: 'kg' },
+  'rigatoni': { price: 20, unit: 'kg' },
+  'makaroni': { price: 20, unit: 'kg' },
+  'ris': { price: 25, unit: 'kg' },
+  'jasminris': { price: 30, unit: 'kg' },
+  'basmatiris': { price: 35, unit: 'kg' },
+  'nudler': { price: 15, unit: 'pk' },
+  'havregryn': { price: 20, unit: 'kg' },
+  'bulgur': { price: 30, unit: 'kg' },
+  'couscous': { price: 30, unit: 'kg' },
+  'quinoa': { price: 60, unit: 'kg' },
+  'mel': { price: 15, unit: 'kg' },
+  'tortilla': { price: 25, unit: 'pk' },
+  'wraps': { price: 25, unit: 'pk' },
+  'brød': { price: 20, unit: 'stk' },
+  'rugbrød': { price: 25, unit: 'stk' },
+  'pitabrød': { price: 20, unit: 'pk' },
+
+  // Olie og saucer
+  'olivenolie': { price: 60, unit: 'l' },
+  'rapsolie': { price: 25, unit: 'l' },
+  'olie': { price: 30, unit: 'l' },
+  'kokosmælk': { price: 15, unit: 'pk' },
+  'kokosmælk let': { price: 15, unit: 'pk' },
+  'tomatpuré': { price: 15, unit: 'pk' },
+  'tomatpassata': { price: 15, unit: 'pk' },
+  'hakkede tomater': { price: 10, unit: 'pk' },
+  'flåede tomater': { price: 10, unit: 'pk' },
+  'sojasauce': { price: 25, unit: 'pk' },
+  'pesto': { price: 25, unit: 'pk' },
+  'bouillon': { price: 20, unit: 'pk' },
+  'hønsebouillon': { price: 20, unit: 'pk' },
+  'oksebouillon': { price: 20, unit: 'pk' },
+  'honning': { price: 40, unit: 'pk' },
+  'balsamico': { price: 30, unit: 'pk' },
+
+  // Krydderurter
+  'basilikum': { price: 20, unit: 'pk' },
+  'persille': { price: 15, unit: 'pk' },
+  'dild': { price: 15, unit: 'pk' },
+  'koriander': { price: 15, unit: 'pk' },
+  'rosmarin': { price: 15, unit: 'pk' },
+  'timian': { price: 15, unit: 'pk' },
+  'mynte': { price: 15, unit: 'pk' },
+
+  // Nødder
+  'mandler': { price: 120, unit: 'kg' },
+  'valnødder': { price: 140, unit: 'kg' },
+  'cashewnødder': { price: 120, unit: 'kg' },
+  'peanuts': { price: 40, unit: 'kg' },
+  'jordnødder': { price: 40, unit: 'kg' },
+  'peanutbutter': { price: 50, unit: 'pk' },
+};
+
+// ============ PRISBEREGNING ============
+function calculateRecipePrice(ingredients: any[], servings: number): { totalPrice: number; pricePerPortion: number; matchedCount: number } {
+  let totalPrice = 0;
+  let matchedCount = 0;
+  const categoryFallbacks: Record<string, number> = {
+    'meat': 80, 'fish': 140, 'dairy': 50, 'vegetable': 25, 'fruit': 30, 'grain': 20, 'spice': 200, 'sauce': 30, 'other': 40,
+  };
+  const meatWords = ['kød', 'kylling', 'okse', 'svin', 'lam', 'bacon', 'bøf', 'filet', 'bryst', 'lår', 'kotelet', 'mørbrad', 'steg', 'frikadelle', 'medister', 'pølse', 'skinke', 'kalkun'];
+  const fishWords = ['laks', 'torsk', 'rejer', 'fisk', 'tun', 'sej', 'makrel', 'rødspætte'];
+  const dairyWords = ['mælk', 'fløde', 'ost', 'smør', 'yoghurt', 'skyr', 'æg', 'creme'];
+
+  for (const ing of ingredients || []) {
+    const name = (ing.name || '').toLowerCase().trim();
+    let amount = parseFloat(ing.amount) || 0;
+    const unit = (ing.unit || '').toLowerCase();
+    let priceInfo: { price: number; unit: string } | null = null;
+    if (PRICE_DB[name]) { priceInfo = PRICE_DB[name]; }
+    else { for (const [key, value] of Object.entries(PRICE_DB)) { if (name.includes(key) || key.includes(name)) { priceInfo = value; break; } } }
+    if (priceInfo) {
+      matchedCount++;
+      let p = 0;
+      if (priceInfo.unit === 'kg') {
+        if (unit === 'g' || unit === 'gram') p = (amount / 1000) * priceInfo.price;
+        else if (unit === 'kg') p = amount * priceInfo.price;
+        else p = (amount / 1000) * priceInfo.price;
+      } else if (priceInfo.unit === 'l') {
+        if (unit === 'ml') p = (amount / 1000) * priceInfo.price;
+        else if (unit === 'dl') p = (amount / 10) * priceInfo.price;
+        else if (unit === 'l' || unit === 'liter') p = amount * priceInfo.price;
+        else if (unit === 'spsk' || unit === 'tbsp') p = (amount * 15 / 1000) * priceInfo.price;
+        else if (unit === 'tsk' || unit === 'tsp') p = (amount * 5 / 1000) * priceInfo.price;
+        else p = (amount / 1000) * priceInfo.price;
+      } else if (priceInfo.unit === 'stk') {
+        if (unit === 'stk' || unit === 'stk.' || unit === '') p = amount * priceInfo.price;
+        else p = priceInfo.price;
+      } else if (priceInfo.unit === 'pk') { p = priceInfo.price; }
+      totalPrice += p;
+    } else {
+      let fallback = categoryFallbacks.other;
+      if (meatWords.some(w => name.includes(w))) fallback = categoryFallbacks.meat;
+      else if (fishWords.some(w => name.includes(w))) fallback = categoryFallbacks.fish;
+      else if (dairyWords.some(w => name.includes(w))) fallback = categoryFallbacks.dairy;
+      let kg = 0;
+      if (unit === 'g' || unit === 'gram') kg = amount / 1000;
+      else if (unit === 'kg') kg = amount;
+      else if (unit === 'spsk' || unit === 'tsk') kg = 0;
+      else kg = amount / 1000;
+      totalPrice += kg * fallback;
+    }
+  }
+  return { totalPrice: Math.round(totalPrice), pricePerPortion: servings > 0 ? Math.round(totalPrice / servings) : 0, matchedCount };
+}
 
 // ============ MAKRO-BEREGNING FRA INGREDIENSER ============
 interface CalculatedMacros {
@@ -1415,6 +1840,12 @@ Lav retterne nu!`;
         // Juster kalorier til at matche makroer
         correctedRecipe.calories = macroKcal;
       }
+
+      // 4. Beregn pris
+      const priceCalc = calculateRecipePrice(correctedRecipe.ingredients, correctedRecipe.servings || 1);
+      correctedRecipe.estimated_price = priceCalc.pricePerPortion;
+      correctedRecipe._price_details = { total: priceCalc.totalPrice, per_portion: priceCalc.pricePerPortion, matched_ingredients: priceCalc.matchedCount, total_ingredients: (correctedRecipe.ingredients || []).length };
+      console.log(`💰 Price for "${recipe.title}": ${priceCalc.totalPrice} kr total, ${priceCalc.pricePerPortion} kr/portion`);
 
       return correctedRecipe;
     });
