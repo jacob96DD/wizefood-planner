@@ -169,6 +169,47 @@ const PRICES_PER_UNIT: Record<string, PriceInfo> = {
   'basilikum': { price: 20, unit: 'pk' },
   'rosmarin': { price: 15, unit: 'pk' },
   'timian': { price: 15, unit: 'pk' },
+
+  // Manglende ingredienser (synkroniseret med backend PRICE_DB)
+  'iceberg salat': { price: 15, unit: 'stk' },
+  'blandet salat': { price: 20, unit: 'pk' },
+  'chapati': { price: 20, unit: 'pk' },
+  'chapati brød': { price: 20, unit: 'pk' },
+  'naan': { price: 25, unit: 'pk' },
+  'hytteost': { price: 20, unit: 'pk' },
+  'ricotta': { price: 25, unit: 'pk' },
+  'svinemørbrad': { price: 90, unit: 'kg' },
+  'svinekotelet': { price: 80, unit: 'kg' },
+  'oksemørbrad': { price: 250, unit: 'kg' },
+  'entrecote': { price: 200, unit: 'kg' },
+  'culotte': { price: 170, unit: 'kg' },
+  'lam': { price: 140, unit: 'kg' },
+  'frikadeller': { price: 80, unit: 'kg' },
+  'leverpostej': { price: 30, unit: 'kg' },
+  'røget laks': { price: 250, unit: 'kg' },
+  'tun på dåse': { price: 15, unit: 'stk' },
+  'sej': { price: 100, unit: 'kg' },
+  'quinoa': { price: 60, unit: 'kg' },
+  'bulgur': { price: 30, unit: 'kg' },
+  'couscous': { price: 30, unit: 'kg' },
+  'nudler': { price: 15, unit: 'pk' },
+  'linser': { price: 30, unit: 'kg' },
+  'røde linser': { price: 30, unit: 'kg' },
+  'kikærter': { price: 15, unit: 'pk' },
+  'kidneybønner': { price: 15, unit: 'pk' },
+  'sorte bønner': { price: 15, unit: 'pk' },
+  'tofu': { price: 30, unit: 'pk' },
+  'søde kartofler': { price: 30, unit: 'kg' },
+  'rødbeder': { price: 20, unit: 'kg' },
+  'asparges': { price: 60, unit: 'kg' },
+  'grønne bønner': { price: 40, unit: 'kg' },
+  'pesto': { price: 25, unit: 'pk' },
+  'flåede tomater': { price: 10, unit: 'pk' },
+  'tomatpassata': { price: 15, unit: 'pk' },
+  'mandler': { price: 120, unit: 'kg' },
+  'cashewnødder': { price: 120, unit: 'kg' },
+  'peanutbutter': { price: 50, unit: 'pk' },
+  'letfløde': { price: 22, unit: 'l' },
 };
 
 // Konverter mængde til base-enhed (kg, l, stk, pk)
@@ -414,6 +455,17 @@ const calculateIngredientPrice = (name: string, amount: number, unit: string): n
   return 15;
 };
 
+// Wrapper med max-pris sanity check
+const calculateIngredientPriceSafe = (name: string, amount: number, unit: string): number => {
+  const price = calculateIngredientPrice(name, amount, unit);
+  // Ingen enkelt ingrediens bør koste mere end 200 kr - recalculate med fallback
+  if (price > 200) {
+    console.warn(`⚠️ Price sanity check: "${name}" ${amount}${unit} = ${price} kr (capped to 200)`);
+    return Math.min(price, 200);
+  }
+  return price;
+};
+
 export function useGenerateShoppingList() {
   const [generating, setGenerating] = useState(false);
   const { user } = useAuthStore();
@@ -451,9 +503,16 @@ export function useGenerateShoppingList() {
               existing.sources.push(meal.title);
             }
           } else {
+            // Smart unit detection: if unit is missing, guess from amount
+            let unit = (ing.unit || '').toLowerCase().trim();
+            if (!unit) {
+              // Amounts > 5 are almost certainly grams, not pieces
+              if (amount > 5) unit = 'g';
+              else unit = 'stk';
+            }
             ingredientMap.set(key, {
               amount,
-              unit: ing.unit || 'stk',
+              unit,
               sources: [meal.title],
             });
           }
@@ -685,7 +744,7 @@ export function useGenerateShoppingList() {
           item.store = storeChain?.name || undefined;
         } else {
           // Ingen tilbud - brug estimeret pris baseret på mængde
-          const estimatedPrice = calculateIngredientPrice(ingredientName, neededAmount, value.unit);
+          const estimatedPrice = calculateIngredientPriceSafe(ingredientName, neededAmount, value.unit);
           item.price = estimatedPrice;
           item.isEstimate = true;
         }

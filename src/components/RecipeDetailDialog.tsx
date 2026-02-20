@@ -79,49 +79,49 @@ export function RecipeDetailDialog({ recipe, open, onOpenChange }: RecipeDetailD
               )}
             </DialogHeader>
 
-            {/* Macros - Per portion (VIGTIGT: backend sender TOTAL, så vi dividerer med servings) */}
+            {/* Macros - Per portion (backend sender allerede per-portion værdier) */}
             <div>
               <p className="text-xs text-muted-foreground mb-2">📊 Per portion</p>
               <div className="grid grid-cols-4 gap-2">
                 <div className="text-center p-3 bg-muted rounded-xl">
                   <Flame className="w-4 h-4 mx-auto mb-1 text-orange-500" />
-                  <div className="text-sm font-bold">{Math.round(recipe.calories / (recipe.servings || 1))}</div>
+                  <div className="text-sm font-bold">{recipe.calories}</div>
                   <div className="text-xs text-muted-foreground">kcal</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-xl">
-                  <div className="text-sm font-bold">{Math.round(recipe.protein / (recipe.servings || 1))}g</div>
+                  <div className="text-sm font-bold">{recipe.protein}g</div>
                   <div className="text-xs text-muted-foreground">protein</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-xl">
-                  <div className="text-sm font-bold">{Math.round(recipe.carbs / (recipe.servings || 1))}g</div>
+                  <div className="text-sm font-bold">{recipe.carbs}g</div>
                   <div className="text-xs text-muted-foreground">kulhydrat</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-xl">
-                  <div className="text-sm font-bold">{Math.round(recipe.fat / (recipe.servings || 1))}g</div>
+                  <div className="text-sm font-bold">{recipe.fat}g</div>
                   <div className="text-xs text-muted-foreground">fedt</div>
                 </div>
               </div>
             </div>
 
-            {/* Macros - Samlet (hvis flere portioner) - backend sender allerede TOTAL */}
+            {/* Macros - Samlet (hvis flere portioner) */}
             {recipe.servings > 1 && (
               <div>
                 <p className="text-xs text-muted-foreground mb-2">📦 Samlet ({recipe.servings} portioner)</p>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="text-center p-2 bg-primary/5 rounded-lg">
-                    <div className="text-sm font-bold">{recipe.calories}</div>
+                    <div className="text-sm font-bold">{recipe.calories * recipe.servings}</div>
                     <div className="text-xs text-muted-foreground">kcal</div>
                   </div>
                   <div className="text-center p-2 bg-primary/5 rounded-lg">
-                    <div className="text-sm font-bold">{recipe.protein}g</div>
+                    <div className="text-sm font-bold">{recipe.protein * recipe.servings}g</div>
                     <div className="text-xs text-muted-foreground">protein</div>
                   </div>
                   <div className="text-center p-2 bg-primary/5 rounded-lg">
-                    <div className="text-sm font-bold">{recipe.carbs}g</div>
+                    <div className="text-sm font-bold">{recipe.carbs * recipe.servings}g</div>
                     <div className="text-xs text-muted-foreground">kulhydrat</div>
                   </div>
                   <div className="text-center p-2 bg-primary/5 rounded-lg">
-                    <div className="text-sm font-bold">{recipe.fat}g</div>
+                    <div className="text-sm font-bold">{recipe.fat * recipe.servings}g</div>
                     <div className="text-xs text-muted-foreground">fedt</div>
                   </div>
                 </div>

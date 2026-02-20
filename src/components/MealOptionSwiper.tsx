@@ -93,17 +93,14 @@ export function MealOptionSwiper({
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
 
-    // VIGTIGT: Beregn per-portion for hver ret, IKKE totaler
+    // Backend sender allerede per-portion værdier - brug dem direkte
     const perPortionTotals = selectedMeals.reduce(
-      (sum, meal) => {
-        const servings = meal.servings || 1;
-        return {
-          calories: sum.calories + Math.round((meal.calories || 0) / servings),
-          protein: sum.protein + Math.round((meal.protein || 0) / servings),
-          carbs: sum.carbs + Math.round((meal.carbs || 0) / servings),
-          fat: sum.fat + Math.round((meal.fat || 0) / servings),
-        };
-      },
+      (sum, meal) => ({
+        calories: sum.calories + (meal.calories || 0),
+        protein: sum.protein + (meal.protein || 0),
+        carbs: sum.carbs + (meal.carbs || 0),
+        fat: sum.fat + (meal.fat || 0),
+      }),
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
 
@@ -461,23 +458,23 @@ export function MealOptionSwiper({
                 {currentRecipe.description}
               </p>
 
-              {/* Macros - VIGTIGT: Divider med servings for at vise PER PORTION */}
+              {/* Macros - backend sender allerede per-portion værdier */}
               <div className="grid grid-cols-4 gap-2 mb-3">
                 <div className="text-center p-2 bg-muted rounded-lg">
                   <Flame className="w-4 h-4 mx-auto mb-1 text-orange-500" />
-                  <div className="text-sm font-bold">{Math.round(currentRecipe.calories / (currentRecipe.servings || 1))}</div>
+                  <div className="text-sm font-bold">{currentRecipe.calories}</div>
                   <div className="text-xs text-muted-foreground">kcal</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
-                  <div className="text-sm font-bold">{Math.round(currentRecipe.protein / (currentRecipe.servings || 1))}g</div>
+                  <div className="text-sm font-bold">{currentRecipe.protein}g</div>
                   <div className="text-xs text-muted-foreground">protein</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
-                  <div className="text-sm font-bold">{Math.round(currentRecipe.carbs / (currentRecipe.servings || 1))}g</div>
+                  <div className="text-sm font-bold">{currentRecipe.carbs}g</div>
                   <div className="text-xs text-muted-foreground">kulh.</div>
                 </div>
                 <div className="text-center p-2 bg-muted rounded-lg">
-                  <div className="text-sm font-bold">{Math.round(currentRecipe.fat / (currentRecipe.servings || 1))}g</div>
+                  <div className="text-sm font-bold">{currentRecipe.fat}g</div>
                   <div className="text-xs text-muted-foreground">fedt</div>
                 </div>
               </div>

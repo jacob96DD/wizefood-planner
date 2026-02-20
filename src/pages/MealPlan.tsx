@@ -253,6 +253,7 @@ export default function MealPlan() {
     protein: recipe.protein,
     carbs: recipe.carbs,
     fat: recipe.fat,
+    servings: recipe.servings,
     description: recipe.description,
     ingredients: recipe.ingredients || [],
     instructions: recipe.instructions || [],

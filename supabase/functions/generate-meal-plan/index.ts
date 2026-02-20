@@ -1670,12 +1670,14 @@ VIGTIGT: Alle mængder og makroer er PER PORTION. Backend skalerer automatisk.`;
 - Ret-type: ${variation.mealType}
 - Køkken: ${variation.cuisine}
 
-📋 VARIATIONS-KRAV:
+📋 VARIATIONS-KRAV (UFRAVIGELIGE):
 1. Mindst 2 retter skal følge DENNE UGES TEMA
-2. Max 2 retter med SAMME hovedprotein
+2. Max 2 retter med SAMME hovedprotein - ALDRIG 3 retter med kylling/laks/etc.
 3. Mix af hurtige (15-20 min) og langsomme (45-60 min) retter
 4. Mindst 1 vegetar-venlig ret eller ret med bælgfrugter
 5. UNDGÅ disse nylige retter: ${recentMealTitles.slice(0, 10).join(', ') || 'Ingen'}
+6. ALDRIG to retter med næsten identisk navn eller tilberedningsmåde (fx "Sprød Indisk Kalkunsalat" og "Tandoori Kalkunsalat")
+7. Variér køkkener: mix af dansk, asiatisk, italiensk, mexicansk etc. - ALDRIG mere end 3 retter fra samme køkken
 
 Husk (mængder er PER PORTION - backend skalerer automatisk):
 - ${recipesNeeded} retter vælges af brugeren

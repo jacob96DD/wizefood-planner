@@ -292,7 +292,7 @@ export function WeekOverview({ plan, onShoppingListClick, onDeletePlan }: WeekOv
                     <h4 className="font-semibold text-sm line-clamp-1">{dish.title}</h4>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-muted-foreground">
-                        {Math.round(dish.calories / (dish.servings || 1))} kcal/portion · {dish.prepTime}+ min
+                        {dish.calories} kcal/portion · {dish.prepTime}+ min
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {[...new Set(dish.usageDays)].join(', ')}

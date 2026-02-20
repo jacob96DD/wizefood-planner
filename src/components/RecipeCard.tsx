@@ -165,7 +165,7 @@ export function RecipeCard({ recipe, onSwipe }: RecipeCardProps) {
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Flame className="w-4 h-4" />
-            <span>{Math.round(recipe.calories / (recipe.servings || 1))} {t('common.kcal')}</span>
+            <span>{recipe.calories} {t('common.kcal')}</span>
           </div>
         </div>
       </div>
