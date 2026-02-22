@@ -1,0 +1,549 @@
+[
+  {
+    "id": "aftensmad-koed-001",
+    "title": "Kyllingebryst med broccoliflødesauce og ris",
+    "slug": "kyllingebryst-med-broccolifloedesauce-og-ris",
+    "description": "Saftige kyllingebryster serveret med en cremet broccoliflødesauce og dampende basmatiris. En hverdagsklassiker der er nem at lave og mætter godt.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "dansk",
+    "tags": ["kylling", "broccoli", "flødesauce", "ris", "hverdagsmad"],
+    "difficulty": "let",
+    "prepTime": 10,
+    "cookTime": 25,
+    "totalTime": 35,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 35,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Kyllingebryst", "amount": 180, "unit": "g" },
+      { "item": "Basmatiris (tør)", "amount": 60, "unit": "g" },
+      { "item": "Broccoli", "amount": 150, "unit": "g" },
+      { "item": "Fløde (38%)", "amount": 30, "unit": "ml" },
+      { "item": "Løg", "amount": 50, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Olivenolie", "amount": 5, "unit": "ml" },
+      { "item": "Salt og peber", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Kog basmatiris efter anvisningen på pakken. Det tager typisk 10-12 minutter.",
+      "Skær kyllingebrystet i tynde skiver og krydr med salt og peber.",
+      "Hak løg og hvidløg fint. Del broccolien i små buketter.",
+      "Varm olivenolie op i en stor pande ved medium-høj varme. Steg kyllingen i 5-6 minutter, til den er gennemstegt. Tag den op.",
+      "Steg løg og hvidløg i samme pande i 2 minutter. Tilsæt broccolibuketter og steg i 3-4 minutter.",
+      "Tilsæt fløden og lad saucen simre i 3 minutter, til broccolien er mør men stadig har bid.",
+      "Læg kyllingen tilbage i panden og vend det hele sammen. Smag til med salt og peber.",
+      "Anret kylling og broccoliflødesauce over risen og server straks."
+    ],
+    "nutrition": {
+      "calories": 731,
+      "protein": 65.8,
+      "carbs": 63.8,
+      "fat": 23.4
+    },
+    "_macro_calculation": {
+      "Kyllingebryst 180g": "297 kcal | 55.8g P | 0g K | 6.5g F",
+      "Basmatiris 60g": "210 kcal | 4.3g P | 46.8g K | 0.4g F",
+      "Broccoli 150g": "51 kcal | 4.2g P | 9.9g K | 0.6g F",
+      "Fløde 30ml": "101.7 kcal | 0.6g P | 0.9g K | 10.8g F",
+      "Løg 50g": "20 kcal | 0.6g P | 4.5g K | 0.1g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Olivenolie 5ml": "44.2 kcal | 0g P | 0g K | 5g F",
+      "TOTAL": "731.4 kcal | 65.8g P | 63.8g K | 23.4g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-002",
+    "title": "Spaghetti bolognese med hakket oksekød",
+    "slug": "spaghetti-bolognese-med-hakket-oksekoed",
+    "description": "Klassisk italiensk inspireret bolognese med magert hakket oksekød, friske tomater og aromatiske grøntsager. Serveret med al dente spaghetti.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "italiensk",
+    "tags": ["oksekød", "pasta", "bolognese", "italiensk", "klassiker"],
+    "difficulty": "let",
+    "prepTime": 10,
+    "cookTime": 30,
+    "totalTime": 40,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 30,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Hakket oksekød (5% fedt)", "amount": 200, "unit": "g" },
+      { "item": "Spaghetti (tør)", "amount": 80, "unit": "g" },
+      { "item": "Tomater", "amount": 150, "unit": "g" },
+      { "item": "Gulerødder", "amount": 50, "unit": "g" },
+      { "item": "Løg", "amount": 50, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Olivenolie", "amount": 5, "unit": "ml" },
+      { "item": "Salt, peber og tørret oregano", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Hak løg, hvidløg og gulerødder fint. Skær tomaterne i små tern.",
+      "Varm olivenolie op i en tykbundet gryde. Brun det hakket oksekød ved høj varme i 4-5 minutter, til det har fået farve.",
+      "Tilsæt løg, hvidløg og gulerødder. Steg i 3 minutter, til løgene er bløde.",
+      "Tilsæt tomatterne og oregano. Sænk varmen og lad saucen simre under låg i 20 minutter.",
+      "Kog spaghetti i rigeligt saltet vand efter anvisningen på pakken, typisk 8-10 minutter.",
+      "Smag bolognesen til med salt og peber. Tilsæt evt. lidt kogevand fra pastaen for at justere konsistensen.",
+      "Anret spaghetti på en dyb tallerken og fordel bolognesesaucen ovenpå. Server straks."
+    ],
+    "nutrition": {
+      "calories": 672,
+      "protein": 45.2,
+      "carbs": 68.3,
+      "fat": 18.5
+    },
+    "_macro_calculation": {
+      "Hakket oksekød 200g": "274 kcal | 42g P | 0g K | 11g F",
+      "Spaghetti 80g": "278.4 kcal | 10.4g P | 51.2g K | 2g F",
+      "Tomater 150g": "27 kcal | 1.4g P | 5.9g K | 0.3g F",
+      "Gulerødder 50g": "20.5 kcal | 0.5g P | 5g K | 0.1g F",
+      "Løg 50g": "20 kcal | 0.6g P | 4.5g K | 0.1g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Olivenolie 5ml": "44.2 kcal | 0g P | 0g K | 5g F",
+      "TOTAL": "671.6 kcal | 45.2g P | 68.3g K | 18.5g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-003",
+    "title": "Ovnbagt svinemørbrad med søde kartofler og squash",
+    "slug": "ovnbagt-svinemorbrad-med-soede-kartofler-og-squash",
+    "description": "Mørt og saftigt svinemørbrad bagt i ovnen sammen med karamelliserede søde kartofler og squash. En sund og mættende hverdagsret.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "dansk",
+    "tags": ["svinekød", "ovnbagt", "søde kartofler", "squash", "sund"],
+    "difficulty": "medium",
+    "prepTime": 15,
+    "cookTime": 30,
+    "totalTime": 45,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 40,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Svinemørbrad", "amount": 200, "unit": "g" },
+      { "item": "Søde kartofler", "amount": 200, "unit": "g" },
+      { "item": "Squash", "amount": 150, "unit": "g" },
+      { "item": "Olivenolie", "amount": 10, "unit": "ml" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Løg", "amount": 30, "unit": "g" },
+      { "item": "Salt, peber og frisk rosmarin", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Forvarm ovnen til 200°C varmluft.",
+      "Skræl de søde kartofler og skær dem i 2 cm tern. Skær squashen i halve skiver. Hak løg i både og knus hvidløgsfeddet.",
+      "Fordel søde kartofler, squash, løg og hvidløg på en bageplade. Pensl med halvdelen af oliveolien og drys med salt, peber og hakket rosmarin.",
+      "Tør svinemørbraden af med køkkenrulle og krydr godt med salt og peber.",
+      "Brun svinemørbraden i resten af oliveolien i en varm pande i 2 minutter på hver side.",
+      "Læg mørbraden ovenpå grøntsagerne på bagepladen og bag i ovnen i 20-25 minutter, til kernetemperaturen er 63°C.",
+      "Tag mørbraden ud og lad den hvile i 5 minutter under sølvpapir.",
+      "Skær mørbraden i tykke skiver og anret sammen med de ovnbagte grøntsager."
+    ],
+    "nutrition": {
+      "calories": 591,
+      "protein": 57.6,
+      "carbs": 49.1,
+      "fat": 17.7
+    },
+    "_macro_calculation": {
+      "Svinemørbrad 200g": "286 kcal | 52g P | 0g K | 7g F",
+      "Søde kartofler 200g": "172 kcal | 3.2g P | 40g K | 0.2g F",
+      "Squash 150g": "25.5 kcal | 1.8g P | 4.7g K | 0.5g F",
+      "Olivenolie 10ml": "88.4 kcal | 0g P | 0g K | 10g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Løg 30g": "12 kcal | 0.3g P | 2.7g K | 0g F",
+      "TOTAL": "591.4 kcal | 57.6g P | 49.1g K | 17.7g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-004",
+    "title": "Thai kyllingewok med kokosmælk og ris",
+    "slug": "thai-kyllingewok-med-kokosmaelk-og-ris",
+    "description": "Farverig og aromatisk thai-inspireret wokret med saftig kylling, sprøde grøntsager og cremet kokosmælk. Serveret med duftende basmatiris.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "asiatisk",
+    "tags": ["kylling", "wok", "thai", "kokosmælk", "asiatisk"],
+    "difficulty": "let",
+    "prepTime": 15,
+    "cookTime": 15,
+    "totalTime": 30,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 38,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Kyllingebryst", "amount": 170, "unit": "g" },
+      { "item": "Basmatiris (tør)", "amount": 60, "unit": "g" },
+      { "item": "Kokosmælk", "amount": 50, "unit": "ml" },
+      { "item": "Peberfrugt", "amount": 100, "unit": "g" },
+      { "item": "Gulerødder", "amount": 50, "unit": "g" },
+      { "item": "Løg", "amount": 40, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Olivenolie", "amount": 5, "unit": "ml" },
+      { "item": "Sojasauce, ingefær og limesaft", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Kog basmatiris efter anvisningen på pakken.",
+      "Skær kyllingebrystet i tynde strimler. Skær peberfrugt i strimler, gulerødder i tynde skiver og løg i halvringe.",
+      "Hak hvidløg og eventuelt frisk ingefær fint.",
+      "Varm olivenolie op i en wok eller stor pande ved høj varme. Steg kyllingen i 3-4 minutter, til den er hvid hele vejen igennem. Tag den op.",
+      "Tilsæt løg, hvidløg og gulerødder til wokken og steg i 2 minutter ved høj varme.",
+      "Tilsæt peberfrugt og steg yderligere 2 minutter. Grøntsagerne skal stadig være sprøde.",
+      "Hæld kokosmælken i og tilsæt sojasauce og limesaft. Læg kyllingen tilbage og vend det hele sammen. Lad det simre i 2-3 minutter.",
+      "Anret wokretten over risen i en dyb skål."
+    ],
+    "nutrition": {
+      "calories": 708,
+      "protein": 60.3,
+      "carbs": 64.5,
+      "fat": 22.4
+    },
+    "_macro_calculation": {
+      "Kyllingebryst 170g": "280.5 kcal | 52.7g P | 0g K | 6.1g F",
+      "Basmatiris 60g": "210 kcal | 4.3g P | 46.8g K | 0.4g F",
+      "Kokosmælk 50ml": "98.5 kcal | 1.1g P | 1.4g K | 10.5g F",
+      "Peberfrugt 100g": "31 kcal | 1g P | 6g K | 0.3g F",
+      "Gulerødder 50g": "20.5 kcal | 0.5g P | 5g K | 0.1g F",
+      "Løg 40g": "16 kcal | 0.4g P | 3.6g K | 0g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Olivenolie 5ml": "44.2 kcal | 0g P | 0g K | 5g F",
+      "TOTAL": "708.2 kcal | 60.3g P | 64.5g K | 22.4g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-005",
+    "title": "Mellemøstlige lammefrikadeller med bulgursalat",
+    "slug": "mellemoestlige-lammefrikadeller-med-bulgursalat",
+    "description": "Krydrede lammefrikadeller inspireret af det mellemøstlige køkken, serveret med en frisk bulgursalat med spinat, tomater og citron.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "mellemøstlig",
+    "tags": ["lam", "frikadeller", "bulgur", "mellemøstlig", "salat"],
+    "difficulty": "medium",
+    "prepTime": 20,
+    "cookTime": 15,
+    "totalTime": 35,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 48,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Lammekød (hakket)", "amount": 130, "unit": "g" },
+      { "item": "Bulgur (tør)", "amount": 60, "unit": "g" },
+      { "item": "Tomater", "amount": 80, "unit": "g" },
+      { "item": "Løg", "amount": 40, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Spinat", "amount": 50, "unit": "g" },
+      { "item": "Olivenolie", "amount": 5, "unit": "ml" },
+      { "item": "Salt, peber, spidskommen og koriander", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Kog bulgur i let saltet vand i ca. 12 minutter. Lad den køle lidt af.",
+      "Hak halvdelen af løgene fint og bland dem med lammekødet, hakket hvidløg, spidskommen, koriander, salt og peber. Ælt godt sammen.",
+      "Form kødfarseblandingen til 4-5 små frikadeller.",
+      "Varm olivenolie op i en pande og steg frikadellerne ved medium varme i ca. 4-5 minutter på hver side, til de er gennemstegte og har en flot brun skorpe.",
+      "Skær tomater i tern og resten af løgene i tynde ringe.",
+      "Bland den afkølede bulgur med spinat, tomater og løgringe. Krydr med salt, peber og et skvæt citronsaft.",
+      "Anret bulgursalaten på en tallerken med de varme lammefrikadeller ovenpå."
+    ],
+    "nutrition": {
+      "calories": 663,
+      "protein": 42.1,
+      "carbs": 48.0,
+      "fat": 32.2
+    },
+    "_macro_calculation": {
+      "Lammekød 130g": "364 kcal | 32.5g P | 0g K | 26g F",
+      "Bulgur 60g": "205.2 kcal | 7.2g P | 37.8g K | 0.8g F",
+      "Tomater 80g": "14.4 kcal | 0.7g P | 3.1g K | 0.2g F",
+      "Løg 40g": "16 kcal | 0.4g P | 3.6g K | 0g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Spinat 50g": "11.5 kcal | 1.5g P | 1.8g K | 0.2g F",
+      "Olivenolie 5ml": "44.2 kcal | 0g P | 0g K | 5g F",
+      "TOTAL": "662.8 kcal | 42.6g P | 48g K | 32.2g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-006",
+    "title": "Kalkunbryst med champignonsauce og kogte kartofler",
+    "slug": "kalkunbryst-med-champignonsauce-og-kogte-kartofler",
+    "description": "Magert og saftigt kalkunbryst serveret med en fyldig champignon-flødesauce og klassiske kogte kartofler. En proteinrig hverdagsret.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "dansk",
+    "tags": ["kalkun", "champignon", "flødesauce", "kartofler", "proteinrig"],
+    "difficulty": "let",
+    "prepTime": 10,
+    "cookTime": 25,
+    "totalTime": 35,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 42,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Kalkunbryst", "amount": 220, "unit": "g" },
+      { "item": "Kartofler", "amount": 200, "unit": "g" },
+      { "item": "Champignon", "amount": 100, "unit": "g" },
+      { "item": "Fløde (38%)", "amount": 40, "unit": "ml" },
+      { "item": "Løg", "amount": 30, "unit": "g" },
+      { "item": "Smør", "amount": 8, "unit": "g" },
+      { "item": "Salt, peber og frisk timian", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Skræl kartoflerne og kog dem i let saltet vand i ca. 18-20 minutter, til de er møre.",
+      "Skær kalkunbrystet i to tynde skiver (sommerfuglesnit) og krydr med salt og peber.",
+      "Smelt smørret i en pande ved medium-høj varme. Steg kalkunbrystet i 4-5 minutter på hver side. Tag det op og hold det varmt.",
+      "Skær champignoner i skiver og hak løget fint.",
+      "Steg løg og champignon i den samme pande i 4-5 minutter, til champignonerne har fået farve.",
+      "Tilsæt fløden og frisk timian. Lad saucen simre i 3-4 minutter, til den er reduceret en smule. Smag til med salt og peber.",
+      "Anret kalkunbrystet med kogte kartofler og champignonsaucen hældt over."
+    ],
+    "nutrition": {
+      "calories": 678,
+      "protein": 74.3,
+      "carbs": 41.2,
+      "fat": 24.0
+    },
+    "_macro_calculation": {
+      "Kalkunbryst 220g": "297 kcal | 66g P | 0g K | 2.6g F",
+      "Kartofler 200g": "154 kcal | 4g P | 34g K | 0.2g F",
+      "Champignon 100g": "22 kcal | 3.1g P | 3.3g K | 0.3g F",
+      "Fløde 40ml": "135.6 kcal | 0.8g P | 1.2g K | 14.4g F",
+      "Løg 30g": "12 kcal | 0.3g P | 2.7g K | 0g F",
+      "Smør 8g": "57.4 kcal | 0.1g P | 0g K | 6.5g F",
+      "TOTAL": "678 kcal | 74.3g P | 41.2g K | 24g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-007",
+    "title": "Mexicansk oksekødsgryde med ris og peberfrugt",
+    "slug": "mexicansk-oksekoedsgryde-med-ris-og-peberfrugt",
+    "description": "En varmende og krydret mexicansk-inspireret gryderet med magert hakket oksekød, farverig peberfrugt og friske tomater. Serveret med basmatiris.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "mexicansk",
+    "tags": ["oksekød", "mexicansk", "gryderet", "peberfrugt", "ris"],
+    "difficulty": "let",
+    "prepTime": 10,
+    "cookTime": 25,
+    "totalTime": 35,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 32,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Hakket oksekød (5% fedt)", "amount": 180, "unit": "g" },
+      { "item": "Basmatiris (tør)", "amount": 60, "unit": "g" },
+      { "item": "Peberfrugt", "amount": 100, "unit": "g" },
+      { "item": "Tomater", "amount": 100, "unit": "g" },
+      { "item": "Løg", "amount": 50, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Olivenolie", "amount": 5, "unit": "ml" },
+      { "item": "Salt, peber, spidskommen, paprika og chiliflager", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Kog basmatiris efter anvisningen på pakken.",
+      "Hak løg og hvidløg fint. Skær peberfrugt i tern og tomater i grove stykker.",
+      "Varm olivenolie op i en gryde ved høj varme. Brun det hakket oksekød i 4-5 minutter, mens du brækker det op med en ske.",
+      "Tilsæt løg og hvidløg og steg i 2 minutter.",
+      "Krydr med spidskommen, paprika og chiliflager. Steg krydderierne med i 1 minut.",
+      "Tilsæt peberfrugt og tomater. Sænk varmen og lad gryden simre i 15 minutter under låg, rør af og til.",
+      "Smag til med salt og peber. Tilsæt eventuelt lidt vand, hvis gryden bliver for tyk.",
+      "Server den mexicanske oksekødsgryde over risen."
+    ],
+    "nutrition": {
+      "calories": 577,
+      "protein": 44.9,
+      "carbs": 62.9,
+      "fat": 15.9
+    },
+    "_macro_calculation": {
+      "Hakket oksekød 180g": "246.6 kcal | 37.8g P | 0g K | 9.9g F",
+      "Basmatiris 60g": "210 kcal | 4.3g P | 46.8g K | 0.4g F",
+      "Peberfrugt 100g": "31 kcal | 1g P | 6g K | 0.3g F",
+      "Tomater 100g": "18 kcal | 0.9g P | 3.9g K | 0.2g F",
+      "Løg 50g": "20 kcal | 0.6g P | 4.5g K | 0.1g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Olivenolie 5ml": "44.2 kcal | 0g P | 0g K | 5g F",
+      "TOTAL": "577.3 kcal | 44.9g P | 62.9g K | 15.9g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-008",
+    "title": "Dansk flæskesteg med kartofler og glaserede gulerødder",
+    "slug": "dansk-flaeskesteg-med-kartofler-og-glaserede-guleroedder",
+    "description": "Klassisk dansk flæskesteg med sprød svær, serveret med kogte kartofler og smørglaserede gulerødder. En ægte dansk søndagsmiddag.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "dansk",
+    "tags": ["flæskesteg", "dansk", "klassiker", "kartofler", "søndagsmad"],
+    "difficulty": "svær",
+    "prepTime": 20,
+    "cookTime": 90,
+    "totalTime": 110,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 38,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025, pris per portion af en hel steg"
+    },
+    "ingredients": [
+      { "item": "Flæskesteg (med svær)", "amount": 160, "unit": "g" },
+      { "item": "Kartofler", "amount": 200, "unit": "g" },
+      { "item": "Gulerødder", "amount": 100, "unit": "g" },
+      { "item": "Løg", "amount": 30, "unit": "g" },
+      { "item": "Salt og laurbærblade", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Forvarm ovnen til 220°C. Rids flæskestegens svær med en skarp kniv i tætte, dybe snit. Gnid rigelig salt ned i ridserne.",
+      "Skær løget i halve og placer det i bunden af en bradepande sammen med et laurbærblad. Hæld 1 dl vand i bunden.",
+      "Sæt flæskestegen ovenpå med sværen opad. Bag ved 220°C i 20 minutter, til sværen begynder at boble.",
+      "Sænk temperaturen til 170°C og bag i yderligere 60-70 minutter. Kernetemperaturen skal være 68°C.",
+      "Skræl kartoflerne og kog dem i let saltet vand i 18-20 minutter.",
+      "Skræl gulerødderne og kog dem i 10-12 minutter. De skal være møre men stadig have form.",
+      "Lad stegen hvile i 10 minutter under sølvpapir. Skær i skiver.",
+      "Anret flæskestegen med kogte kartofler og gulerødder. Brug stegeskyen som sauce."
+    ],
+    "nutrition": {
+      "calories": 607,
+      "protein": 37.2,
+      "carbs": 46.7,
+      "fat": 30.8
+    },
+    "_macro_calculation": {
+      "Flæskesteg 160g": "400 kcal | 32g P | 0g K | 30.4g F",
+      "Kartofler 200g": "154 kcal | 4g P | 34g K | 0.2g F",
+      "Gulerødder 100g": "41 kcal | 0.9g P | 10g K | 0.2g F",
+      "Løg 30g": "12 kcal | 0.3g P | 2.7g K | 0g F",
+      "TOTAL": "607 kcal | 37.2g P | 46.7g K | 30.8g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-009",
+    "title": "Italienske kyllingelår i tomat-basilikumsauce med penne",
+    "slug": "italienske-kyllingelaar-i-tomat-basilikumsauce-med-penne",
+    "description": "Langtidsstegte kyllingelår i en aromatisk tomatsauce med hvidløg og frisk basilikum, serveret med penne pasta. Italiensk comfort food på dansk.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "italiensk",
+    "tags": ["kyllingelår", "pasta", "tomatsauce", "italiensk", "gryderet"],
+    "difficulty": "medium",
+    "prepTime": 10,
+    "cookTime": 35,
+    "totalTime": 45,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 28,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Kyllingelår (uden skind)", "amount": 170, "unit": "g" },
+      { "item": "Penne pasta (tør)", "amount": 70, "unit": "g" },
+      { "item": "Tomater", "amount": 120, "unit": "g" },
+      { "item": "Løg", "amount": 40, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Olivenolie", "amount": 5, "unit": "ml" },
+      { "item": "Salt, peber og frisk basilikum", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Krydr kyllingelårene med salt og peber.",
+      "Varm olivenolie op i en tykbundet gryde. Brun kyllingelårene i 3-4 minutter på hver side, til de har en flot gylden farve. Tag dem op.",
+      "Hak løg og hvidløg fint og steg dem i gryden i 2 minutter.",
+      "Skær tomaterne i grove tern og tilsæt dem til gryden. Kog op og sænk varmen.",
+      "Læg kyllingelårene tilbage i saucen. Lad det hele simre under låg i 25 minutter ved lav varme, til kyllingen er mør og falder fra benet.",
+      "Kog penne pasta i rigeligt saltet vand efter anvisningen på pakken, typisk 10-12 minutter.",
+      "Pil kødet fra kyllingelårene og bland det i tomatsaucen. Tilsæt revet frisk basilikum og smag til.",
+      "Anret penne med den rige kylling-tomatsauce ovenpå."
+    ],
+    "nutrition": {
+      "calories": 690,
+      "protein": 55.1,
+      "carbs": 54.8,
+      "fat": 27.4
+    },
+    "_macro_calculation": {
+      "Kyllingelår 170g": "357 kcal | 44.2g P | 0g K | 20.4g F",
+      "Penne pasta 70g": "243.6 kcal | 9.1g P | 44.8g K | 1.8g F",
+      "Tomater 120g": "21.6 kcal | 1.1g P | 4.7g K | 0.2g F",
+      "Løg 40g": "16 kcal | 0.4g P | 3.6g K | 0g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Olivenolie 5ml": "44.2 kcal | 0g P | 0g K | 5g F",
+      "TOTAL": "689.9 kcal | 55.1g P | 54.8g K | 27.4g F"
+    }
+  },
+  {
+    "id": "aftensmad-koed-010",
+    "title": "Asiatisk svinemørbrad med broccoli og sesamris",
+    "slug": "asiatisk-svinemorbrad-med-broccoli-og-sesamris",
+    "description": "Hurtig og smagfuld asiatisk-inspireret ret med svinemørbrad i sojamarinade, dampet broccoli og duftende ris. Klar på 30 minutter.",
+    "category": "aftensmad",
+    "subcategory": "kød",
+    "cuisine": "asiatisk",
+    "tags": ["svinekød", "asiatisk", "broccoli", "ris", "hurtig"],
+    "difficulty": "let",
+    "prepTime": 10,
+    "cookTime": 15,
+    "totalTime": 25,
+    "servings": 1,
+    "estimatedPrice": {
+      "amount": 36,
+      "currency": "DKK",
+      "note": "Baseret på danske supermarkedspriser 2025"
+    },
+    "ingredients": [
+      { "item": "Svinemørbrad", "amount": 180, "unit": "g" },
+      { "item": "Basmatiris (tør)", "amount": 65, "unit": "g" },
+      { "item": "Broccoli", "amount": 120, "unit": "g" },
+      { "item": "Gulerødder", "amount": 50, "unit": "g" },
+      { "item": "Løg", "amount": 30, "unit": "g" },
+      { "item": "Hvidløg", "amount": 5, "unit": "g" },
+      { "item": "Olivenolie", "amount": 8, "unit": "ml" },
+      { "item": "Sojasauce, sesamfrø og ingefær", "amount": null, "unit": "efter smag" }
+    ],
+    "instructions": [
+      "Kog basmatiris efter anvisningen på pakken. Når risen er klar, vend sesamfrø i.",
+      "Skær svinemørbraden i tynde skiver på skrå. Marinier kort med sojasauce og revet ingefær.",
+      "Del broccolien i små buketter. Skær gulerødder i tynde stave og løg i halvringe. Hak hvidløg fint.",
+      "Varm halvdelen af oliveolien op i en wok ved høj varme. Steg svinekødet hurtigt i 2-3 minutter, til det er brunet. Tag det op.",
+      "Tilsæt resten af olien og steg hvidløg, løg og gulerødder i 2 minutter.",
+      "Tilsæt broccoli og steg i yderligere 3 minutter. Tilsæt en lille smule vand og lad broccolien dampe under låg i 2 minutter.",
+      "Læg svinekødet tilbage i wokken. Tilsæt et skvæt sojasauce og vend det hele godt sammen.",
+      "Anret wokken over sesamris og drys med sesamfrø."
+    ],
+    "nutrition": {
+      "calories": 636,
+      "protein": 55.9,
+      "carbs": 68.0,
+      "fat": 15.3
+    },
+    "_macro_calculation": {
+      "Svinemørbrad 180g": "257.4 kcal | 46.8g P | 0g K | 6.3g F",
+      "Basmatiris 65g": "227.5 kcal | 4.6g P | 50.7g K | 0.4g F",
+      "Broccoli 120g": "40.8 kcal | 3.4g P | 7.9g K | 0.5g F",
+      "Gulerødder 50g": "20.5 kcal | 0.5g P | 5g K | 0.1g F",
+      "Løg 30g": "12 kcal | 0.3g P | 2.7g K | 0g F",
+      "Hvidløg 5g": "7.5 kcal | 0.3g P | 1.7g K | 0g F",
+      "Olivenolie 8ml": "70.7 kcal | 0g P | 0g K | 8g F",
+      "TOTAL": "636.4 kcal | 55.9g P | 68g K | 15.3g F"
+    }
+  }
+]

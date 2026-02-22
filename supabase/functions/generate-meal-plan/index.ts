@@ -476,6 +476,261 @@ const PRICE_DB: Record<string, { price: number; unit: 'kg' | 'l' | 'stk' | 'pk' 
   'peanutbutter': { price: 50, unit: 'pk' },
 };
 
+// ============ MAKRO-ADJUSTERE ============
+// Ingredienser der kan tilføjes/fjernes for at justere makroer
+// Alle værdier er per 100g fra MACRO_DB
+
+const PROTEIN_BOOSTERS = [
+  { name: "kyllingebryst", unit: "g", per100: { kcal: 165, p: 31, c: 0, f: 3.6 }, pricePerKg: 90, diet: ["omnivore", "pescatarian"] },
+  { name: "kalkunbryst", unit: "g", per100: { kcal: 135, p: 30, c: 0, f: 1.2 }, pricePerKg: 110, diet: ["omnivore", "pescatarian"] },
+  { name: "skyr", unit: "g", per100: { kcal: 63, p: 11, c: 4, f: 0.2 }, pricePerKg: 25, diet: ["omnivore", "vegetarian", "pescatarian"] },
+  { name: "hytteost", unit: "g", per100: { kcal: 98, p: 11, c: 3.4, f: 4.3 }, pricePerKg: 40, diet: ["omnivore", "vegetarian", "pescatarian"] },
+  { name: "æg", unit: "stk", per100: { kcal: 155, p: 13, c: 1.1, f: 11 }, pricePerKg: 30, diet: ["omnivore", "vegetarian", "pescatarian"], amountPer: 60 },
+  { name: "kikærter", unit: "g", per100: { kcal: 164, p: 8.9, c: 27.4, f: 2.6 }, pricePerKg: 25, diet: ["omnivore", "vegetarian", "vegan", "pescatarian"] },
+  { name: "tofu", unit: "g", per100: { kcal: 76, p: 8, c: 1.9, f: 4.8 }, pricePerKg: 50, diet: ["omnivore", "vegetarian", "vegan", "pescatarian"] },
+  { name: "rejer", unit: "g", per100: { kcal: 99, p: 24, c: 0.2, f: 0.3 }, pricePerKg: 200, diet: ["omnivore", "pescatarian"] },
+  { name: "tun på dåse", unit: "g", per100: { kcal: 116, p: 26, c: 0, f: 1 }, pricePerKg: 80, diet: ["omnivore", "pescatarian"] },
+  { name: "edamamebønner", unit: "g", per100: { kcal: 122, p: 11, c: 8.9, f: 5 }, pricePerKg: 45, diet: ["omnivore", "vegetarian", "vegan", "pescatarian"] },
+];
+
+const CARB_ADJUSTERS = [
+  { name: "basmatiris", unit: "g", per100: { kcal: 350, p: 7.1, c: 78, f: 0.6 }, pricePerKg: 35 },
+  { name: "kartofler", unit: "g", per100: { kcal: 77, p: 2, c: 17, f: 0.1 }, pricePerKg: 15 },
+  { name: "bulgur", unit: "g", per100: { kcal: 342, p: 12, c: 63, f: 1.3 }, pricePerKg: 30 },
+  { name: "søde kartofler", unit: "g", per100: { kcal: 86, p: 1.6, c: 20, f: 0.1 }, pricePerKg: 25 },
+  { name: "fuldkornspasta", unit: "g", per100: { kcal: 348, p: 13, c: 64, f: 2.5 }, pricePerKg: 25 },
+];
+
+const FAT_ADJUSTERS = [
+  { name: "olivenolie", unit: "spsk", per100: { kcal: 884, p: 0, c: 0, f: 100 }, pricePerKg: 60, amountPer: 15 },
+  { name: "avocado", unit: "g", per100: { kcal: 160, p: 2, c: 8.5, f: 14.7 }, pricePerKg: 40 },
+  { name: "mandler", unit: "g", per100: { kcal: 579, p: 21, c: 22, f: 49 }, pricePerKg: 120 },
+  { name: "peanutbutter", unit: "g", per100: { kcal: 588, p: 25, c: 20, f: 50 }, pricePerKg: 60 },
+];
+
+// ============ AUTO-JUSTÉR MAKROER VED AT TILFØJE/FJERNE INGREDIENSER ============
+interface MacroTargets {
+  caloriesPerRecipe: number;
+  proteinPerRecipe: number;
+  carbsPerRecipe: number;
+  fatPerRecipe: number;
+}
+
+interface AdjustmentResult {
+  adjusted: boolean;
+  addedIngredients: string[];
+  removedIngredients: string[];
+  recipe: any;
+}
+
+function adjustRecipeMacros(
+  recipe: any,
+  targets: MacroTargets,
+  dietType: string,
+  allergens: string[]
+): AdjustmentResult {
+  const result: AdjustmentResult = {
+    adjusted: false,
+    addedIngredients: [],
+    removedIngredients: [],
+    recipe: { ...recipe, ingredients: [...(recipe.ingredients || [])] },
+  };
+
+  const servings = recipe.servings || 1;
+  const perPortionP = recipe.protein;  // Allerede per-portion efter korrektion
+  const perPortionC = recipe.carbs;
+  const perPortionF = recipe.fat;
+  const perPortionKcal = recipe.calories;
+
+  // Beregn afvigelser
+  const proteinGap = targets.proteinPerRecipe - perPortionP;   // Positivt = mangler protein
+  const carbsGap = targets.carbsPerRecipe - perPortionC;
+  const fatGap = targets.fatPerRecipe - perPortionF;
+  const calGap = targets.caloriesPerRecipe - perPortionKcal;
+
+  console.log(`\n🔧 adjustRecipeMacros for "${recipe.title}":`);
+  console.log(`   Nuværende: ${perPortionKcal} kcal, ${perPortionP}g P, ${perPortionC}g K, ${perPortionF}g F`);
+  console.log(`   Mål:       ${targets.caloriesPerRecipe} kcal, ${targets.proteinPerRecipe}g P, ${targets.carbsPerRecipe}g K, ${targets.fatPerRecipe}g F`);
+  console.log(`   Gap:       ${calGap > 0 ? '+' : ''}${Math.round(calGap)} kcal, ${proteinGap > 0 ? '+' : ''}${Math.round(proteinGap)}g P, ${carbsGap > 0 ? '+' : ''}${Math.round(carbsGap)}g K, ${fatGap > 0 ? '+' : ''}${Math.round(fatGap)}g F`);
+
+  // === PROTEIN FIX (vigtigst) ===
+  // Kun juster hvis protein er >20% under mål
+  if (proteinGap > targets.proteinPerRecipe * 0.20) {
+    const booster = PROTEIN_BOOSTERS.find(b =>
+      b.diet.includes(dietType) &&
+      !allergens.some(a => b.name.toLowerCase().includes(a.toLowerCase())) &&
+      // Undgå at tilføje noget der allerede er i opskriften
+      !result.recipe.ingredients.some((ing: any) =>
+        ing.name.toLowerCase().includes(b.name.toLowerCase()) ||
+        b.name.toLowerCase().includes(ing.name.toLowerCase())
+      )
+    );
+
+    if (booster) {
+      // Beregn hvor mange gram vi skal tilføje for at lukke gap'et
+      const gramsNeeded = Math.round((proteinGap / booster.per100.p) * 100);
+      // Begræns til realistisk mængde (50-150g per person)
+      const gramsToAdd = Math.min(150, Math.max(50, gramsNeeded));
+      // Skalér til total (gange med servings)
+      const totalGrams = gramsToAdd * servings;
+
+      const unit = booster.unit === "stk" ? "stk" : "g";
+      const amount = booster.unit === "stk"
+        ? String(Math.ceil((gramsToAdd / (booster.amountPer || 60)) * servings))
+        : String(totalGrams);
+
+      result.recipe.ingredients.push({
+        name: booster.name,
+        amount: amount,
+        unit: unit,
+        _added_by_system: true,
+        _reason: `+${Math.round(gramsToAdd * booster.per100.p / 100)}g protein`,
+      });
+
+      // Opdater makroer
+      const factor = gramsToAdd / 100;
+      result.recipe.protein = Math.round(perPortionP + booster.per100.p * factor);
+      result.recipe.carbs = Math.round(perPortionC + booster.per100.c * factor);
+      result.recipe.fat = Math.round(perPortionF + booster.per100.f * factor);
+      result.recipe.calories = Math.round(perPortionKcal + booster.per100.kcal * factor);
+
+      result.adjusted = true;
+      result.addedIngredients.push(`${gramsToAdd}g ${booster.name} (+${Math.round(gramsToAdd * booster.per100.p / 100)}g protein)`);
+      console.log(`   ✅ Tilføjet ${gramsToAdd}g ${booster.name} per portion (${totalGrams}g total)`);
+    }
+  }
+
+  // === KULHYDRAT FIX ===
+  // Kun juster hvis kulhydrater er >30% under mål OG kalorier er >20% under
+  const currentCals = result.recipe.calories || perPortionKcal;
+  const currentCarbs = result.recipe.carbs || perPortionC;
+  const carbsStillNeeded = targets.carbsPerRecipe - currentCarbs;
+  const calsStillNeeded = targets.caloriesPerRecipe - currentCals;
+
+  if (carbsStillNeeded > targets.carbsPerRecipe * 0.30 && calsStillNeeded > targets.caloriesPerRecipe * 0.20) {
+    const adjuster = CARB_ADJUSTERS.find(a =>
+      !result.recipe.ingredients.some((ing: any) =>
+        ing.name.toLowerCase().includes(a.name.toLowerCase()) ||
+        a.name.toLowerCase().includes(ing.name.toLowerCase())
+      )
+    );
+
+    if (adjuster) {
+      const gramsNeeded = Math.round((carbsStillNeeded / adjuster.per100.c) * 100);
+      const gramsToAdd = Math.min(120, Math.max(40, gramsNeeded));
+      const totalGrams = gramsToAdd * servings;
+
+      result.recipe.ingredients.push({
+        name: adjuster.name,
+        amount: String(totalGrams),
+        unit: "g",
+        _added_by_system: true,
+        _reason: `+${Math.round(gramsToAdd * adjuster.per100.c / 100)}g kulhydrater`,
+      });
+
+      const factor = gramsToAdd / 100;
+      result.recipe.protein = Math.round((result.recipe.protein || perPortionP) + adjuster.per100.p * factor);
+      result.recipe.carbs = Math.round(currentCarbs + adjuster.per100.c * factor);
+      result.recipe.fat = Math.round((result.recipe.fat || perPortionF) + adjuster.per100.f * factor);
+      result.recipe.calories = Math.round(currentCals + adjuster.per100.kcal * factor);
+
+      result.adjusted = true;
+      result.addedIngredients.push(`${gramsToAdd}g ${adjuster.name} (+${Math.round(gramsToAdd * adjuster.per100.c / 100)}g kulh.)`);
+      console.log(`   ✅ Tilføjet ${gramsToAdd}g ${adjuster.name} per portion`);
+    }
+  }
+
+  // === FEDT FIX ===
+  // Kun juster hvis fedt er >30% under mål OG kalorier stadig er >15% under
+  const currentFat = result.recipe.fat || perPortionF;
+  const fatStillNeeded = targets.fatPerRecipe - currentFat;
+  const calsNow = result.recipe.calories || currentCals;
+
+  if (fatStillNeeded > targets.fatPerRecipe * 0.30 && (targets.caloriesPerRecipe - calsNow) > targets.caloriesPerRecipe * 0.15) {
+    const adjuster = FAT_ADJUSTERS.find(a =>
+      !result.recipe.ingredients.some((ing: any) =>
+        ing.name.toLowerCase().includes(a.name.toLowerCase())
+      )
+    );
+
+    if (adjuster) {
+      const gramsNeeded = Math.round((fatStillNeeded / adjuster.per100.f) * 100);
+      const gramsToAdd = Math.min(40, Math.max(10, gramsNeeded));  // Fedt i små mængder
+      const totalGrams = gramsToAdd * servings;
+
+      const unit = adjuster.unit === "spsk" ? "spsk" : "g";
+      const amount = adjuster.unit === "spsk"
+        ? String(Math.ceil((gramsToAdd / (adjuster.amountPer || 15)) * servings))
+        : String(totalGrams);
+
+      result.recipe.ingredients.push({
+        name: adjuster.name,
+        amount: amount,
+        unit: unit,
+        _added_by_system: true,
+        _reason: `+${Math.round(gramsToAdd * adjuster.per100.f / 100)}g fedt`,
+      });
+
+      const factor = gramsToAdd / 100;
+      result.recipe.protein = Math.round((result.recipe.protein || perPortionP) + adjuster.per100.p * factor);
+      result.recipe.carbs = Math.round((result.recipe.carbs || perPortionC) + adjuster.per100.c * factor);
+      result.recipe.fat = Math.round(currentFat + adjuster.per100.f * factor);
+      result.recipe.calories = Math.round(calsNow + adjuster.per100.kcal * factor);
+
+      result.adjusted = true;
+      result.addedIngredients.push(`${gramsToAdd}g ${adjuster.name} (+${Math.round(gramsToAdd * adjuster.per100.f / 100)}g fedt)`);
+      console.log(`   ✅ Tilføjet ${gramsToAdd}g ${adjuster.name} per portion`);
+    }
+  }
+
+  // === KALORIER FOR HØJE? Reducer portionsstørrelse af kulhydrat-kilde ===
+  const finalCals = result.recipe.calories;
+  if (finalCals > targets.caloriesPerRecipe * 1.25) {
+    const excessCals = finalCals - targets.caloriesPerRecipe;
+    // Find den største kulhydrat-ingrediens og reducer den
+    const carbIngredients = result.recipe.ingredients.filter((ing: any) => {
+      const name = (ing.name || '').toLowerCase();
+      return name.includes('ris') || name.includes('pasta') || name.includes('kartof') ||
+             name.includes('nudl') || name.includes('brød') || name.includes('bulgur');
+    });
+
+    if (carbIngredients.length > 0) {
+      const biggestCarb = carbIngredients[0];
+      const currentAmount = parseFloat(biggestCarb.amount) || 0;
+      // Reducer med 20-30%
+      const reductionFactor = Math.max(0.7, 1 - (excessCals / (targets.caloriesPerRecipe * 2)));
+      const newAmount = Math.round(currentAmount * reductionFactor);
+
+      if (newAmount >= currentAmount * 0.5) { // Reducer aldrig med mere end 50%
+        console.log(`   📉 Reduceret ${biggestCarb.name}: ${currentAmount}→${newAmount} (for mange kalorier)`);
+        biggestCarb.amount = String(newAmount);
+        biggestCarb._reduced_by_system = true;
+
+        // Genberegn makroer approksimativt
+        const reduction = (currentAmount - newAmount) / servings; // Per portion reduktion
+        result.recipe.calories = Math.round(finalCals - reduction * 3.5); // ~3.5 kcal/g for kulhydratkilder
+        result.recipe.carbs = Math.round((result.recipe.carbs || 0) - reduction * 0.7); // ~70% kulhydrat
+        result.adjusted = true;
+        result.removedIngredients.push(`Reduceret ${biggestCarb.name} med ${Math.round((1 - reductionFactor) * 100)}%`);
+      }
+    }
+  }
+
+  // Opdater makro-sum konsistens
+  if (result.adjusted) {
+    const macroKcal = (result.recipe.protein * 4) + (result.recipe.carbs * 4) + (result.recipe.fat * 9);
+    result.recipe.calories = macroKcal; // Sørg for konsistens
+  }
+
+  if (result.adjusted) {
+    console.log(`   📊 Justeret: ${result.recipe.calories} kcal, ${result.recipe.protein}g P, ${result.recipe.carbs}g K, ${result.recipe.fat}g F`);
+  } else {
+    console.log(`   ✅ Ingen justering nødvendig`);
+  }
+
+  return result;
+}
+
 // ============ PRISBEREGNING ============
 function calculateRecipePrice(ingredients: any[], servings: number): { totalPrice: number; pricePerPortion: number; matchedCount: number } {
   let totalPrice = 0;
@@ -1813,6 +2068,16 @@ Lav retterne nu!`;
 
     console.log(`\n✅ Scaled ${scaledRecipes.length} recipes to ${targetServings} servings each`);
 
+    // ============ BEREGN MAKRO-MÅL PER RET ============
+    const mealsPerDayCount = mealsPerDay || 2;
+    const macroTargets = {
+      caloriesPerRecipe: Math.round(availableCalories / mealsPerDayCount),
+      proteinPerRecipe: Math.round((availableProtein || baseProtein) / mealsPerDayCount),
+      carbsPerRecipe: Math.round(baseCarbs / mealsPerDayCount),
+      fatPerRecipe: Math.round(baseFat / mealsPerDayCount),
+    };
+    console.log('🎯 Makro-mål per ret:', macroTargets);
+
     // ============ VALIDER OG KORRIGER ALLE OPSKRIFTER ============
     console.log('\n🔍 VALIDATING AND CORRECTING ALL RECIPES...');
 
@@ -1843,7 +2108,19 @@ Lav retterne nu!`;
         correctedRecipe.calories = macroKcal;
       }
 
-      // 4. Beregn pris
+      // 4. Auto-justér makroer mod mål (tilføj/fjern ingredienser)
+      const dietType = profile?.diet_type || 'omnivore';
+      const macroAdjustment = adjustRecipeMacros(correctedRecipe, macroTargets, dietType, allergenNames);
+      if (macroAdjustment.adjusted) {
+        correctedRecipe = macroAdjustment.recipe;
+        correctedRecipe._macro_adjustments = {
+          added: macroAdjustment.addedIngredients,
+          removed: macroAdjustment.removedIngredients,
+        };
+        console.log(`🎯 Makro-justering for "${recipe.title}": +${macroAdjustment.addedIngredients.length} ingredienser, ${macroAdjustment.removedIngredients.length} reduceret`);
+      }
+
+      // 5. Beregn pris
       const priceCalc = calculateRecipePrice(correctedRecipe.ingredients, correctedRecipe.servings || 1);
       correctedRecipe.estimated_price = priceCalc.pricePerPortion;
       correctedRecipe._price_details = { total: priceCalc.totalPrice, per_portion: priceCalc.pricePerPortion, matched_ingredients: priceCalc.matchedCount, total_ingredients: (correctedRecipe.ingredients || []).length };

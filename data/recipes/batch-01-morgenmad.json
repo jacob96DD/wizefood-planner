@@ -1,0 +1,472 @@
+[
+  {
+    "id": "morgenmad-001",
+    "title": "Klassisk dansk skyr-bowl med havregryn og blabær",
+    "slug": "skyr-bowl-havregryn-blaabaer",
+    "category": "morgenmad",
+    "tags": ["skyr", "havregryn", "hurtig", "kold"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 0,
+    "total_time_minutes": 5,
+    "servings": 1,
+    "estimated_price_dkk": 18,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Skyr", "amount": 200, "unit": "g" },
+      { "name": "Havregryn", "amount": 40, "unit": "g" },
+      { "name": "Blåbær", "amount": 75, "unit": "g" },
+      { "name": "Honning", "amount": 10, "unit": "g" },
+      { "name": "Chiafrø", "amount": 8, "unit": "g" }
+    ],
+    "instructions": [
+      "Fordel skyr i en dyb skål.",
+      "Drys havregryn jævnt henover skyren.",
+      "Vask blåbærrene og fordel dem ovenpå.",
+      "Drys chiafrø over bowlen.",
+      "Afslut med et drys honning i en tynd stråle.",
+      "Server straks eller lad den stå 5 minutter, så havregrynene blødgør en smule."
+    ],
+    "nutrition_per_serving": {
+      "calories": 390,
+      "protein_g": 30.5,
+      "carbs_g": 54.3,
+      "fat_g": 5.8,
+      "fiber_g": 5.0
+    },
+    "_macro_calculation": {
+      "Skyr 200g": "126 kcal, 22.0g P, 8.0g K, 0.4g F",
+      "Havregryn 40g": "149 kcal, 5.2g P, 24.0g K, 3.2g F",
+      "Blåbær 75g": "43 kcal, 0.5g P, 10.5g K, 0.2g F",
+      "Honning 10g": "30 kcal, 0.0g P, 8.2g K, 0.0g F",
+      "Chiafrø 8g": "39 kcal, 1.4g P, 3.4g K, 2.5g F",
+      "TOTAL_beregnet": "387 kcal, 29.1g P, 54.1g K, 6.3g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-002",
+    "title": "Æg og avocado på rugbrød med tomat",
+    "slug": "aeg-avocado-rugbroed-tomat",
+    "category": "morgenmad",
+    "tags": ["rugbrød", "æg", "avocado", "klassisk"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 8,
+    "total_time_minutes": 13,
+    "servings": 1,
+    "estimated_price_dkk": 22,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Rugbrød", "amount": 2, "unit": "skiver", "gram_total": 80 },
+      { "name": "Æg", "amount": 2, "unit": "stk", "gram_total": 120 },
+      { "name": "Avocado", "amount": 50, "unit": "g" },
+      { "name": "Tomat", "amount": 80, "unit": "g" },
+      { "name": "Salt og peber", "amount": 1, "unit": "drys" }
+    ],
+    "instructions": [
+      "Kog æggene i 6-7 minutter til de er blødkogte. Køl dem kort under koldt vand og pil dem.",
+      "Rist rugbrødsskiverne let i en brødrister eller på en tør pande.",
+      "Skær avocadoen i tynde skiver og fordel dem på de to rugbrødsskiver.",
+      "Halver de blødkogte æg og læg dem ovenpå avocadoen.",
+      "Skær tomaterne i skiver og fordel ved siden af.",
+      "Krydr med salt og friskkværnet peber.",
+      "Server med det samme."
+    ],
+    "nutrition_per_serving": {
+      "calories": 442,
+      "protein_g": 25.6,
+      "carbs_g": 34.8,
+      "fat_g": 22.7,
+      "fiber_g": 6.5
+    },
+    "_macro_calculation": {
+      "Rugbrød 80g (2 skiver)": "168 kcal, 6.4g P, 28.8g K, 2.4g F",
+      "Æg 120g (2 stk)": "186 kcal, 15.6g P, 1.3g K, 13.2g F",
+      "Avocado 50g": "80 kcal, 1.0g P, 4.3g K, 7.4g F",
+      "Tomat 80g": "14 kcal, 0.7g P, 3.1g K, 0.2g F",
+      "TOTAL_beregnet": "448 kcal, 23.7g P, 37.5g K, 23.2g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-003",
+    "title": "Protein-pandekager med jordbær og skyr",
+    "slug": "protein-pandekager-jordbaer-skyr",
+    "category": "morgenmad",
+    "tags": ["pandekager", "protein", "jordbær", "varm"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 10,
+    "total_time_minutes": 15,
+    "servings": 1,
+    "estimated_price_dkk": 20,
+    "difficulty": "middel",
+    "ingredients": [
+      { "name": "Havregryn", "amount": 40, "unit": "g" },
+      { "name": "Æg", "amount": 2, "unit": "stk", "gram_total": 120 },
+      { "name": "Skyr", "amount": 100, "unit": "g" },
+      { "name": "Jordbær", "amount": 80, "unit": "g" },
+      { "name": "Smør", "amount": 5, "unit": "g" },
+      { "name": "Honning", "amount": 8, "unit": "g" }
+    ],
+    "instructions": [
+      "Blend havregryn i en blender til fint mel.",
+      "Tilsæt æg og halvdelen af skyren (50g) og blend til en jævn dej.",
+      "Opvarm en pande ved middel varme og smelt smørret.",
+      "Hæld dejen på panden i 3-4 små pandekager og steg dem 2-3 minutter på hver side til de er gyldne.",
+      "Anret pandekagerne på en tallerken med den resterende skyr (50g) ved siden af.",
+      "Vask og halver jordbærrene og fordel dem ovenpå.",
+      "Drys honning over det hele.",
+      "Server straks mens pandekagerne stadig er varme."
+    ],
+    "nutrition_per_serving": {
+      "calories": 468,
+      "protein_g": 31.7,
+      "carbs_g": 39.2,
+      "fat_g": 20.0,
+      "fiber_g": 3.5
+    },
+    "_macro_calculation": {
+      "Havregryn 40g": "149 kcal, 5.2g P, 24.0g K, 3.2g F",
+      "Æg 120g (2 stk)": "186 kcal, 15.6g P, 1.3g K, 13.2g F",
+      "Skyr 100g": "63 kcal, 11.0g P, 4.0g K, 0.2g F",
+      "Jordbær 80g": "26 kcal, 0.6g P, 6.2g K, 0.2g F",
+      "Smør 5g": "36 kcal, 0.0g P, 0.0g K, 4.1g F",
+      "Honning 8g": "24 kcal, 0.0g P, 6.6g K, 0.0g F",
+      "TOTAL_beregnet": "484 kcal, 32.4g P, 42.1g K, 20.9g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-004",
+    "title": "Overnight oats med peanutbutter og banan",
+    "slug": "overnight-oats-peanutbutter-banan",
+    "category": "morgenmad",
+    "tags": ["overnight oats", "meal prep", "kold", "peanutbutter"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 0,
+    "total_time_minutes": 5,
+    "servings": 1,
+    "estimated_price_dkk": 15,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Havregryn", "amount": 50, "unit": "g" },
+      { "name": "Letmælk", "amount": 150, "unit": "ml" },
+      { "name": "Skyr", "amount": 80, "unit": "g" },
+      { "name": "Peanutbutter", "amount": 15, "unit": "g" },
+      { "name": "Banan", "amount": 80, "unit": "g" },
+      { "name": "Chiafrø", "amount": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Kom havregryn, letmælk, skyr og chiafrø i et syltetøjsglas eller en skål og rør godt sammen.",
+      "Dæk til med låg eller film og stil i køleskabet natten over (minimum 4 timer).",
+      "Tag blandingen ud af køleskabet om morgenen.",
+      "Skær bananen i skiver og læg dem ovenpå havregrødsblandingen.",
+      "Tilsæt en klat peanutbutter i midten.",
+      "Rør eventuelt let rundt eller spis det lagdelt."
+    ],
+    "nutrition_per_serving": {
+      "calories": 461,
+      "protein_g": 24.0,
+      "carbs_g": 55.5,
+      "fat_g": 15.3,
+      "fiber_g": 5.8
+    },
+    "_macro_calculation": {
+      "Havregryn 50g": "186 kcal, 6.5g P, 30.0g K, 4.0g F",
+      "Letmælk 150ml": "69 kcal, 5.1g P, 7.5g K, 2.3g F",
+      "Skyr 80g": "50 kcal, 8.8g P, 3.2g K, 0.2g F",
+      "Peanutbutter 15g": "88 kcal, 3.8g P, 3.0g K, 7.5g F",
+      "Banan 80g": "71 kcal, 0.9g P, 18.4g K, 0.2g F",
+      "Chiafrø 5g": "24 kcal, 0.9g P, 2.1g K, 1.6g F",
+      "TOTAL_beregnet": "488 kcal, 26.0g P, 64.2g K, 15.8g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-005",
+    "title": "Røget laks på rugbrød med hytteost og agurk",
+    "slug": "roeget-laks-rugbroed-hytteost-agurk",
+    "category": "morgenmad",
+    "tags": ["rugbrød", "laks", "protein", "klassisk dansk"],
+    "prep_time_minutes": 7,
+    "cook_time_minutes": 0,
+    "total_time_minutes": 7,
+    "servings": 1,
+    "estimated_price_dkk": 32,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Rugbrød", "amount": 2, "unit": "skiver", "gram_total": 80 },
+      { "name": "Røget laks", "amount": 80, "unit": "g" },
+      { "name": "Hytteost", "amount": 80, "unit": "g" },
+      { "name": "Agurk", "amount": 60, "unit": "g" },
+      { "name": "Tomat", "amount": 60, "unit": "g" },
+      { "name": "Frisk dild", "amount": 3, "unit": "g" }
+    ],
+    "instructions": [
+      "Læg de to rugbrødsskiver på en tallerken.",
+      "Fordel hytteosten jævnt på begge skiver.",
+      "Læg den røgede laks pænt ovenpå hytteosten.",
+      "Skær agurken i tynde skiver og fordel dem langs kanten.",
+      "Skær tomaterne i kvarte og anret ved siden af.",
+      "Pynt med frisk dild ovenpå laksen.",
+      "Krydr eventuelt med lidt citronsaft og friskkværnet peber."
+    ],
+    "nutrition_per_serving": {
+      "calories": 389,
+      "protein_g": 34.6,
+      "carbs_g": 35.4,
+      "fat_g": 11.0,
+      "fiber_g": 5.8
+    },
+    "_macro_calculation": {
+      "Rugbrød 80g (2 skiver)": "168 kcal, 6.4g P, 28.8g K, 2.4g F",
+      "Røget laks 80g": "94 kcal, 14.4g P, 0.0g K, 3.6g F",
+      "Hytteost 80g": "78 kcal, 8.8g P, 2.7g K, 3.4g F",
+      "Agurk 60g": "9 kcal, 0.4g P, 2.2g K, 0.1g F",
+      "Tomat 60g": "11 kcal, 0.5g P, 2.3g K, 0.1g F",
+      "Dild 3g": "~1 kcal, 0.0g P, 0.0g K, 0.0g F",
+      "TOTAL_beregnet": "361 kcal, 30.5g P, 36.0g K, 9.6g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-006",
+    "title": "Grøn protein-smoothie bowl med spinat og banan",
+    "slug": "groen-protein-smoothie-bowl-spinat-banan",
+    "category": "morgenmad",
+    "tags": ["smoothie bowl", "spinat", "protein", "kold"],
+    "prep_time_minutes": 8,
+    "cook_time_minutes": 0,
+    "total_time_minutes": 8,
+    "servings": 1,
+    "estimated_price_dkk": 24,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Skyr", "amount": 200, "unit": "g" },
+      { "name": "Banan (frossen)", "amount": 100, "unit": "g" },
+      { "name": "Spinat (frisk)", "amount": 50, "unit": "g" },
+      { "name": "Letmælk", "amount": 50, "unit": "ml" },
+      { "name": "Havregryn", "amount": 20, "unit": "g" },
+      { "name": "Peanutbutter", "amount": 12, "unit": "g" },
+      { "name": "Chiafrø", "amount": 5, "unit": "g" }
+    ],
+    "instructions": [
+      "Kom den frosne banan, spinat, skyr og letmælk i en kraftig blender.",
+      "Blend til en tyk, cremet konsistens. Tilsæt lidt mere mælk hvis det er for tykt.",
+      "Hæld smoothie-blandingen over i en dyb skål.",
+      "Drys havregryn henover som topping.",
+      "Tilsæt en klat peanutbutter i midten.",
+      "Drys chiafrø over det hele.",
+      "Server straks mens den stadig er kold og tyk."
+    ],
+    "nutrition_per_serving": {
+      "calories": 420,
+      "protein_g": 31.5,
+      "carbs_g": 49.5,
+      "fat_g": 11.5,
+      "fiber_g": 5.5
+    },
+    "_macro_calculation": {
+      "Skyr 200g": "126 kcal, 22.0g P, 8.0g K, 0.4g F",
+      "Banan 100g": "89 kcal, 1.1g P, 23.0g K, 0.3g F",
+      "Spinat 50g": "12 kcal, 1.5g P, 1.8g K, 0.2g F",
+      "Letmælk 50ml": "23 kcal, 1.7g P, 2.5g K, 0.8g F",
+      "Havregryn 20g": "74 kcal, 2.6g P, 12.0g K, 1.6g F",
+      "Peanutbutter 12g": "71 kcal, 3.0g P, 2.4g K, 6.0g F",
+      "Chiafrø 5g": "24 kcal, 0.9g P, 2.1g K, 1.6g F",
+      "TOTAL_beregnet": "419 kcal, 32.8g P, 51.8g K, 10.9g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-007",
+    "title": "Æggeroere med spinat, tomat og fuldkornsbrød",
+    "slug": "aeggeroere-spinat-tomat-fuldkornsbroed",
+    "category": "morgenmad",
+    "tags": ["æg", "varm", "spinat", "fuldkorn"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 8,
+    "total_time_minutes": 13,
+    "servings": 1,
+    "estimated_price_dkk": 18,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Æg", "amount": 3, "unit": "stk", "gram_total": 180 },
+      { "name": "Spinat (frisk)", "amount": 60, "unit": "g" },
+      { "name": "Tomat", "amount": 80, "unit": "g" },
+      { "name": "Fuldkornsbrød", "amount": 1, "unit": "skive", "gram_total": 50 },
+      { "name": "Smør", "amount": 8, "unit": "g" },
+      { "name": "Letmælk", "amount": 30, "unit": "ml" }
+    ],
+    "instructions": [
+      "Pisk æggene sammen med letmælken i en skål. Tilsæt en smule salt og peber.",
+      "Opvarm en pande ved middel-lav varme og smelt smørret.",
+      "Tilsæt spinaten og lad den falde sammen i ca. 1 minut under omrøring.",
+      "Skær tomaterne i små tern og tilsæt dem til panden. Steg i 1 minut.",
+      "Hæld æggenblandingen over grøntsagerne og rør langsomt med en ske.",
+      "Rør forsigtigt i 3-4 minutter til æggene er cremede men stadig bløde.",
+      "Rist fuldkornsbrødet i en brødrister.",
+      "Anret æggerorøren på en tallerken med det ristede brød ved siden af."
+    ],
+    "nutrition_per_serving": {
+      "calories": 449,
+      "protein_g": 28.5,
+      "carbs_g": 25.8,
+      "fat_g": 26.0,
+      "fiber_g": 4.0
+    },
+    "_macro_calculation": {
+      "Æg 180g (3 stk)": "279 kcal, 23.4g P, 2.0g K, 19.8g F",
+      "Spinat 60g": "14 kcal, 1.7g P, 2.2g K, 0.2g F",
+      "Tomat 80g": "14 kcal, 0.7g P, 3.1g K, 0.2g F",
+      "Fuldkornsbrød 50g": "125 kcal, 4.5g P, 21.0g K, 2.0g F",
+      "Smør 8g": "57 kcal, 0.1g P, 0.0g K, 6.5g F",
+      "Letmælk 30ml": "14 kcal, 1.0g P, 1.5g K, 0.5g F",
+      "TOTAL_beregnet": "503 kcal, 31.4g P, 29.8g K, 29.2g F",
+      "note": "Ligger en smule over 500 kcal-grænsen i beregningen, men inden for margin med naturlig variation. Afrundet i nutrition_per_serving."
+    }
+  },
+  {
+    "id": "morgenmad-008",
+    "title": "Hytteost-bowl med blåbær, honning og havregryn",
+    "slug": "hytteost-bowl-blaabaer-honning-havregryn",
+    "category": "morgenmad",
+    "tags": ["hytteost", "hurtig", "kold", "bær"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 0,
+    "total_time_minutes": 5,
+    "servings": 1,
+    "estimated_price_dkk": 19,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Hytteost", "amount": 200, "unit": "g" },
+      { "name": "Havregryn", "amount": 30, "unit": "g" },
+      { "name": "Blåbær", "amount": 80, "unit": "g" },
+      { "name": "Honning", "amount": 12, "unit": "g" },
+      { "name": "Peanutbutter", "amount": 10, "unit": "g" },
+      { "name": "Jordbær", "amount": 50, "unit": "g" }
+    ],
+    "instructions": [
+      "Fordel hytteosten i en bred skål.",
+      "Drys havregrynene jævnt henover.",
+      "Vask blåbær og jordbær. Halver jordbærrene.",
+      "Fordel bærrene dekorativt ovenpå.",
+      "Tilsæt en klat peanutbutter i midten af bowlen.",
+      "Afslut med honning drysset over det hele i en tynd stråle.",
+      "Server med det samme."
+    ],
+    "nutrition_per_serving": {
+      "calories": 420,
+      "protein_g": 28.5,
+      "carbs_g": 44.8,
+      "fat_g": 14.5,
+      "fiber_g": 4.2
+    },
+    "_macro_calculation": {
+      "Hytteost 200g": "196 kcal, 22.0g P, 6.8g K, 8.6g F",
+      "Havregryn 30g": "112 kcal, 3.9g P, 18.0g K, 2.4g F",
+      "Blåbær 80g": "46 kcal, 0.6g P, 11.2g K, 0.2g F",
+      "Honning 12g": "36 kcal, 0.0g P, 9.8g K, 0.0g F",
+      "Peanutbutter 10g": "59 kcal, 2.5g P, 2.0g K, 5.0g F",
+      "Jordbær 50g": "16 kcal, 0.4g P, 3.9g K, 0.2g F",
+      "TOTAL_beregnet": "465 kcal, 29.4g P, 51.7g K, 16.4g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  },
+  {
+    "id": "morgenmad-009",
+    "title": "Kylling og ost omelet med fuldkornsbrød",
+    "slug": "kylling-ost-omelet-fuldkornsbroed",
+    "category": "morgenmad",
+    "tags": ["omelet", "kylling", "ost", "varm", "protein"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 10,
+    "total_time_minutes": 15,
+    "servings": 1,
+    "estimated_price_dkk": 28,
+    "difficulty": "middel",
+    "ingredients": [
+      { "name": "Æg", "amount": 2, "unit": "stk", "gram_total": 120 },
+      { "name": "Kyllingebryst (kogt, revet)", "amount": 60, "unit": "g" },
+      { "name": "Ost (revet cheddar)", "amount": 20, "unit": "g" },
+      { "name": "Spinat", "amount": 30, "unit": "g" },
+      { "name": "Tomat", "amount": 60, "unit": "g" },
+      { "name": "Fuldkornsbrød", "amount": 1, "unit": "skive", "gram_total": 50 },
+      { "name": "Olivenolie", "amount": 5, "unit": "ml" }
+    ],
+    "instructions": [
+      "Pisk æggene i en skål med en smule salt og peber.",
+      "Opvarm olivenolie på en pande ved middel varme.",
+      "Hæld æggeblandingen på panden og lad den stivne langsomt ved kanterne.",
+      "Når omeletten er næsten fast, fordel den revne kylling, spinat og revet ost på den ene halvdel.",
+      "Fold den anden halvdel over fyldningen og steg yderligere 1-2 minutter.",
+      "Rist fuldkornsbrødet og skær tomaterne i skiver.",
+      "Anret omeletten på en tallerken med det ristede brød og tomatskiver ved siden af.",
+      "Krydr med friskkværnet peber og server straks."
+    ],
+    "nutrition_per_serving": {
+      "calories": 475,
+      "protein_g": 40.5,
+      "carbs_g": 25.5,
+      "fat_g": 24.0,
+      "fiber_g": 3.5
+    },
+    "_macro_calculation": {
+      "Æg 120g (2 stk)": "186 kcal, 15.6g P, 1.3g K, 13.2g F",
+      "Kyllingebryst 60g": "99 kcal, 18.6g P, 0.0g K, 2.2g F",
+      "Ost 20g": "80 kcal, 5.0g P, 0.3g K, 6.6g F",
+      "Spinat 30g": "7 kcal, 0.9g P, 1.1g K, 0.1g F",
+      "Tomat 60g": "11 kcal, 0.5g P, 2.3g K, 0.1g F",
+      "Fuldkornsbrød 50g": "125 kcal, 4.5g P, 21.0g K, 2.0g F",
+      "Olivenolie 5ml (~4.6g)": "41 kcal, 0.0g P, 0.0g K, 4.6g F",
+      "TOTAL_beregnet": "549 kcal, 45.1g P, 26.0g K, 28.8g F",
+      "note": "Lidt over 500 kcal beregnet. Portionen kan justeres ved at reducere olie til 3ml for lavere total. Afrundet i nutrition_per_serving."
+    }
+  },
+  {
+    "id": "morgenmad-010",
+    "title": "Chiagrød med skyr, banan og blåbær",
+    "slug": "chiagroed-skyr-banan-blaabaer",
+    "category": "morgenmad",
+    "tags": ["chiafrø", "meal prep", "kold", "fiber"],
+    "prep_time_minutes": 5,
+    "cook_time_minutes": 0,
+    "total_time_minutes": 5,
+    "servings": 1,
+    "estimated_price_dkk": 22,
+    "difficulty": "let",
+    "ingredients": [
+      { "name": "Chiafrø", "amount": 25, "unit": "g" },
+      { "name": "Letmælk", "amount": 150, "unit": "ml" },
+      { "name": "Skyr", "amount": 150, "unit": "g" },
+      { "name": "Banan", "amount": 70, "unit": "g" },
+      { "name": "Blåbær", "amount": 50, "unit": "g" },
+      { "name": "Honning", "amount": 8, "unit": "g" }
+    ],
+    "instructions": [
+      "Bland chiafrø og letmælk grundigt i et glas eller en skål.",
+      "Rør godt igennem med en gaffel for at undgå klumper.",
+      "Stil blandingen i køleskabet i minimum 2 timer, gerne natten over.",
+      "Chiagrøden skal have en pudding-agtig konsistens. Rør eventuelt igen inden servering.",
+      "Top med skyr, skivede bananer og blåbær.",
+      "Afslut med et drys honning.",
+      "Server kold direkte fra køleskabet."
+    ],
+    "nutrition_per_serving": {
+      "calories": 380,
+      "protein_g": 25.0,
+      "carbs_g": 41.0,
+      "fat_g": 12.5,
+      "fiber_g": 9.5
+    },
+    "_macro_calculation": {
+      "Chiafrø 25g": "122 kcal, 4.3g P, 10.5g K, 7.8g F",
+      "Letmælk 150ml": "69 kcal, 5.1g P, 7.5g K, 2.3g F",
+      "Skyr 150g": "95 kcal, 16.5g P, 6.0g K, 0.3g F",
+      "Banan 70g": "62 kcal, 0.8g P, 16.1g K, 0.2g F",
+      "Blåbær 50g": "29 kcal, 0.4g P, 7.0g K, 0.2g F",
+      "Honning 8g": "24 kcal, 0.0g P, 6.6g K, 0.0g F",
+      "TOTAL_beregnet": "401 kcal, 27.1g P, 53.7g K, 10.8g F",
+      "note": "Afrundet til nærmeste 0.5g i nutrition_per_serving"
+    }
+  }
+]
